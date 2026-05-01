@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum FormaPago {
+  EFECTIVO
+  TRANSFERENCIA
+  PAGO_SEMANAL
+  CAMBIO
+
+  @@map("forma_pago")
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  PARCIAL
+
+  @@map("estado_pago")
+}
+
+enum EstadoFactura {
+  NO_REQUIERE
+  PENDIENTE
+  EMITIDA
+
+  @@map("estado_factura")
+}
+
+// ==================== CATÁLOGOS ====================
+
+model Zona {
+  id       Int       @id @default(autoincrement()) @map("id_zona")
+  nombre   String    @unique
+  clientes Cliente[]
+
+  @@map("zonas")
+}
+
+model Repartidor {
+  id      Int       @id @default(autoincrement()) @map("id_repartidor")
+  nombre  String    @unique
+  activo  Boolean   @default(true)
+  clientes Cliente[]
+  pedidos  Pedido[]
+
+  @@map("repartidores")
+}
+
+model Producto {
+  id               Int      @id @default(autoincrement()) @map("id_producto")
+  nombre           String   @unique
+  precioReferencia Float    @default(0) @map("precio_referencia")
+  activo           Boolean  @default(true)
+  pedidos          Pedido[]
+
+  @@map("productos")
+}
+
+// ==================== CUENTAS CORRIENTES ====================
+
+// Agrupa clientes que pagan en conjunto al cierre de semana (o período)
+model CuentaCorriente {
+  id            Int              @id @default(autoincrement()) @map("id_cuenta")
+  nombre        String           @unique
+  // Ej: "LUNES", "SABADO", "CADA 2 SEMANAS" — texto libre por flexibilidad
+  diaCobranza   String?          @map("dia_cobranza")
+  observaciones String?
+  activo        Boolean          @default(true)
+  clientes      Cliente[]
+  periodos      PeriodoSemanal[]
+  creadoEn      DateTime         @default(now()) @map("creado_en")
+
+  @@map("cuentas_corrientes")
+}
+
+// Registro de un período de cobro semanal (o por período) para una cuenta
+model PeriodoSemanal {
+  id            Int             @id @default(autoincrement()) @map("id_periodo")
+  cuenta        CuentaCorriente @relation(fields: [idCuenta], references: [id])
+  idCuenta      Int             @map("id_cuenta")
+  fechaInicio   DateTime        @db.Date @map("fecha_inicio")
+  fechaFin      DateTime        @db.Date @map("fecha_fin")
+  montoTotal    Float           @default(0) @map("monto_total")
+  montoPagado   Float           @default(0) @map("monto_pagado")
+  fechaPago     DateTime?       @db.Date @map("fecha_pago")
+  formaPago     FormaPago?      @map("forma_pago")
+  observaciones String?
+  creadoEn      DateTime        @default(now()) @map("creado_en")
+
+  @@map("periodos_semanales")
+}
+
+// ==================== CLIENTES ====================
+
+model Cliente {
+  id                Int              @id @default(autoincrement()) @map("id_cliente")
+  nombre            String
+  direccion         String?
+  telefono          String?
+  zona              Zona             @relation(fields: [idZona], references: [id])
+  idZona            Int              @map("id_zona")
+  repartidor        Repartidor?      @relation(fields: [idRepartidor], references: [id])
+  idRepartidor      Int?             @map("id_repartidor")
+  formaPagoPref     FormaPago        @default(EFECTIVO) @map("forma_pago_pref")
+  requiereFactura   Boolean          @default(false) @map("requiere_factura")
+  cuentaCorriente   CuentaCorriente? @relation(fields: [idCuentaCorriente], references: [id])
+  idCuentaCorriente Int?             @map("id_cuenta_corriente")
+  activo            Boolean          @default(true)
+  observaciones     String?
+  pedidos           Pedido[]
+  creadoEn          DateTime         @default(now()) @map("creado_en")
+  actualizadoEn     DateTime         @updatedAt @map("actualizado_en")
+
+  @@map("clientes")
+}
+
+// ==================== PEDIDOS ====================
+
+model Pedido {
+  id              Int           @id @default(autoincrement()) @map("id_pedido")
+  fecha           DateTime      @db.Date
+  cliente         Cliente       @relation(fields: [idCliente], references: [id])
+  idCliente       Int           @map("id_cliente")
+  producto        Producto      @relation(fields: [idProducto], references: [id])
+  idProducto      Int           @map("id_producto")
+  // Texto libre: PF, SEMI, VERDE, PF-SEMI, 1PF-1SEMI, etc.
+  maduracion      String
+  cajas           Float
+  montoTotal      Float         @map("monto_total")
+  formaPago       FormaPago     @map("forma_pago")
+  estadoPago      EstadoPago    @default(PENDIENTE) @map("estado_pago")
+  montoPagado     Float         @default(0) @map("monto_pagado")
+  repartidor      Repartidor?   @relation(fields: [idRepartidor], references: [id])
+  idRepartidor    Int?          @map("id_repartidor")
+  requiereFactura Boolean       @default(false) @map("requiere_factura")
+  estadoFactura   EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
+  // true para filas de COBRANZA (cobro de deuda, no entrega)
+  esCobro         Boolean       @default(false) @map("es_cobro")
+  observaciones   String?
+  creadoEn        DateTime      @default(now()) @map("creado_en")
+  actualizadoEn   DateTime      @updatedAt @map("actualizado_en")
+
+  @@map("pedidos")
+}

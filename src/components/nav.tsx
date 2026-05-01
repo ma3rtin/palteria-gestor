@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const links = [
+  { href: "/", label: "Inicio" },
+  { href: "/pedidos", label: "Pedidos" },
+  { href: "/clientes", label: "Clientes" },
+  { href: "/cobranzas", label: "Cobranzas" },
+  { href: "/pagos-semanales", label: "Pagos Semanales" },
+  { href: "/repartidores", label: "Repartidores" },
+  { href: "/productos", label: "Productos" },
+];
+
+const configLinks = [
+  { href: "/config/zonas", label: "Zonas" },
+  { href: "/config/repartidores", label: "Repartidores" },
+];
+
+export default function Nav() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="w-52 min-h-screen flex flex-col shrink-0 bg-[#1a3d2b]">
+      <div className="px-5 py-7 border-b border-[#2d6a4f]">
+        <div className="text-white font-bold text-sm tracking-wide">La Paltería</div>
+        <div className="text-[#52b788] text-[10px] tracking-widest uppercase mt-0.5">Gestor</div>
+      </div>
+
+      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
+        {links.map((link) => {
+          const active =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                active
+                  ? "bg-[#ea580c] text-white font-medium"
+                  : "text-[#a8d5be] hover:bg-[#2d6a4f] hover:text-white"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+
+        <div className="mt-4 mb-1 px-3">
+          <span className="text-[10px] uppercase tracking-widest text-[#52b788]">Configuración</span>
+        </div>
+        {configLinks.map((link) => {
+          const active = pathname.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                active
+                  ? "bg-[#ea580c] text-white font-medium"
+                  : "text-[#a8d5be] hover:bg-[#2d6a4f] hover:text-white"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </aside>
+  );
+}
