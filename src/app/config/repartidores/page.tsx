@@ -40,16 +40,16 @@ export default async function ConfigRepartidoresPage() {
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-6">
-        <a href="/config/zonas" className="text-xs text-[#9aab9d] hover:text-[#ea580c]">
+        <a href="/config/zonas" className="text-xs text-[#6b7280] hover:text-[#a3e635]">
           ← Configuración
         </a>
-        <h1 className="text-2xl font-bold text-[#1a2419] mt-1">Repartidores</h1>
+        <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">Repartidores</h1>
       </div>
 
-      <div className="bg-white rounded-lg border border-[#dde6de] overflow-hidden mb-6">
+      <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden mb-6">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#dde6de] text-[#9aab9d] text-xs">
+            <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
               <th className="text-left px-4 py-3 font-medium">Nombre</th>
               <th className="text-right px-4 py-3 font-medium">Pedidos</th>
               <th className="px-4 py-3"></th>
@@ -57,26 +57,26 @@ export default async function ConfigRepartidoresPage() {
           </thead>
           <tbody>
             {activos.map((r) => (
-              <tr key={r.id} className="border-b border-[#f2f5f2] last:border-0">
+              <tr key={r.id} className="border-b border-[#22252e] last:border-0">
                 <td className="px-4 py-2">
                   <form action={renombrarRepartidor} className="flex items-center gap-2">
                     <input type="hidden" name="id" value={r.id} />
                     <input
                       name="nombre"
                       defaultValue={r.nombre}
-                      className="border border-[#dde6de] rounded px-2 py-1 text-sm focus:outline-none focus:border-[#16a34a] w-40"
+                      className="border border-[#2a2d35] rounded px-2 py-1 text-sm focus:outline-none focus:border-[#a3e635] w-40"
                     />
-                    <button type="submit" className="text-xs text-[#ea580c] hover:underline whitespace-nowrap">
+                    <button type="submit" className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
                       Renombrar
                     </button>
                   </form>
                 </td>
-                <td className="px-4 py-2 text-right text-[#9aab9d]">{r._count.pedidos}</td>
+                <td className="px-4 py-2 text-right text-[#6b7280]">{r._count.pedidos}</td>
                 <td className="px-4 py-2 text-right">
                   <form action={toggleActivo}>
                     <input type="hidden" name="id" value={r.id} />
                     <input type="hidden" name="activo" value="true" />
-                    <button type="submit" className="text-xs text-[#9aab9d] hover:text-red-500">
+                    <button type="submit" className="text-xs text-[#6b7280] hover:text-red-500">
                       Desactivar
                     </button>
                   </form>
@@ -87,19 +87,19 @@ export default async function ConfigRepartidoresPage() {
             {inactivos.length > 0 && (
               <>
                 <tr>
-                  <td colSpan={3} className="px-4 py-2 text-xs text-[#9aab9d] bg-[#f7faf7] font-medium">
+                  <td colSpan={3} className="px-4 py-2 text-xs text-[#6b7280] bg-[#22252e] font-medium">
                     Inactivos
                   </td>
                 </tr>
                 {inactivos.map((r) => (
-                  <tr key={r.id} className="border-b border-[#f2f5f2] last:border-0 opacity-50">
-                    <td className="px-4 py-2 text-[#5a6b5c]">{r.nombre}</td>
-                    <td className="px-4 py-2 text-right text-[#9aab9d]">{r._count.pedidos}</td>
+                  <tr key={r.id} className="border-b border-[#22252e] last:border-0 opacity-50">
+                    <td className="px-4 py-2 text-[#9ca3af]">{r.nombre}</td>
+                    <td className="px-4 py-2 text-right text-[#6b7280]">{r._count.pedidos}</td>
                     <td className="px-4 py-2 text-right">
                       <form action={toggleActivo}>
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="activo" value="false" />
-                        <button type="submit" className="text-xs text-[#16a34a] hover:underline">
+                        <button type="submit" className="text-xs text-[#4ade80] hover:underline">
                           Activar
                         </button>
                       </form>
@@ -112,18 +112,18 @@ export default async function ConfigRepartidoresPage() {
         </table>
       </div>
 
-      <div className="bg-white rounded-lg border border-[#dde6de] p-5">
-        <h3 className="text-sm font-semibold text-[#1a2419] mb-3">Agregar repartidor</h3>
+      <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-5">
+        <h3 className="text-sm font-semibold text-[#f9fafb] mb-3">Agregar repartidor</h3>
         <form action={crearRepartidor} className="flex gap-3">
           <input
             name="nombre"
             required
             placeholder="Nombre del repartidor"
-            className="flex-1 border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+            className="flex-1 border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
           />
           <button
             type="submit"
-            className="bg-[#ea580c] hover:bg-[#c2410c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Agregar
           </button>

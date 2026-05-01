@@ -27,7 +27,7 @@ export function FiltrosCobranza({ zonas, repartidores, zonaActual, repartidorAct
       <select
         defaultValue={zonaActual ?? ""}
         onChange={(e) => actualizar(e.target.value, repartidorActual ?? "")}
-        className="border border-[#dde6de] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#16a34a]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
       >
         <option value="">Todas las zonas</option>
         {zonas.map((z) => (
@@ -37,7 +37,7 @@ export function FiltrosCobranza({ zonas, repartidores, zonaActual, repartidorAct
       <select
         defaultValue={repartidorActual ?? ""}
         onChange={(e) => actualizar(zonaActual ?? "", e.target.value)}
-        className="border border-[#dde6de] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#16a34a]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
       >
         <option value="">Todos los repartidores</option>
         {repartidores.map((r) => (
@@ -47,7 +47,7 @@ export function FiltrosCobranza({ zonas, repartidores, zonaActual, repartidorAct
       {(zonaActual || repartidorActual) && (
         <button
           onClick={() => actualizar("", "")}
-          className="px-3 py-2 text-sm text-[#5a6b5c] hover:text-[#ea580c] border border-[#dde6de] rounded-lg"
+          className="px-3 py-2 text-sm text-[#9ca3af] hover:text-[#a3e635] border border-[#2a2d35] rounded-lg"
         >
           Limpiar
         </button>

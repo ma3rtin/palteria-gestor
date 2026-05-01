@@ -2,9 +2,9 @@ type EstadoPago = "PENDIENTE" | "PAGADO" | "PARCIAL";
 type EstadoFactura = "NO_REQUIERE" | "PENDIENTE" | "EMITIDA";
 
 const coloresPago: Record<EstadoPago, string> = {
-  PENDIENTE: "bg-red-100 text-red-700",
-  PARCIAL: "bg-yellow-100 text-yellow-700",
-  PAGADO: "bg-green-100 text-green-700",
+  PENDIENTE: "bg-red-950 text-red-400",
+  PARCIAL:   "bg-yellow-950 text-yellow-400",
+  PAGADO:    "bg-green-950 text-green-400",
 };
 
 const etiquetasPago: Record<EstadoPago, string> = {
@@ -14,9 +14,9 @@ const etiquetasPago: Record<EstadoPago, string> = {
 };
 
 const coloresFactura: Record<EstadoFactura, string> = {
-  NO_REQUIERE: "bg-gray-100 text-gray-500",
-  PENDIENTE: "bg-orange-100 text-orange-700",
-  EMITIDA: "bg-blue-100 text-blue-700",
+  NO_REQUIERE: "bg-[#22252e] text-[#6b7280]",
+  PENDIENTE:   "bg-orange-950 text-orange-400",
+  EMITIDA:     "bg-blue-950 text-blue-400",
 };
 
 const etiquetasFactura: Record<EstadoFactura, string> = {

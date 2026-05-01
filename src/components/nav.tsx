@@ -22,10 +22,10 @@ export default function Nav() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-52 min-h-screen flex flex-col shrink-0 bg-[#1a3d2b]">
-      <div className="px-5 py-7 border-b border-[#2d6a4f]">
+    <aside className="w-52 min-h-screen flex flex-col shrink-0 bg-[#13161e]">
+      <div className="px-5 py-7 border-b border-[#1f2330]">
         <div className="text-white font-bold text-sm tracking-wide">La Paltería</div>
-        <div className="text-[#52b788] text-[10px] tracking-widest uppercase mt-0.5">Gestor</div>
+        <div className="text-[#a3e635] text-[10px] tracking-widest uppercase mt-0.5">Gestor</div>
       </div>
 
       <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
@@ -40,8 +40,8 @@ export default function Nav() {
               href={link.href}
               className={`px-3 py-2 rounded-md text-sm transition-colors ${
                 active
-                  ? "bg-[#ea580c] text-white font-medium"
-                  : "text-[#a8d5be] hover:bg-[#2d6a4f] hover:text-white"
+                  ? "bg-[#a3e635] text-[#0f1117] font-medium"
+                  : "text-[#9ca3af] hover:bg-[#22252e] hover:text-white"
               }`}
             >
               {link.label}
@@ -50,7 +50,7 @@ export default function Nav() {
         })}
 
         <div className="mt-4 mb-1 px-3">
-          <span className="text-[10px] uppercase tracking-widest text-[#52b788]">Configuración</span>
+          <span className="text-[10px] uppercase tracking-widest text-[#a3e635]">Configuración</span>
         </div>
         {configLinks.map((link) => {
           const active = pathname.startsWith(link.href);
@@ -60,8 +60,8 @@ export default function Nav() {
               href={link.href}
               className={`px-3 py-2 rounded-md text-sm transition-colors ${
                 active
-                  ? "bg-[#ea580c] text-white font-medium"
-                  : "text-[#a8d5be] hover:bg-[#2d6a4f] hover:text-white"
+                  ? "bg-[#a3e635] text-[#0f1117] font-medium"
+                  : "text-[#9ca3af] hover:bg-[#22252e] hover:text-white"
               }`}
             >
               {link.label}

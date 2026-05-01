@@ -25,10 +25,10 @@ export default async function ClientesPage({ searchParams }: Props) {
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1a2419]">Clientes</h1>
+        <h1 className="text-2xl font-bold text-[#f9fafb]">Clientes</h1>
         <Link
           href="/clientes/nuevo"
-          className="bg-[#ea580c] hover:bg-[#c2410c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           + Nuevo cliente
         </Link>
@@ -36,15 +36,15 @@ export default async function ClientesPage({ searchParams }: Props) {
 
       <BuscadorClientes valorInicial={q ?? ""} />
 
-      <div className="mt-4 bg-white rounded-lg border border-[#dde6de] overflow-hidden">
+      <div className="mt-4 bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
         {ordenados.length === 0 ? (
-          <div className="p-8 text-center text-[#9aab9d] text-sm">
+          <div className="p-8 text-center text-[#6b7280] text-sm">
             {q ? `Sin resultados para "${q}"` : "No hay clientes registrados."}
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#dde6de] text-[#9aab9d] text-xs">
+              <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
                 <th className="text-left px-4 py-3 font-medium">Cliente</th>
                 <th className="text-left px-4 py-3 font-medium">Zona</th>
                 <th className="text-left px-4 py-3 font-medium">Repartidor</th>
@@ -56,23 +56,23 @@ export default async function ClientesPage({ searchParams }: Props) {
               {ordenados.map((c) => (
                 <tr
                   key={c.id}
-                  className="border-b border-[#f2f5f2] last:border-0 hover:bg-[#f7faf7] cursor-pointer"
+                  className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e] cursor-pointer"
                 >
                   <td className="px-4 py-2.5">
                     <Link href={`/clientes/${c.id}`} className="block">
-                      <span className="font-medium text-[#1a2419]">{c.nombre}</span>
+                      <span className="font-medium text-[#f9fafb]">{c.nombre}</span>
                       {!c.activo && (
-                        <span className="ml-2 text-xs text-[#9aab9d]">(inactivo)</span>
+                        <span className="ml-2 text-xs text-[#6b7280]">(inactivo)</span>
                       )}
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5 text-[#5a6b5c]">
+                  <td className="px-4 py-2.5 text-[#9ca3af]">
                     <Link href={`/clientes/${c.id}`} className="block">{c.zona.nombre}</Link>
                   </td>
-                  <td className="px-4 py-2.5 text-[#5a6b5c]">
+                  <td className="px-4 py-2.5 text-[#9ca3af]">
                     <Link href={`/clientes/${c.id}`} className="block">{c.repartidor?.nombre ?? "—"}</Link>
                   </td>
-                  <td className="px-4 py-2.5 text-[#5a6b5c]">
+                  <td className="px-4 py-2.5 text-[#9ca3af]">
                     <Link href={`/clientes/${c.id}`} className="block">
                       {c.formaPagoPref === "PAGO_SEMANAL"
                         ? "Pago semanal"
@@ -83,7 +83,7 @@ export default async function ClientesPage({ searchParams }: Props) {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <Link href={`/clientes/${c.id}`} className="block">
-                      <span className={c.saldoPendiente > 0 ? "font-semibold text-red-600" : "text-[#9aab9d]"}>
+                      <span className={c.saldoPendiente > 0 ? "font-semibold text-red-600" : "text-[#6b7280]"}>
                         {c.saldoPendiente > 0 ? formatearPeso(c.saldoPendiente) : "—"}
                       </span>
                     </Link>
@@ -95,7 +95,7 @@ export default async function ClientesPage({ searchParams }: Props) {
         )}
       </div>
 
-      <p className="text-xs text-[#9aab9d] mt-3">
+      <p className="text-xs text-[#6b7280] mt-3">
         {filtrados.length} clientes · {conDeuda.length} con deuda
       </p>
     </div>

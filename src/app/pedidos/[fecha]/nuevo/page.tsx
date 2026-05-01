@@ -13,11 +13,11 @@ export default async function NuevoPedidoPage({ params }: Props) {
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <div className="mb-6">
-        <a href={`/pedidos/${fecha}`} className="text-xs text-[#9aab9d] hover:text-[#ea580c]">
+        <a href={`/pedidos/${fecha}`} className="text-xs text-[#6b7280] hover:text-[#a3e635]">
           ← Volver a {fecha}
         </a>
-        <h1 className="text-2xl font-bold text-[#1a2419] mt-1">Nuevo pedido</h1>
-        <p className="text-[#5a6b5c] text-sm">{fecha}</p>
+        <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">Nuevo pedido</h1>
+        <p className="text-[#9ca3af] text-sm">{fecha}</p>
       </div>
 
       <FormNuevoPedido

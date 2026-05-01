@@ -69,18 +69,18 @@ export function FormNuevoPedido({
     : clientes;
 
   return (
-    <form action={crearPedido} className="bg-white rounded-lg border border-[#dde6de] p-6 flex flex-col gap-5">
+    <form action={crearPedido} className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5">
       <input type="hidden" name="fecha" value={fecha} />
 
       {/* Cliente con búsqueda */}
       <div>
-        <label className="block text-sm font-medium text-[#1a2419] mb-1">Cliente *</label>
+        <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cliente *</label>
         <input
           type="text"
           placeholder="Buscar cliente..."
           value={busquedaCliente}
           onChange={(e) => setBusquedaCliente(e.target.value)}
-          className="w-full border border-[#dde6de] rounded-t-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+          className="w-full border border-[#2a2d35] rounded-t-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
         />
         <select
           name="idCliente"
@@ -92,7 +92,7 @@ export function FormNuevoPedido({
             setIdClienteSelec(id);
             setBusquedaCliente(clientes.find((c) => c.id === id)?.nombre ?? "");
           }}
-          className="w-full border border-x border-b border-[#dde6de] rounded-b-lg px-3 py-1 text-sm focus:outline-none focus:border-[#16a34a] bg-white"
+          className="w-full border border-x border-b border-[#2a2d35] rounded-b-lg px-3 py-1 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
         >
           {clientesFiltrados.map((c) => (
             <option key={c.id} value={c.id}>
@@ -101,7 +101,7 @@ export function FormNuevoPedido({
           ))}
         </select>
         {clienteSelec && (
-          <p className="text-xs text-[#16a34a] mt-1">
+          <p className="text-xs text-[#4ade80] mt-1">
             ✓ {clienteSelec.nombre} — Pago habitual: {clienteSelec.formaPagoPref}
           </p>
         )}
@@ -110,7 +110,7 @@ export function FormNuevoPedido({
       {/* Producto + Maduración */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">Producto *</label>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Producto *</label>
           <select
             name="idProducto"
             required
@@ -119,7 +119,7 @@ export function FormNuevoPedido({
               setIdProductoSelec(Number(e.target.value));
               setMontoManual(null);
             }}
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a] bg-white"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
             <option value="">Seleccionar...</option>
             {productos.map((p) => (
@@ -128,13 +128,13 @@ export function FormNuevoPedido({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">Maduración *</label>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Maduración *</label>
           <input
             name="maduracion"
             required
             list="maduraciones"
             placeholder="PF-SEMI, VERDE..."
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
           />
           <datalist id="maduraciones">
             {maduracionesSugeridas.map((m) => (
@@ -147,7 +147,7 @@ export function FormNuevoPedido({
       {/* Cajas + Monto */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">Cajas *</label>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
           <input
             name="cajas"
             type="number"
@@ -159,14 +159,14 @@ export function FormNuevoPedido({
               setCajas(parseFloat(e.target.value) || 0);
               setMontoManual(null);
             }}
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">
             Monto total *
             {productoSelec && montoManual === null && (
-              <span className="text-xs text-[#9aab9d] ml-1">(calculado)</span>
+              <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
             )}
           </label>
           <input
@@ -177,7 +177,7 @@ export function FormNuevoPedido({
             step={1000}
             value={montoFinal}
             onChange={(e) => setMontoManual(parseInt(e.target.value) || 0)}
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
           />
         </div>
       </div>
@@ -185,12 +185,12 @@ export function FormNuevoPedido({
       {/* Forma de pago + Repartidor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">Forma de pago *</label>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Forma de pago *</label>
           <select
             name="formaPago"
             required
             defaultValue={clienteSelec?.formaPagoPref ?? "EFECTIVO"}
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a] bg-white"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
             {FORMAS_PAGO.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -198,11 +198,11 @@ export function FormNuevoPedido({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-[#1a2419] mb-1">Repartidor</label>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Repartidor</label>
           <select
             name="idRepartidor"
             defaultValue={clienteSelec?.idRepartidor ?? ""}
-            className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a] bg-white"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
             <option value="">Sin asignar</option>
             {repartidores.map((r) => (
@@ -213,11 +213,11 @@ export function FormNuevoPedido({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[#1a2419] mb-1">Observaciones</label>
+        <label className="block text-sm font-medium text-[#f9fafb] mb-1">Observaciones</label>
         <input
           name="observaciones"
           placeholder="PAGA $X REVISAR SALDO, coordinar, etc."
-          className="w-full border border-[#dde6de] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#16a34a]"
+          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
         />
       </div>
 
@@ -228,24 +228,24 @@ export function FormNuevoPedido({
             name="requiereFactura"
             defaultChecked={clienteSelec?.requiereFactura ?? false}
           />
-          <span className="text-sm text-[#1a2419]">Requiere factura</span>
+          <span className="text-sm text-[#f9fafb]">Requiere factura</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="esCobro" />
-          <span className="text-sm text-[#1a2419]">Es cobranza (no entrega)</span>
+          <span className="text-sm text-[#f9fafb]">Es cobranza (no entrega)</span>
         </label>
       </div>
 
-      <div className="flex gap-3 pt-2 border-t border-[#f2f5f2]">
+      <div className="flex gap-3 pt-2 border-t border-[#22252e]">
         <button
           type="submit"
-          className="bg-[#ea580c] hover:bg-[#c2410c] text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-6 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Guardar pedido
         </button>
         <a
           href={`/pedidos/${fecha}`}
-          className="px-6 py-2 rounded-lg text-sm text-[#5a6b5c] hover:text-[#1a2419] border border-[#dde6de] hover:border-[#9aab9d] transition-colors"
+          className="px-6 py-2 rounded-lg text-sm text-[#9ca3af] hover:text-[#f9fafb] border border-[#2a2d35] hover:border-[#4b5563] transition-colors"
         >
           Cancelar
         </a>

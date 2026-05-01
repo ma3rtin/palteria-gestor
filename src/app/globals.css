@@ -1,21 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f2f5f2;
-  --bg-card: #ffffff;
-  --bg-hover: #f7faf7;
-  --border: #dde6de;
-  --verde: #16a34a;
-  --verde-dim: #15803d;
-  --naranja: #ea580c;
-  --naranja-dim: #c2410c;
-  --texto: #1a2419;
-  --texto-dim: #5a6b5c;
-  --texto-muted: #9aab9d;
-  --sidebar-bg: #1a3d2b;
-  --sidebar-border: #2d6a4f;
-  --sidebar-active: #ea580c;
-  --sidebar-text: #a8d5be;
+  --bg:          #0f1117;
+  --bg-card:     #1c1f26;
+  --bg-hover:    #22252e;
+  --border:      #2a2d35;
+  --lima:        #a3e635;
+  --lima-dim:    #84cc16;
+  --verde:       #4ade80;
+  --texto:       #f9fafb;
+  --texto-dim:   #9ca3af;
+  --texto-muted: #6b7280;
+  --sidebar-bg:  #13161e;
+  --sidebar-border: #1f2330;
+  --sidebar-active: #a3e635;
+  --sidebar-text: #9ca3af;
   --sidebar-text-hover: #ffffff;
 }
 
@@ -30,4 +29,19 @@ body {
   color: var(--texto);
   font-family: ui-sans-serif, system-ui, sans-serif;
   margin: 0;
+}
+
+input, select, textarea {
+  background-color: var(--bg-card);
+  color: var(--texto);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--texto-muted);
+}
+
+option {
+  background-color: var(--bg-card);
+  color: var(--texto);
 }

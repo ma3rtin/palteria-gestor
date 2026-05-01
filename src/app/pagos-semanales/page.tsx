@@ -9,8 +9,8 @@ export default async function PagosSemanalesPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1a2419]">Pagos semanales</h1>
-        <p className="text-[#5a6b5c] mt-0.5 text-sm">
+        <h1 className="text-2xl font-bold text-[#f9fafb]">Pagos semanales</h1>
+        <p className="text-[#9ca3af] mt-0.5 text-sm">
           {cuentas.length} cuentas corrientes · {formatearPeso(deudaTotal)} pendiente total
         </p>
       </div>
@@ -20,13 +20,13 @@ export default async function PagosSemanalesPage() {
           <Link
             key={cc.id}
             href={`/pagos-semanales/${cc.id}`}
-            className="bg-white rounded-lg border border-[#dde6de] hover:border-[#ea580c] px-5 py-4 flex items-center justify-between transition-colors group"
+            className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] hover:border-[#a3e635] px-5 py-4 flex items-center justify-between transition-colors group"
           >
             <div>
-              <span className="font-semibold text-[#1a2419] group-hover:text-[#ea580c]">
+              <span className="font-semibold text-[#f9fafb] group-hover:text-[#a3e635]">
                 {cc.nombre}
               </span>
-              <div className="flex gap-3 mt-1 text-xs text-[#9aab9d]">
+              <div className="flex gap-3 mt-1 text-xs text-[#6b7280]">
                 <span>{cc.clientes.length} locales</span>
                 {cc.diaCobranza && <span>Cobra: {cc.diaCobranza}</span>}
               </div>
@@ -35,9 +35,9 @@ export default async function PagosSemanalesPage() {
               {cc.deudaTotal > 0 ? (
                 <span className="font-bold text-red-600">{formatearPeso(cc.deudaTotal)}</span>
               ) : (
-                <span className="text-[#16a34a] font-medium text-sm">Al día ✓</span>
+                <span className="text-[#4ade80] font-medium text-sm">Al día ✓</span>
               )}
-              <p className="text-[#9aab9d] text-xs mt-0.5">pendiente</p>
+              <p className="text-[#6b7280] text-xs mt-0.5">pendiente</p>
             </div>
           </Link>
         ))}
