@@ -18,6 +18,7 @@ const links = [
 const configLinks = [
   { href: "/config/zonas", label: "Zonas" },
   { href: "/config/repartidores", label: "Repartidores" },
+  { href: "/perfil", label: "Perfil" },
 ];
 
 interface Props {
@@ -28,7 +29,7 @@ export default function Nav({ usuario }: Props) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-52 min-h-screen flex flex-col shrink-0 bg-[#13161e]">
+    <aside className="w-52 h-screen sticky top-0 flex flex-col shrink-0 bg-[#13161e]">
       <div className="px-5 py-7 border-b border-[#1f2330]">
         <div className="text-white font-bold text-sm tracking-wide">La Paltería</div>
         <div className="text-[#a3e635] text-[10px] tracking-widest uppercase mt-0.5">Gestor</div>
