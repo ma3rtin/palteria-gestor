@@ -2,6 +2,7 @@ import { getClientesConDeuda, getCatalogosCobranza, marcarTodosPagadosCliente } 
 import { formatearPeso, formatearFechaCorta } from "@/lib/utils";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { FiltrosCobranza } from "./filtros";
+import { BotonSubmit } from "@/components/boton-submit";
 
 interface Props {
   searchParams: Promise<{ zona?: string; repartidor?: string }>;
@@ -17,7 +18,7 @@ export default async function CobranzasPage({ searchParams }: Props) {
   const deudaTotal = clientesDeuda.reduce((s, c) => s + c.deudaTotal, 0);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-8 mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#f9fafb]">Cobranzas pendientes</h1>
@@ -56,12 +57,11 @@ export default async function CobranzasPage({ searchParams }: Props) {
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-red-600">{formatearPeso(deuda)}</span>
                     <form action={marcarTodosAction}>
-                      <button
-                        type="submit"
+                      <BotonSubmit
                         className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                       >
                         Cobrar todo
-                      </button>
+                      </BotonSubmit>
                     </form>
                   </div>
                 </div>

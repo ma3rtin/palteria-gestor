@@ -50,9 +50,17 @@ export async function getSaldoCliente(idCliente: number) {
   return (agg._sum.montoTotal ?? 0) - (agg._sum.montoPagado ?? 0);
 }
 
-export async function getClientesConSaldo() {
+export async function getClientesConSaldo(
+  idZona?: number,
+  idRepartidor?: number,
+  incluirInactivos?: boolean
+) {
   const clientes = await prisma.cliente.findMany({
-    where: { activo: true },
+    where: {
+      ...(incluirInactivos ? {} : { activo: true }),
+      ...(idZona ? { idZona } : {}),
+      ...(idRepartidor ? { idRepartidor } : {}),
+    },
     include: { zona: true, repartidor: true },
     orderBy: { nombre: "asc" },
   });

@@ -1,4 +1,5 @@
 export function formatearPeso(monto: number) {
+  if (isNaN(monto)) return "—";
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -22,7 +23,8 @@ export function formatearFechaCorta(fecha: Date | string) {
 }
 
 export function hoyISO(): string {
-  return new Date().toISOString().split("T")[0];
+  // en-CA formatea como YYYY-MM-DD; timeZone evita que el servidor UTC devuelva "mañana" después de las 21hs AR
+  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
 }
 
 // Convierte "2026-05-01" a Date a mediodía para evitar problemas de timezone

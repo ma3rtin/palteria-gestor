@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -18,7 +20,11 @@ const configLinks = [
   { href: "/config/repartidores", label: "Repartidores" },
 ];
 
-export default function Nav() {
+interface Props {
+  usuario: string;
+}
+
+export default function Nav({ usuario }: Props) {
   const pathname = usePathname();
 
   return (
@@ -69,6 +75,20 @@ export default function Nav() {
           );
         })}
       </nav>
+
+      {/* Usuario + cerrar sesión */}
+      <div className="px-4 py-4 border-t border-[#1f2330]">
+        {usuario && (
+          <p className="text-xs text-[#6b7280] truncate mb-2">{usuario}</p>
+        )}
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex items-center gap-2 text-xs text-[#6b7280] hover:text-[#f9fafb] transition-colors w-full"
+        >
+          <LogOut size={13} />
+          Cerrar sesión
+        </button>
+      </div>
     </aside>
   );
 }

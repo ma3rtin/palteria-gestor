@@ -1,10 +1,56 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { hoyISO, parseFechaRuta } from "@/lib/utils";
+
+export async function getStatsSemana() {
+  const hoy = parseFechaRuta(hoyISO());
+
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+
+  const sabado = new Date(lunes);
+  sabado.setDate(lunes.getDate() + 5);
+
+  const [agregado, porProducto] = await Promise.all([
+    prisma.pedido.aggregate({
+      where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+      _sum: { cajas: true, montoTotal: true, montoPagado: true },
+      _count: { id: true },
+    }),
+    prisma.pedido.groupBy({
+      by: ["idProducto"],
+      where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+      _sum: { cajas: true, montoTotal: true },
+      orderBy: { _sum: { cajas: "desc" } },
+      take: 6,
+    }),
+  ]);
+
+  const productos = await prisma.producto.findMany({
+    where: { id: { in: porProducto.map((p) => p.idProducto) } },
+    select: { id: true, nombre: true },
+  });
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+
+  return {
+    totalCajasSemana: agregado._sum.cajas ?? 0,
+    totalMontoSemana: agregado._sum.montoTotal ?? 0,
+    totalCobradoSemana: agregado._sum.montoPagado ?? 0,
+    totalPedidosSemana: agregado._count.id,
+    topProductos: porProducto.map((p) => ({
+      nombre: productos.find((pr) => pr.id === p.idProducto)?.nombre ?? "?",
+      cajas: p._sum.cajas ?? 0,
+      monto: p._sum.montoTotal ?? 0,
+    })),
+    semanaLabel: `${fmt(lunes)} – ${fmt(sabado)}`,
+  };
+}
 
 export async function getStatsHoy() {
-  const hoy = new Date();
-  hoy.setHours(12, 0, 0, 0);
+  const hoy = parseFechaRuta(hoyISO());
 
   const [pedidosHoy, deudaAgregada, clientesConDeudaGrupos] = await Promise.all([
     prisma.pedido.findMany({
@@ -46,8 +92,7 @@ export async function getStatsHoy() {
 }
 
 export async function getResumenPorRepartidorHoy() {
-  const hoy = new Date();
-  hoy.setHours(12, 0, 0, 0);
+  const hoy = parseFechaRuta(hoyISO());
 
   const grupos = await prisma.pedido.groupBy({
     by: ["idRepartidor"],

@@ -11,7 +11,7 @@ export default async function NuevoPedidoPage({ params }: Props) {
   const { clientes, productos, repartidores } = await getCatalogoNuevoPedido();
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8">
       <div className="mb-6">
         <a href={`/pedidos/${fecha}`} className="text-xs text-[#6b7280] hover:text-[#a3e635]">
           ← Volver a {fecha}

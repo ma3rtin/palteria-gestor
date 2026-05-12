@@ -1,19 +1,20 @@
 import Link from "next/link";
-import { getStatsHoy, getResumenPorRepartidorHoy } from "@/actions/dashboard";
+import { getStatsHoy, getResumenPorRepartidorHoy, getStatsSemana } from "@/actions/dashboard";
 import { TarjetaStat } from "@/components/tarjeta-stat";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, formatearFecha, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 
 export default async function Inicio() {
-  const [stats, resumenRepartidores] = await Promise.all([
+  const [stats, resumenRepartidores, statsSemana] = await Promise.all([
     getStatsHoy(),
     getResumenPorRepartidorHoy(),
+    getStatsSemana(),
   ]);
 
   const hoy = hoyISO();
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -53,6 +54,27 @@ export default async function Inicio() {
           valor={formatearPeso(stats.montoTotalDeuda)}
           subtitulo={`${stats.clientesConDeuda} clientes`}
           colorValor={stats.montoTotalDeuda > 0 ? "text-red-600" : "text-[#f9fafb]"}
+        />
+      </div>
+
+      {/* Stats de la semana */}
+      <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mb-3">
+        Esta semana <span className="font-normal normal-case ml-1">({statsSemana.semanaLabel})</span>
+      </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <TarjetaStat
+          titulo="Pedidos"
+          valor={statsSemana.totalPedidosSemana}
+        />
+        <TarjetaStat
+          titulo="Cajas vendidas"
+          valor={statsSemana.totalCajasSemana.toLocaleString("es-AR")}
+        />
+        <TarjetaStat
+          titulo="Facturado"
+          valor={formatearPeso(statsSemana.totalMontoSemana)}
+          subtitulo={`Cobrado: ${formatearPeso(statsSemana.totalCobradoSemana)}`}
+          colorValor="text-[#4ade80]"
         />
       </div>
 
@@ -155,8 +177,31 @@ export default async function Inicio() {
             </div>
           )}
 
+          {/* Top productos de la semana */}
+          {statsSemana.topProductos.length > 0 && (
+            <>
+              <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mt-6 mb-3">
+                Top productos — semana
+              </h2>
+              <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] divide-y divide-[#22252e] mb-6">
+                {statsSemana.topProductos.map((p, i) => (
+                  <div key={p.nombre + i} className="px-4 py-2.5 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#6b7280] w-4 shrink-0">{i + 1}</span>
+                      <span className="text-sm text-[#f9fafb]">{p.nombre}</span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-sm font-semibold text-[#4ade80]">{p.cajas} caj.</span>
+                      <span className="text-xs text-[#6b7280] ml-2">{formatearPeso(p.monto)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Accesos rápidos */}
-          <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mt-6 mb-3">
+          <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest m-3">
             Accesos rápidos
           </h2>
           <div className="flex flex-col gap-2">

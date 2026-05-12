@@ -7,7 +7,7 @@ export default async function PagosSemanalesPage() {
   const deudaTotal = cuentas.reduce((s, c) => s + c.deudaTotal, 0);
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#f9fafb]">Pagos semanales</h1>
         <p className="text-[#9ca3af] mt-0.5 text-sm">

@@ -1,4 +1,5 @@
 import { getCatalogoFormulario, crearCliente } from "@/actions/clientes";
+import { BotonSubmit } from "@/components/boton-submit";
 
 const FORMAS_PAGO = [
   { value: "EFECTIVO", label: "Efectivo" },
@@ -11,7 +12,7 @@ export default async function NuevoClientePage() {
   const { zonas, repartidores, cuentas } = await getCatalogoFormulario();
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8">
       <h1 className="text-2xl font-bold text-[#f9fafb] mb-6">Nuevo cliente</h1>
 
       <form action={crearCliente} className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5">
@@ -116,12 +117,11 @@ export default async function NuevoClientePage() {
         </label>
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
+          <BotonSubmit
             className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-6 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Crear cliente
-          </button>
+          </BotonSubmit>
           <a href="/clientes" className="px-6 py-2 rounded-lg text-sm text-[#9ca3af] hover:text-[#f9fafb] border border-[#2a2d35] hover:border-[#4b5563] transition-colors">
             Cancelar
           </a>

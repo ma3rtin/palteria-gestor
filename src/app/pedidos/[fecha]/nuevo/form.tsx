@@ -1,5 +1,6 @@
 "use client";
 
+import { BotonSubmit } from "@/components/boton-submit";
 import { useState } from "react";
 
 interface Cliente {
@@ -32,10 +33,10 @@ interface Props {
 }
 
 const FORMAS_PAGO = [
-  { value: "EFECTIVO", label: "Efectivo" },
+  { value: "EFECTIVO",      label: "Efectivo" },
   { value: "TRANSFERENCIA", label: "Transferencia" },
-  { value: "PAGO_SEMANAL", label: "Pago Semanal" },
-  { value: "CAMBIO", label: "Cambio" },
+  { value: "PAGO_SEMANAL",  label: "Pago Semanal" },
+  { value: "CAMBIO",        label: "Cambio" },
 ];
 
 export function FormNuevoPedido({
@@ -50,59 +51,95 @@ export function FormNuevoPedido({
   const [idProductoSelec, setIdProductoSelec] = useState<number | null>(null);
   const [cajas, setCajas] = useState<number>(1);
   const [montoManual, setMontoManual] = useState<number | null>(null);
-  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [mostrarLista, setMostrarLista] = useState(false);
+  const [errorCliente, setErrorCliente] = useState(false);
+  const [formaPago, setFormaPago] = useState("EFECTIVO");
+  const [esReposicion, setEsReposicion] = useState(true);
 
   const clienteSelec = clientes.find((c) => c.id === idClienteSelec);
   const productoSelec = productos.find((p) => p.id === idProductoSelec);
 
-  const montoCalculado = productoSelec
-    ? Math.round(productoSelec.precioReferencia * cajas)
-    : 0;
-  const montoFinal = montoManual ?? montoCalculado;
+  const esCambio = formaPago === "CAMBIO";
+  const montoCalculado = productoSelec ? Math.round(productoSelec.precioReferencia * cajas) : 0;
+  const montoFinal = esCambio && esReposicion ? 0 : (montoManual ?? montoCalculado);
+  const pagoHabitual = clienteSelec ? FORMAS_PAGO.find((f) => f.value === clienteSelec.formaPagoPref)?.label : null;
 
-  const clientesFiltrados = busquedaCliente
+  const clientesFiltrados = busqueda
     ? clientes.filter(
         (c) =>
-          c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()) ||
-          c.zona.nombre.toLowerCase().includes(busquedaCliente.toLowerCase())
+          c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          c.zona.nombre.toLowerCase().includes(busqueda.toLowerCase())
       )
     : clientes;
 
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (!idClienteSelec) {
+      e.preventDefault();
+      setErrorCliente(true);
+    }
+  }
+
+  function seleccionarCliente(c: Cliente) {
+    setIdClienteSelec(c.id);
+    setBusqueda(c.nombre + " · " + c.zona.nombre);
+    setMostrarLista(false);
+    setErrorCliente(false);
+  }
+
   return (
-    <form action={crearPedido} className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5">
+    <form
+      action={crearPedido}
+      onSubmit={handleSubmit}
+      className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5"
+    >
       <input type="hidden" name="fecha" value={fecha} />
 
-      {/* Cliente con búsqueda */}
+      {/* Cliente — combobox */}
       <div>
         <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cliente *</label>
-        <input
-          type="text"
-          placeholder="Buscar cliente..."
-          value={busquedaCliente}
-          onChange={(e) => setBusquedaCliente(e.target.value)}
-          className="w-full border border-[#2a2d35] rounded-t-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
-        />
-        <select
-          name="idCliente"
-          required
-          size={5}
-          value={idClienteSelec ?? ""}
-          onChange={(e) => {
-            const id = Number(e.target.value);
-            setIdClienteSelec(id);
-            setBusquedaCliente(clientes.find((c) => c.id === id)?.nombre ?? "");
-          }}
-          className="w-full border border-x border-b border-[#2a2d35] rounded-b-lg px-3 py-1 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
-        >
-          {clientesFiltrados.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre} · {c.zona.nombre}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o zona..."
+            value={busqueda}
+            autoComplete="off"
+            onFocus={() => setMostrarLista(true)}
+            onBlur={() => setTimeout(() => setMostrarLista(false), 150)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setIdClienteSelec(null);
+              setMostrarLista(true);
+            }}
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none ${
+              errorCliente
+                ? "border-red-500 focus:border-red-500"
+                : "border-[#2a2d35] focus:border-[#a3e635]"
+            }`}
+          />
+          <input type="hidden" name="idCliente" value={idClienteSelec ?? ""} />
+
+          {mostrarLista && clientesFiltrados.length > 0 && (
+            <ul className="absolute z-20 w-full bg-[#1c1f26] border border-[#2a2d35] border-t-0 rounded-b-lg max-h-52 overflow-y-auto shadow-xl">
+              {clientesFiltrados.map((c) => (
+                <li
+                  key={c.id}
+                  onMouseDown={() => seleccionarCliente(c)}
+                  className="px-3 py-2 text-sm cursor-pointer hover:bg-[#22252e] flex justify-between items-center"
+                >
+                  <span className="text-[#f9fafb]">{c.nombre}</span>
+                  <span className="text-[#6b7280] text-xs ml-3 shrink-0">{c.zona.nombre}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {errorCliente && (
+          <p className="text-xs text-red-400 mt-1">Seleccioná un cliente de la lista</p>
+        )}
         {clienteSelec && (
           <p className="text-xs text-[#4ade80] mt-1">
-            ✓ {clienteSelec.nombre} — Pago habitual: {clienteSelec.formaPagoPref}
+            ✓ Pago habitual: <span className="font-medium">{pagoHabitual}</span>
           </p>
         )}
       </div>
@@ -164,9 +201,12 @@ export function FormNuevoPedido({
         </div>
         <div>
           <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-            Monto total *
-            {productoSelec && montoManual === null && (
+            {esCambio && !esReposicion ? "Diferencia a cobrar *" : "Monto total *"}
+            {!esCambio && productoSelec && montoManual === null && (
               <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+            )}
+            {esCambio && esReposicion && (
+              <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
             )}
           </label>
           <input
@@ -174,10 +214,10 @@ export function FormNuevoPedido({
             type="number"
             required
             min={0}
-            step={1000}
             value={montoFinal}
+            readOnly={esCambio && esReposicion}
             onChange={(e) => setMontoManual(parseInt(e.target.value) || 0)}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] read-only:opacity-40 read-only:cursor-not-allowed"
           />
         </div>
       </div>
@@ -189,7 +229,12 @@ export function FormNuevoPedido({
           <select
             name="formaPago"
             required
-            defaultValue={clienteSelec?.formaPagoPref ?? "EFECTIVO"}
+            value={formaPago}
+            onChange={(e) => {
+              setFormaPago(e.target.value);
+              if (e.target.value === "CAMBIO") setEsReposicion(true);
+              setMontoManual(null);
+            }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
             {FORMAS_PAGO.map((f) => (
@@ -211,6 +256,38 @@ export function FormNuevoPedido({
           </select>
         </div>
       </div>
+
+      <input type="hidden" name="esReposicion" value={String(esReposicion)} />
+
+      {esCambio && (
+        <div>
+          <label className="block text-sm font-medium text-[#f9fafb] mb-2">Tipo de cambio *</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => { setEsReposicion(true); setMontoManual(null); }}
+              className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
+                esReposicion
+                  ? "bg-[#a3e635] text-[#0f1117] border-[#a3e635] font-medium"
+                  : "border-[#2a2d35] text-[#9ca3af] hover:border-[#4b5563]"
+              }`}
+            >
+              Sin cargo (reposición)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEsReposicion(false); setMontoManual(null); }}
+              className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
+                !esReposicion
+                  ? "bg-[#a3e635] text-[#0f1117] border-[#a3e635] font-medium"
+                  : "border-[#2a2d35] text-[#9ca3af] hover:border-[#4b5563]"
+              }`}
+            >
+              Con diferencia de precio
+            </button>
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-[#f9fafb] mb-1">Observaciones</label>
@@ -237,12 +314,11 @@ export function FormNuevoPedido({
       </div>
 
       <div className="flex gap-3 pt-2 border-t border-[#22252e]">
-        <button
-          type="submit"
+        <BotonSubmit
           className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-6 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Guardar pedido
-        </button>
+        </BotonSubmit>
         <a
           href={`/pedidos/${fecha}`}
           className="px-6 py-2 rounded-lg text-sm text-[#9ca3af] hover:text-[#f9fafb] border border-[#2a2d35] hover:border-[#4b5563] transition-colors"

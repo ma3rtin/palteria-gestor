@@ -3,9 +3,11 @@ import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
 import { BadgeEstadoPago, BadgeEstadoFactura } from "@/components/badge-estado";
 import { formatearPeso, formatearFecha, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesPedido } from "./acciones";
+import { FiltrosPedidos } from "./filtros";
 
 interface Props {
   params: Promise<{ fecha: string }>;
+  searchParams: Promise<{ zona?: string; repartidor?: string; estado?: string; q?: string }>;
 }
 
 function fechaAnterior(fecha: string) {
@@ -20,18 +22,37 @@ function fechaSiguiente(fecha: string) {
   return d.toISOString().split("T")[0];
 }
 
-export default async function PedidosFechaPage({ params }: Props) {
+export default async function PedidosFechaPage({ params, searchParams }: Props) {
   const { fecha } = await params;
+  const { zona, repartidor, estado, q } = await searchParams;
+
   const [pedidos, totales] = await Promise.all([
     getPedidosPorFecha(fecha),
     getTotalesDia(fecha),
   ]);
 
-  const entregados = pedidos.filter((p) => !p.esCobro);
+  // Catálogo para filtros: zonas y repartidores únicos del día
+  const zonasUnicas = Array.from(
+    new Map(pedidos.map((p) => [p.cliente.zona.id, p.cliente.zona])).values()
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const repsUnicos = Array.from(
+    new Map(
+      pedidos.filter((p) => p.repartidor).map((p) => [p.repartidor!.id, p.repartidor!])
+    ).values()
+  ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  // Filtrar entregas
+  let entregados = pedidos.filter((p) => !p.esCobro);
+  if (zona)       entregados = entregados.filter((p) => p.cliente.idZona === Number(zona));
+  if (repartidor) entregados = entregados.filter((p) => p.idRepartidor === Number(repartidor));
+  if (estado)     entregados = entregados.filter((p) => p.estadoPago === estado);
+  if (q)          entregados = entregados.filter((p) => p.cliente.nombre.toLowerCase().includes(q.toLowerCase()));
+
   const cobros = pedidos.filter((p) => p.esCobro);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 mx-auto">
       {/* Header con navegación de fechas */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -61,7 +82,7 @@ export default async function PedidosFechaPage({ params }: Props) {
       </div>
 
       {/* Totales del día */}
-      {entregados.length > 0 && (
+      {pedidos.filter((p) => !p.esCobro).length > 0 && (
         <div className="grid grid-cols-4 gap-3 mb-6">
           {[
             { label: "Pedidos", valor: totales.cantidad.toString() },
@@ -96,57 +117,81 @@ export default async function PedidosFechaPage({ params }: Props) {
         </div>
       ) : (
         <>
+          {/* Filtros */}
+          <FiltrosPedidos
+            fecha={fecha}
+            zonas={zonasUnicas}
+            repartidores={repsUnicos}
+            zonaActual={zona}
+            repartidorActual={repartidor}
+            estadoActual={estado}
+            busquedaActual={q}
+          />
+
           {/* Tabla de entregas */}
           <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden mb-4">
             <div className="px-4 py-3 border-b border-[#2a2d35] flex items-center justify-between">
               <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
-                Entregas ({entregados.length})
+                Entregas ({entregados.length}{entregados.length !== pedidos.filter((p) => !p.esCobro).length ? ` de ${pedidos.filter((p) => !p.esCobro).length}` : ""})
               </h2>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
-                  <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                  <th className="text-left px-4 py-3 font-medium">Producto · Mad.</th>
-                  <th className="text-left px-4 py-3 font-medium">Repartidor</th>
-                  <th className="text-right px-4 py-3 font-medium">Cajas</th>
-                  <th className="text-right px-4 py-3 font-medium">Monto</th>
-                  <th className="text-left px-4 py-3 font-medium">Pago</th>
-                  <th className="text-left px-4 py-3 font-medium">Estado</th>
-                  <th className="text-left px-4 py-3 font-medium">Factura</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {entregados.map((p) => (
-                  <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]">
-                    <td className="px-4 py-2.5">
-                      <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
-                        <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                      </Link>
-                      <span className="text-[#6b7280] text-xs ml-1">{p.cliente.zona.nombre}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-[#9ca3af]">
-                      {p.producto.nombre}
-                      <span className="text-[#6b7280] text-xs ml-1">{p.maduracion}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-[#9ca3af] text-xs">{p.repartidor?.nombre ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
-                    <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
-                    <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{ETIQUETAS_FORMA_PAGO[p.formaPago]}</td>
-                    <td className="px-4 py-2.5">
-                      <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <BadgeEstadoFactura estado={p.estadoFactura as "NO_REQUIERE" | "PENDIENTE" | "EMITIDA"} />
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <AccionesPedido pedido={p} fecha={fecha} />
-                    </td>
+            {entregados.length === 0 ? (
+              <div className="p-6 text-center text-[#6b7280] text-sm">Sin entregas con esos filtros.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
+                    <th className="text-left px-4 py-3 font-medium">Cliente</th>
+                    <th className="text-left px-4 py-3 font-medium">Producto · Mad.</th>
+                    <th className="text-left px-4 py-3 font-medium">Repartidor</th>
+                    <th className="text-right px-4 py-3 font-medium">Cajas</th>
+                    <th className="text-right px-4 py-3 font-medium">Monto</th>
+                    <th className="text-left px-4 py-3 font-medium">Pago</th>
+                    <th className="text-left px-4 py-3 font-medium">Estado</th>
+                    <th className="text-left px-4 py-3 font-medium">Factura</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {entregados.map((p) => (
+                    <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]">
+                      <td className="px-4 py-2.5">
+                        <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
+                          <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
+                        </Link>
+                        <span className="text-[#6b7280] text-xs ml-1">{p.cliente.zona.nombre}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-[#9ca3af]">
+                        {p.producto.nombre}
+                        <span className="text-[#6b7280] text-xs ml-1">{p.maduracion}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-[#9ca3af] text-xs">{p.repartidor?.nombre ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-medium text-[#f9fafb]">{formatearPeso(p.montoTotal)}</span>
+                        {p.estadoPago === "PARCIAL" && (
+                          <div className="text-xs mt-0.5 space-x-1">
+                            <span className="text-[#4ade80]">Pagado {formatearPeso(p.montoPagado)}</span>
+                            <span className="text-[#6b7280]">·</span>
+                            <span className="text-red-400">Debe {formatearPeso(p.montoTotal - p.montoPagado)}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{ETIQUETAS_FORMA_PAGO[p.formaPago]}</td>
+                      <td className="px-4 py-2.5">
+                        <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <BadgeEstadoFactura estado={p.estadoFactura as "NO_REQUIERE" | "PENDIENTE" | "EMITIDA"} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <AccionesPedido pedido={p} fecha={fecha} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Cobros del día */}

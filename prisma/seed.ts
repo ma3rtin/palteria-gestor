@@ -107,11 +107,12 @@ async function main() {
 
   const productos: Record<string, { id: number }> = {};
   for (const p of productosData) {
-    const prod = await prisma.producto.upsert({
-      where: { nombre: p.nombre },
-      update: { precioReferencia: p.precioReferencia },
-      create: p,
-    });
+    let prod = await prisma.producto.findFirst({ where: { nombre: p.nombre } });
+    if (!prod) {
+      prod = await prisma.producto.create({ data: p });
+    } else {
+      prod = await prisma.producto.update({ where: { id: prod.id }, data: { precioReferencia: p.precioReferencia } });
+    }
     productos[p.nombre] = prod;
   }
   console.log(`  ✓ ${productosData.length} productos`);
@@ -122,28 +123,32 @@ async function main() {
     { nombre: "CUERVO", diaCobranza: "SABADO" },
     { nombre: "CAFÉ BLANCA", diaCobranza: "CADA 2 SEMANAS" },
     { nombre: "SUTEKI SUSHI", diaCobranza: "SABADO" },
-    { nombre: "LOCALES SACHA", diaCobranza: null },
-    { nombre: "SUSHI ROCK", diaCobranza: null },
+    { nombre: "LOCALES SACHA", diaCobranza: "SABADO" },
+    { nombre: "SUSHI ROCK", diaCobranza: "SABADO" },
     { nombre: "PANERA ROSA", diaCobranza: "LUNES" },
     { nombre: "COFI JAUS", diaCobranza: "MARTES" },
-    { nombre: "LOCALES DE ANGIE", diaCobranza: null },
+    { nombre: "LOCALES DE ANGIE", diaCobranza: "MIERCOLES" },
     { nombre: "FABRICS", diaCobranza: null },
     { nombre: "LAPARAPIPON SRL", diaCobranza: null },
     { nombre: "ASUNCION SRL", diaCobranza: null },
     { nombre: "ARROZ DEL SUR", diaCobranza: "LUNES" },
     { nombre: "SENSUS SUSHI", diaCobranza: "MARTES" },
-    { nombre: "ERIKA SUSHIS", diaCobranza: null },
-    { nombre: "SUPERI 1450", diaCobranza: null },
+    { nombre: "ERIKA SUSHIS", diaCobranza: "MIERCOLES" },
+    { nombre: "SUPERI 1450", diaCobranza: "MIERCOLES" },
     { nombre: "FABRIC SUSHI PUERTO MADERO", diaCobranza: "MARTES" },
     { nombre: "CERRITO 304", diaCobranza: "MIERCOLES" },
     { nombre: "BARRAGAN", diaCobranza: "MARTES" },
-    { nombre: "MACHADO 861", diaCobranza: null },
-    { nombre: "MENDOZA 4496", diaCobranza: null },
-    { nombre: "LOCALES LE PAIN", diaCobranza: null },
+    { nombre: "MACHADO 861", diaCobranza: "SABADO" },
+    { nombre: "MENDOZA 4496", diaCobranza: "SABADO" },
+    { nombre: "LOCALES LE PAIN", diaCobranza: "LUNES" },
     { nombre: "LOCALES GONZALO ITALIA", diaCobranza: "SABADO" },
-    { nombre: "DIEGO PALMA LOCALES", diaCobranza: null },
-    { nombre: "SHELTER LOCALES", diaCobranza: null },
-    { nombre: "SUSHI POP MUÑIZ", diaCobranza: null },
+    { nombre: "DIEGO PALMA LOCALES", diaCobranza: "LUNES" },
+    { nombre: "SHELTER LOCALES", diaCobranza: "LUNES" },
+    { nombre: "SUSHI POP MUÑIZ", diaCobranza: "LUNES" },
+    { nombre: "GARDINER OBLIGADO 6311", diaCobranza: "SABADO" },
+    { nombre: "BARRACAS VELEZ", diaCobranza: "CONTRA ENTREGA" },
+    { nombre: "CORRIENTES NUEVO PANERA ROSA", diaCobranza: "VIERNES" },
+    { nombre: "TAPIA DE CRUZ", diaCobranza: "MARTES" },
     { nombre: "LOS MERCI", diaCobranza: null },
     { nombre: "CRISOL", diaCobranza: null },
   ];
@@ -152,7 +157,7 @@ async function main() {
   for (const cc of cuentasData) {
     const c = await prisma.cuentaCorriente.upsert({
       where: { nombre: cc.nombre },
-      update: {},
+      update: { diaCobranza: cc.diaCobranza },
       create: { nombre: cc.nombre, diaCobranza: cc.diaCobranza },
     });
     cuentas[cc.nombre] = c;
@@ -198,6 +203,8 @@ async function main() {
     { nombre: "COFI BLANCO ENCALADA URQUIZA", cuenta: "COFI JAUS", zona: "CABA" },
     { nombre: "COFI PALPA COLEGIALES", cuenta: "COFI JAUS", zona: "CABA" },
     { nombre: "COFI AV. MITRE MUNRO", cuenta: "COFI JAUS", zona: "NORTE" },
+    { nombre: "COFI QUESADA NUÑEZ", cuenta: "COFI JAUS", zona: "CABA" },
+    { nombre: "COFI CUBA", cuenta: "COFI JAUS", zona: "CABA" },
     // LOCALES DE ANGIE
     { nombre: "ANGIE GUATEMALA", cuenta: "LOCALES DE ANGIE", zona: "CABA" },
     { nombre: "MOLDES LUCAS", cuenta: "LOCALES DE ANGIE", zona: "CABA" },
@@ -280,26 +287,26 @@ async function main() {
     { nombre: "CRISOL OLAZABAL", cuenta: "CRISOL", zona: "CABA" },
     { nombre: "CRISOL PALERMO", cuenta: "CRISOL", zona: "CABA" },
     { nombre: "CRISOL URQUIZA", cuenta: "CRISOL", zona: "CABA" },
+    // GARDINER OBLIGADO 6311
+    { nombre: "GARDINER OBLIGADO 6311", cuenta: "GARDINER OBLIGADO 6311", zona: "NORTE" },
+    // BARRACAS VELEZ
+    { nombre: "BARRACAS VELEZ", cuenta: "BARRACAS VELEZ", zona: "CABA" },
+    // CORRIENTES NUEVO PANERA ROSA
+    { nombre: "CORRIENTES NUEVO PANERA ROSA", cuenta: "CORRIENTES NUEVO PANERA ROSA", zona: "CABA" },
+    // TAPIA DE CRUZ
+    { nombre: "TAPIA DE CRUZ", cuenta: "TAPIA DE CRUZ", zona: "CABA" },
   ];
 
   for (const c of clientesCuentas) {
     const zona = c.zona ?? "SIN ASIGNAR";
     const idZona = (zonas[zona] ?? zonas["SIN ASIGNAR"]).id;
     const idCuentaCorriente = cuentas[c.cuenta].id;
-    await prisma.cliente.upsert({
-      where: {
-        id: (
-          await prisma.cliente.findFirst({ where: { nombre: c.nombre } })
-        )?.id ?? -1,
-      },
-      update: {},
-      create: {
-        nombre: c.nombre,
-        idZona,
-        idCuentaCorriente,
-        formaPagoPref: "PAGO_SEMANAL",
-      },
-    });
+    const exists = await prisma.cliente.findFirst({ where: { nombre: c.nombre } });
+    if (!exists) {
+      await prisma.cliente.create({
+        data: { nombre: c.nombre, idZona, idCuentaCorriente, formaPagoPref: "PAGO_SEMANAL" },
+      });
+    }
   }
   console.log(`  ✓ ${clientesCuentas.length} clientes de cuentas corrientes`);
 

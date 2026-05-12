@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { marcarPagado, registrarCobro, eliminarPedido } from "@/actions/pedidos";
 import { formatearPeso } from "@/lib/utils";
+import { BotonSubmit } from "@/components/boton-submit";
 
 interface Pedido {
   id: number;
@@ -38,15 +39,13 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
             defaultValue={deuda}
             min={1}
             max={deuda}
-            step={1000}
             className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#a3e635]"
           />
-          <button
-            type="submit"
+          <BotonSubmit
             className="bg-[#16a34a] text-white px-2 py-1 rounded text-xs hover:bg-[#15803d]"
           >
             OK
-          </button>
+          </BotonSubmit>
           <button
             type="button"
             onClick={() => setMostrarCobro(false)}
@@ -58,13 +57,11 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
       ) : (
         <>
           <form action={marcarPagadoAction}>
-            <button
-              type="submit"
-              title={`Marcar pagado: ${formatearPeso(deuda)}`}
+            <BotonSubmit
               className="bg-[#16a34a] text-white px-2.5 py-1 rounded text-xs hover:bg-[#15803d] transition-colors"
             >
               Pagado
-            </button>
+            </BotonSubmit>
           </form>
           <button
             onClick={() => setMostrarCobro(true)}
@@ -73,13 +70,11 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
             Parcial
           </button>
           <form action={eliminarAction}>
-            <button
-              type="submit"
-              title="Eliminar pedido"
+            <BotonSubmit
               className="text-[#6b7280] hover:text-red-500 px-1 py-1 text-xs transition-colors"
             >
               ✕
-            </button>
+            </BotonSubmit>
           </form>
         </>
       )}

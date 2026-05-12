@@ -22,7 +22,7 @@ export default async function DetalleClientePage({ params }: Props) {
   const pedidosPagados = cliente.pedidos.filter((p) => p.estadoPago === "PAGADO");
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

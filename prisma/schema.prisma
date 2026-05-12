@@ -34,6 +34,19 @@ enum EstadoFactura {
   @@map("estado_factura")
 }
 
+// ==================== USUARIOS ====================
+
+model Usuario {
+  id           Int      @id @default(autoincrement()) @map("id_usuario")
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  nombre       String
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now()) @map("creado_en")
+
+  @@map("usuarios")
+}
+
 // ==================== CATÁLOGOS ====================
 
 model Zona {
@@ -45,20 +58,23 @@ model Zona {
 }
 
 model Repartidor {
-  id      Int       @id @default(autoincrement()) @map("id_repartidor")
-  nombre  String    @unique
-  activo  Boolean   @default(true)
-  clientes Cliente[]
-  pedidos  Pedido[]
+  id           Int         @id @default(autoincrement()) @map("id_repartidor")
+  nombre       String      @unique
+  activo       Boolean     @default(true)
+  clientes     Cliente[]
+  pedidos      Pedido[]
+  pagosLocales PagoLocal[]
 
   @@map("repartidores")
 }
 
 model Producto {
-  id               Int      @id @default(autoincrement()) @map("id_producto")
-  nombre           String   @unique
-  precioReferencia Float    @default(0) @map("precio_referencia")
-  activo           Boolean  @default(true)
+  id               Int       @id @default(autoincrement()) @map("id_producto")
+  nombre           String
+  precioReferencia Float     @default(0) @map("precio_referencia")
+  // Fecha en que ingresó este lote — distingue batches con mismo nombre
+  fechaIngreso     DateTime? @db.Date @map("fecha_ingreso")
+  activo           Boolean   @default(true)
   pedidos          Pedido[]
 
   @@map("productos")
@@ -94,8 +110,28 @@ model PeriodoSemanal {
   formaPago     FormaPago?      @map("forma_pago")
   observaciones String?
   creadoEn      DateTime        @default(now()) @map("creado_en")
+  pagosLocales  PagoLocal[]
 
   @@map("periodos_semanales")
+}
+
+// Pago registrado dentro de un período: puede ser por local (idCliente set) o global (idCliente null)
+model PagoLocal {
+  id            Int            @id @default(autoincrement()) @map("id_pago_local")
+  periodo       PeriodoSemanal @relation(fields: [idPeriodo], references: [id])
+  idPeriodo     Int            @map("id_periodo")
+  // null = pago global que cubre todos los locales de la cuenta
+  cliente       Cliente?       @relation(fields: [idCliente], references: [id])
+  idCliente     Int?           @map("id_cliente")
+  monto         Float
+  fechaPago     DateTime       @db.Date @map("fecha_pago")
+  // Repartidor que cobró (nullable: puede cobrarlo alguien de la oficina)
+  repartidor    Repartidor?    @relation(fields: [idRepartidor], references: [id])
+  idRepartidor  Int?           @map("id_repartidor")
+  observaciones String?
+  creadoEn      DateTime       @default(now()) @map("creado_en")
+
+  @@map("pagos_locales")
 }
 
 // ==================== CLIENTES ====================
@@ -116,6 +152,7 @@ model Cliente {
   activo            Boolean          @default(true)
   observaciones     String?
   pedidos           Pedido[]
+  pagosLocales      PagoLocal[]
   creadoEn          DateTime         @default(now()) @map("creado_en")
   actualizadoEn     DateTime         @updatedAt @map("actualizado_en")
 
@@ -144,6 +181,8 @@ model Pedido {
   estadoFactura   EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
   // true para filas de COBRANZA (cobro de deuda, no entrega)
   esCobro         Boolean       @default(false) @map("es_cobro")
+  // true cuando el cambio no tiene cargo (fruta descartada); false = se cobra diferencia de kg
+  esReposicion    Boolean       @default(false) @map("es_reposicion")
   observaciones   String?
   creadoEn        DateTime      @default(now()) @map("creado_en")
   actualizadoEn   DateTime      @updatedAt @map("actualizado_en")

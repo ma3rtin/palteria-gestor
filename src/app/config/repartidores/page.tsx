@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { BotonSubmit } from "@/components/boton-submit";
 
 async function crearRepartidor(formData: FormData) {
   "use server";
@@ -38,7 +39,7 @@ export default async function ConfigRepartidoresPage() {
   const inactivos = repartidores.filter((r) => !r.activo);
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8">
       <div className="mb-6">
         <a href="/config/zonas" className="text-xs text-[#6b7280] hover:text-[#a3e635]">
           ← Configuración
@@ -66,9 +67,9 @@ export default async function ConfigRepartidoresPage() {
                       defaultValue={r.nombre}
                       className="border border-[#2a2d35] rounded px-2 py-1 text-sm focus:outline-none focus:border-[#a3e635] w-40"
                     />
-                    <button type="submit" className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
+                    <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
                       Renombrar
-                    </button>
+                    </BotonSubmit>
                   </form>
                 </td>
                 <td className="px-4 py-2 text-right text-[#6b7280]">{r._count.pedidos}</td>
@@ -76,9 +77,9 @@ export default async function ConfigRepartidoresPage() {
                   <form action={toggleActivo}>
                     <input type="hidden" name="id" value={r.id} />
                     <input type="hidden" name="activo" value="true" />
-                    <button type="submit" className="text-xs text-[#6b7280] hover:text-red-500">
+                    <BotonSubmit className="text-xs text-[#6b7280] hover:text-red-500">
                       Desactivar
-                    </button>
+                    </BotonSubmit>
                   </form>
                 </td>
               </tr>
@@ -99,9 +100,9 @@ export default async function ConfigRepartidoresPage() {
                       <form action={toggleActivo}>
                         <input type="hidden" name="id" value={r.id} />
                         <input type="hidden" name="activo" value="false" />
-                        <button type="submit" className="text-xs text-[#4ade80] hover:underline">
+                        <BotonSubmit className="text-xs text-[#4ade80] hover:underline">
                           Activar
-                        </button>
+                        </BotonSubmit>
                       </form>
                     </td>
                   </tr>
@@ -121,12 +122,11 @@ export default async function ConfigRepartidoresPage() {
             placeholder="Nombre del repartidor"
             className="flex-1 border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
           />
-          <button
-            type="submit"
+          <BotonSubmit
             className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Agregar
-          </button>
+          </BotonSubmit>
         </form>
       </div>
     </div>

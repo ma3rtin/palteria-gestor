@@ -69,15 +69,16 @@ export async function crearPedido(formData: FormData) {
   const idProducto = Number(formData.get("idProducto"));
   const maduracion = formData.get("maduracion") as string;
   const cajas = parseFloat(formData.get("cajas") as string);
-  const montoTotal = parseFloat(formData.get("montoTotal") as string);
+  const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
   const formaPago = formData.get("formaPago") as string;
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const esCobro = formData.get("esCobro") === "on";
+  const esReposicion = formData.get("esReposicion") === "true";
   const observaciones = formData.get("observaciones") as string | null;
 
-  const estadoPago =
-    formaPago === "EFECTIVO" || formaPago === "TRANSFERENCIA" ? "PENDIENTE" : "PENDIENTE";
+  // CAMBIO sin cargo ya está saldado (montoTotal = 0); cualquier otro caso queda pendiente
+  const estadoPago = formaPago === "CAMBIO" && esReposicion ? "PAGADO" : "PENDIENTE";
 
   await prisma.pedido.create({
     data: {
@@ -94,6 +95,7 @@ export async function crearPedido(formData: FormData) {
       requiereFactura,
       estadoFactura: requiereFactura ? "PENDIENTE" : "NO_REQUIERE",
       esCobro,
+      esReposicion,
       observaciones: observaciones?.trim() || null,
     },
   });

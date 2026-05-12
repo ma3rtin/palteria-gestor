@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { parseFechaRuta } from "@/lib/utils";
+import { parseFechaRuta, hoyISO } from "@/lib/utils";
 
 export async function getCuentasCorrientes() {
   const cuentas = await prisma.cuentaCorriente.findMany({
@@ -11,7 +11,6 @@ export async function getCuentasCorrientes() {
     orderBy: { nombre: "asc" },
   });
 
-  // Para cada cuenta calcular deuda total de sus clientes
   const deudas = await prisma.pedido.groupBy({
     by: ["idCliente"],
     where: {
@@ -49,18 +48,33 @@ export async function getDetalleCuenta(idCuenta: number) {
           },
         },
       },
-      periodos: { orderBy: { fechaInicio: "desc" }, take: 10 },
+      periodos: {
+        orderBy: { fechaInicio: "desc" },
+        take: 10,
+        include: {
+          pagosLocales: {
+            include: {
+              cliente: { select: { id: true, nombre: true } },
+              repartidor: { select: { id: true, nombre: true } },
+            },
+            orderBy: { fechaPago: "desc" },
+          },
+        },
+      },
     },
   });
 
   const deudaTotal = cuenta.clientes.reduce(
     (s, c) =>
-      s +
-      c.pedidos.reduce((ps, p) => ps + (p.montoTotal - p.montoPagado), 0),
+      s + c.pedidos.reduce((ps, p) => ps + (p.montoTotal - p.montoPagado), 0),
     0
   );
 
   return { ...cuenta, deudaTotal };
+}
+
+export async function getRepartidoresActivos() {
+  return prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
 }
 
 export async function registrarPagoSemanal(formData: FormData) {
@@ -69,48 +83,134 @@ export async function registrarPagoSemanal(formData: FormData) {
   const fechaFin = formData.get("fechaFin") as string;
   const montoPagado = parseFloat(formData.get("montoPagado") as string);
   const formaPago = formData.get("formaPago") as string;
-  const observaciones = formData.get("observaciones") as string | null;
+  const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
+  const observaciones = (formData.get("observaciones") as string)?.trim() || null;
 
-  // Calcular monto total de pedidos pendientes del período
-  const pedidos = await prisma.pedido.findMany({
+  const pedidosPendientes = await prisma.pedido.findMany({
     where: {
       cliente: { idCuentaCorriente: idCuenta },
-      fecha: {
-        gte: parseFechaRuta(fechaInicio),
-        lte: parseFechaRuta(fechaFin),
-      },
+      estadoPago: { not: "PAGADO" },
       esCobro: false,
     },
+    orderBy: { fecha: "asc" },
   });
-  const montoTotal = pedidos.reduce((s, p) => s + p.montoTotal, 0);
 
-  await prisma.periodoSemanal.create({
+  const pedidosPeriodo = pedidosPendientes.filter((p) => {
+    const f = p.fecha;
+    return f >= parseFechaRuta(fechaInicio) && f <= parseFechaRuta(fechaFin);
+  });
+  const montoTotal =
+    pedidosPeriodo.length > 0
+      ? pedidosPeriodo.reduce((s, p) => s + p.montoTotal, 0)
+      : pedidosPendientes.reduce((s, p) => s + (p.montoTotal - p.montoPagado), 0);
+
+  const periodo = await prisma.periodoSemanal.create({
     data: {
       idCuenta,
       fechaInicio: parseFechaRuta(fechaInicio),
       fechaFin: parseFechaRuta(fechaFin),
       montoTotal,
       montoPagado,
-      fechaPago: new Date(),
+      fechaPago: parseFechaRuta(hoyISO()),
       formaPago: formaPago as never,
-      observaciones: observaciones?.trim() || null,
+      observaciones,
     },
   });
 
-  // Marcar pedidos del período como pagados si montoPagado >= montoTotal
-  if (montoPagado >= montoTotal) {
-    await prisma.pedido.updateMany({
-      where: {
-        cliente: { idCuentaCorriente: idCuenta },
-        fecha: {
-          gte: parseFechaRuta(fechaInicio),
-          lte: parseFechaRuta(fechaFin),
-        },
-        esCobro: false,
-        estadoPago: { not: "PAGADO" },
+  // Pago global: sin local específico (idCliente = null)
+  await prisma.pagoLocal.create({
+    data: {
+      idPeriodo: periodo.id,
+      idCliente: null,
+      monto: montoPagado,
+      fechaPago: parseFechaRuta(hoyISO()),
+      idRepartidor,
+      observaciones,
+    },
+  });
+
+  let saldo = montoPagado;
+  for (const p of pedidosPendientes) {
+    if (saldo <= 0) break;
+    const pendiente = p.montoTotal - p.montoPagado;
+    if (pendiente <= 0) continue;
+    const abonar = Math.min(saldo, pendiente);
+    const nuevoMontoPagado = p.montoPagado + abonar;
+    await prisma.pedido.update({
+      where: { id: p.id },
+      data: {
+        montoPagado: nuevoMontoPagado,
+        estadoPago: (nuevoMontoPagado >= p.montoTotal ? "PAGADO" : "PARCIAL") as never,
       },
-      data: { estadoPago: "PAGADO" },
     });
+    saldo -= abonar;
+  }
+
+  revalidatePath("/pagos-semanales");
+  revalidatePath(`/pagos-semanales/${idCuenta}`);
+  revalidatePath("/cobranzas");
+  revalidatePath("/");
+}
+
+export async function registrarPagoLocal(formData: FormData) {
+  const idCuenta = Number(formData.get("idCuenta"));
+  const idCliente = Number(formData.get("idCliente"));
+  const monto = parseFloat(formData.get("monto") as string);
+  const fechaPagoStr = formData.get("fechaPago") as string;
+  const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
+  const observaciones = (formData.get("observaciones") as string)?.trim() || null;
+  const fechaInicio = formData.get("fechaInicio") as string;
+  const fechaFin = formData.get("fechaFin") as string;
+
+  const fechaInicioDate = parseFechaRuta(fechaInicio);
+  const fechaFinDate = parseFechaRuta(fechaFin);
+
+  // Reusar el período de esta semana si ya existe, si no crearlo
+  let periodo = await prisma.periodoSemanal.findFirst({
+    where: { idCuenta, fechaInicio: fechaInicioDate, fechaFin: fechaFinDate },
+  });
+  if (!periodo) {
+    periodo = await prisma.periodoSemanal.create({
+      data: { idCuenta, fechaInicio: fechaInicioDate, fechaFin: fechaFinDate, montoTotal: 0, montoPagado: 0 },
+    });
+  }
+
+  await prisma.periodoSemanal.update({
+    where: { id: periodo.id },
+    data: { montoPagado: { increment: monto } },
+  });
+
+  await prisma.pagoLocal.create({
+    data: {
+      idPeriodo: periodo.id,
+      idCliente,
+      monto,
+      fechaPago: parseFechaRuta(fechaPagoStr),
+      idRepartidor,
+      observaciones,
+    },
+  });
+
+  // Distribuir el pago contra los pedidos pendientes de este cliente
+  const pedidosPendientes = await prisma.pedido.findMany({
+    where: { idCliente, estadoPago: { not: "PAGADO" }, esCobro: false },
+    orderBy: { fecha: "asc" },
+  });
+
+  let saldo = monto;
+  for (const p of pedidosPendientes) {
+    if (saldo <= 0) break;
+    const pendiente = p.montoTotal - p.montoPagado;
+    if (pendiente <= 0) continue;
+    const abonar = Math.min(saldo, pendiente);
+    await prisma.pedido.update({
+      where: { id: p.id },
+      data: {
+        montoPagado: p.montoPagado + abonar,
+        estadoPago: (p.montoPagado + abonar >= p.montoTotal ? "PAGADO" : "PARCIAL") as never,
+      },
+    });
+    saldo -= abonar;
   }
 
   revalidatePath("/pagos-semanales");

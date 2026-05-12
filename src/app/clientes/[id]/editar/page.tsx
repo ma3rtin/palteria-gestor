@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCliente, getCatalogoFormulario, actualizarCliente } from "@/actions/clientes";
+import { BotonSubmit } from "@/components/boton-submit";
 
 const FORMAS_PAGO = [
   { value: "EFECTIVO", label: "Efectivo" },
@@ -24,7 +25,7 @@ export default async function EditarClientePage({ params }: Props) {
   const action = actualizarCliente.bind(null, Number(id));
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8">
       <div className="mb-6">
         <a href={`/clientes/${id}`} className="text-xs text-[#6b7280] hover:text-[#a3e635]">
           ← {cliente.nombre}
@@ -136,12 +137,11 @@ export default async function EditarClientePage({ params }: Props) {
         </label>
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
+          <BotonSubmit
             className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-6 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Guardar cambios
-          </button>
+          </BotonSubmit>
           <a href={`/clientes/${id}`} className="px-6 py-2 rounded-lg text-sm text-[#9ca3af] border border-[#2a2d35] hover:border-[#4b5563] transition-colors">
             Cancelar
           </a>

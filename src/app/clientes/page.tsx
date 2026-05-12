@@ -1,29 +1,37 @@
 import Link from "next/link";
-import { getClientesConSaldo } from "@/actions/clientes";
+import { getClientesConSaldo, getCatalogoFormulario } from "@/actions/clientes";
 import { formatearPeso } from "@/lib/utils";
-import { BuscadorClientes } from "./buscador";
+import { FiltrosClientes } from "./buscador";
 
 interface Props {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; zona?: string; repartidor?: string; inactivos?: string }>;
 }
 
 export default async function ClientesPage({ searchParams }: Props) {
-  const { q } = await searchParams;
-  const clientes = await getClientesConSaldo();
+  const { q, zona, repartidor, inactivos } = await searchParams;
+
+  const [clientesTodos, catalogo] = await Promise.all([
+    getClientesConSaldo(
+      zona ? Number(zona) : undefined,
+      repartidor ? Number(repartidor) : undefined,
+      !!inactivos
+    ),
+    getCatalogoFormulario(),
+  ]);
 
   const filtrados = q
-    ? clientes.filter((c) =>
+    ? clientesTodos.filter((c) =>
         c.nombre.toLowerCase().includes(q.toLowerCase()) ||
         c.zona.nombre.toLowerCase().includes(q.toLowerCase())
       )
-    : clientes;
+    : clientesTodos;
 
   const conDeuda = filtrados.filter((c) => c.saldoPendiente > 0);
   const sinDeuda = filtrados.filter((c) => c.saldoPendiente === 0);
   const ordenados = [...conDeuda, ...sinDeuda];
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-8 mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#f9fafb]">Clientes</h1>
         <Link
@@ -34,12 +42,19 @@ export default async function ClientesPage({ searchParams }: Props) {
         </Link>
       </div>
 
-      <BuscadorClientes valorInicial={q ?? ""} />
+      <FiltrosClientes
+        zonas={catalogo.zonas}
+        repartidores={catalogo.repartidores}
+        q={q}
+        zona={zona}
+        repartidor={repartidor}
+        inactivos={inactivos}
+      />
 
-      <div className="mt-4 bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
+      <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
         {ordenados.length === 0 ? (
           <div className="p-8 text-center text-[#6b7280] text-sm">
-            {q ? `Sin resultados para "${q}"` : "No hay clientes registrados."}
+            {q || zona || repartidor ? "Sin resultados con esos filtros." : "No hay clientes registrados."}
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -83,7 +98,7 @@ export default async function ClientesPage({ searchParams }: Props) {
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <Link href={`/clientes/${c.id}`} className="block">
-                      <span className={c.saldoPendiente > 0 ? "font-semibold text-red-600" : "text-[#6b7280]"}>
+                      <span className={c.saldoPendiente > 0 ? "font-semibold text-red-400" : "text-[#6b7280]"}>
                         {c.saldoPendiente > 0 ? formatearPeso(c.saldoPendiente) : "—"}
                       </span>
                     </Link>
