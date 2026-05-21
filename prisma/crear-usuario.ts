@@ -8,7 +8,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// dotenv carga \$ literal; Next.js usa dotenv-expand que lo convierte a $. Lo hacemos acá manualmente.
+const connectionString = (process.env.DATABASE_URL ?? "").replace(/\\\$/g, "$");
+const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as never);
 

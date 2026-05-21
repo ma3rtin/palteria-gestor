@@ -16,6 +16,8 @@ interface Producto {
   id: number;
   nombre: string;
   precioReferencia: number;
+  kgPorCaja: number | null;
+  stockCajas: number;
 }
 
 interface Repartidor {
@@ -163,6 +165,17 @@ export function FormNuevoPedido({
               <option key={p.id} value={p.id}>{p.nombre}</option>
             ))}
           </select>
+          {productoSelec && (
+            <p className={`text-xs mt-1 ${productoSelec.stockCajas < cajas ? "text-red-400" : "text-[#6b7280]"}`}>
+              Stock: <span className="font-medium">{productoSelec.stockCajas} cajas</span>
+              {productoSelec.kgPorCaja && (
+                <span className="ml-2">· {productoSelec.kgPorCaja} kg/caja</span>
+              )}
+              {productoSelec.stockCajas < cajas && (
+                <span className="ml-2 font-medium">— insuficiente</span>
+              )}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-[#f9fafb] mb-1">Maduración *</label>

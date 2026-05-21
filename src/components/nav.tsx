@@ -7,17 +7,20 @@ import { LogOut } from "lucide-react";
 
 const links = [
   { href: "/", label: "Inicio" },
+  { href: "/reportes", label: "Reportes" },
   { href: "/pedidos", label: "Pedidos" },
   { href: "/clientes", label: "Clientes" },
   { href: "/cobranzas", label: "Cobranzas" },
   { href: "/pagos-semanales", label: "Pagos Semanales" },
   { href: "/repartidores", label: "Repartidores" },
   { href: "/productos", label: "Productos" },
+  { href: "/revendedores", label: "Revendedores" },
 ];
 
 const configLinks = [
   { href: "/config/zonas", label: "Zonas" },
   { href: "/config/repartidores", label: "Repartidores" },
+  { href: "/config/revendedores", label: "Revendedores" },
   { href: "/perfil", label: "Perfil" },
 ];
 
@@ -45,11 +48,10 @@ export default function Nav({ usuario }: Props) {
             <Link
               key={link.href}
               href={link.href}
-              className={`px-3 py-2 rounded-md text-sm transition-colors ${
-                active
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${active
                   ? "bg-[#a3e635] text-[#0f1117] font-medium"
                   : "text-[#9ca3af] hover:bg-[#22252e] hover:text-white"
-              }`}
+                }`}
             >
               {link.label}
             </Link>
@@ -65,11 +67,10 @@ export default function Nav({ usuario }: Props) {
             <Link
               key={link.href}
               href={link.href}
-              className={`px-3 py-2 rounded-md text-sm transition-colors ${
-                active
+              className={`px-3 py-2 rounded-md text-sm transition-colors ${active
                   ? "bg-[#a3e635] text-[#0f1117] font-medium"
                   : "text-[#9ca3af] hover:bg-[#22252e] hover:text-white"
-              }`}
+                }`}
             >
               {link.label}
             </Link>

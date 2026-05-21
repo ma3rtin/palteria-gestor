@@ -82,12 +82,13 @@ export async function getClientesConSaldo(
 }
 
 export async function getCatalogoFormulario() {
-  const [zonas, repartidores, cuentas] = await Promise.all([
+  const [zonas, repartidores, cuentas, revendedores] = await Promise.all([
     prisma.zona.findMany({ orderBy: { nombre: "asc" } }),
     prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
     prisma.cuentaCorriente.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
+    prisma.revendedor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
   ]);
-  return { zonas, repartidores, cuentas };
+  return { zonas, repartidores, cuentas, revendedores };
 }
 
 export async function crearCliente(formData: FormData) {
@@ -99,6 +100,8 @@ export async function crearCliente(formData: FormData) {
   const formaPagoPref = formData.get("formaPagoPref") as string;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
+  const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
+  const comisionPorCaja = formData.get("comisionPorCaja") ? parseFloat(formData.get("comisionPorCaja") as string) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   const cliente = await prisma.cliente.create({
@@ -111,6 +114,8 @@ export async function crearCliente(formData: FormData) {
       formaPagoPref: formaPagoPref as never,
       requiereFactura,
       idCuentaCorriente,
+      idRevendedor,
+      comisionPorCaja: idRevendedor && comisionPorCaja ? comisionPorCaja : null,
       observaciones: observaciones?.trim() || null,
     },
   });
@@ -128,6 +133,8 @@ export async function actualizarCliente(id: number, formData: FormData) {
   const formaPagoPref = formData.get("formaPagoPref") as string;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
+  const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
+  const comisionPorCaja = formData.get("comisionPorCaja") ? parseFloat(formData.get("comisionPorCaja") as string) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   await prisma.cliente.update({
@@ -141,6 +148,8 @@ export async function actualizarCliente(id: number, formData: FormData) {
       formaPagoPref: formaPagoPref as never,
       requiereFactura,
       idCuentaCorriente,
+      idRevendedor,
+      comisionPorCaja: idRevendedor && comisionPorCaja ? comisionPorCaja : null,
       observaciones: observaciones?.trim() || null,
     },
   });

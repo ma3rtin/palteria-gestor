@@ -1,5 +1,6 @@
 import { getCatalogoFormulario, crearCliente } from "@/actions/clientes";
 import { BotonSubmit } from "@/components/boton-submit";
+import RevendedorSelector from "../revendedor-selector";
 
 const FORMAS_PAGO = [
   { value: "EFECTIVO", label: "Efectivo" },
@@ -9,7 +10,7 @@ const FORMAS_PAGO = [
 ];
 
 export default async function NuevoClientePage() {
-  const { zonas, repartidores, cuentas } = await getCatalogoFormulario();
+  const { zonas, repartidores, cuentas, revendedores } = await getCatalogoFormulario();
 
   return (
     <div className="p-8">
@@ -110,6 +111,8 @@ export default async function NuevoClientePage() {
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] resize-none"
           />
         </div>
+
+        <RevendedorSelector revendedores={revendedores} />
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="requiereFactura" className="rounded" />

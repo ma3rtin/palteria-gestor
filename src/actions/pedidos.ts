@@ -53,6 +53,7 @@ export async function getCatalogoNuevoPedido() {
     }),
     prisma.producto.findMany({
       where: { activo: true },
+      select: { id: true, nombre: true, precioReferencia: true, kgPorCaja: true, stockCajas: true },
       orderBy: { nombre: "asc" },
     }),
     prisma.repartidor.findMany({
@@ -100,7 +101,15 @@ export async function crearPedido(formData: FormData) {
     },
   });
 
+  if (!esCobro) {
+    await prisma.producto.update({
+      where: { id: idProducto },
+      data: { stockCajas: { decrement: cajas } },
+    });
+  }
+
   revalidatePath(`/pedidos/${fecha}`);
+  revalidatePath("/productos");
   revalidatePath("/");
   redirect(`/pedidos/${fecha}`);
 }
@@ -133,7 +142,15 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
 }
 
 export async function eliminarPedido(idPedido: number, fechaStr: string) {
+  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
   await prisma.pedido.delete({ where: { id: idPedido } });
+  if (!pedido.esCobro) {
+    await prisma.producto.update({
+      where: { id: pedido.idProducto },
+      data: { stockCajas: { increment: pedido.cajas } },
+    });
+  }
   revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/productos");
   revalidatePath("/");
 }

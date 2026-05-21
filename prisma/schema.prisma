@@ -47,6 +47,14 @@ model Usuario {
   @@map("usuarios")
 }
 
+enum TipoRevendedor {
+  COMISION  // Oscar: paltería paga X/caja al revendedor
+  MARGEN    // Pato: paltería paga diferencia precio cobrado - precio lista
+  DESCUENTO // Puesto: revendedor paga neto con descuento por caja
+
+  @@map("tipo_revendedor")
+}
+
 // ==================== CATÁLOGOS ====================
 
 model Zona {
@@ -55,6 +63,35 @@ model Zona {
   clientes Cliente[]
 
   @@map("zonas")
+}
+
+model Revendedor {
+  id            Int                     @id @default(autoincrement()) @map("id_revendedor")
+  nombre        String                  @unique
+  tipo          TipoRevendedor
+  activo        Boolean                 @default(true)
+  clientes      Cliente[]
+  liquidaciones LiquidacionRevendedor[]
+  creadoEn      DateTime                @default(now()) @map("creado_en")
+
+  @@map("revendedores")
+}
+
+model LiquidacionRevendedor {
+  id               Int        @id @default(autoincrement()) @map("id_liquidacion")
+  revendedor       Revendedor @relation(fields: [idRevendedor], references: [id])
+  idRevendedor     Int        @map("id_revendedor")
+  fechaInicio      DateTime   @db.Date @map("fecha_inicio")
+  fechaFin         DateTime   @db.Date @map("fecha_fin")
+  descuentoPorCaja Float?     @map("descuento_por_caja")
+  montoCalculado   Float      @default(0) @map("monto_calculado")
+  montoPagado      Float      @default(0) @map("monto_pagado")
+  fechaPago        DateTime?  @db.Date @map("fecha_pago")
+  formaPago        FormaPago? @map("forma_pago")
+  observaciones    String?
+  creadoEn         DateTime   @default(now()) @map("creado_en")
+
+  @@map("liquidaciones_revendedor")
 }
 
 model Repartidor {
@@ -72,6 +109,8 @@ model Producto {
   id               Int       @id @default(autoincrement()) @map("id_producto")
   nombre           String
   precioReferencia Float     @default(0) @map("precio_referencia")
+  kgPorCaja        Float?    @map("kg_por_caja")
+  stockCajas       Float     @default(0) @map("stock_cajas")
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
   fechaIngreso     DateTime? @db.Date @map("fecha_ingreso")
   activo           Boolean   @default(true)
@@ -149,6 +188,9 @@ model Cliente {
   requiereFactura   Boolean          @default(false) @map("requiere_factura")
   cuentaCorriente   CuentaCorriente? @relation(fields: [idCuentaCorriente], references: [id])
   idCuentaCorriente Int?             @map("id_cuenta_corriente")
+  revendedor        Revendedor?      @relation(fields: [idRevendedor], references: [id])
+  idRevendedor      Int?             @map("id_revendedor")
+  comisionPorCaja   Float?           @map("comision_por_caja")
   activo            Boolean          @default(true)
   observaciones     String?
   pedidos           Pedido[]

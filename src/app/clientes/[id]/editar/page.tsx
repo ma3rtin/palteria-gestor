@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCliente, getCatalogoFormulario, actualizarCliente } from "@/actions/clientes";
 import { BotonSubmit } from "@/components/boton-submit";
+import RevendedorSelector from "../../revendedor-selector";
 
 const FORMAS_PAGO = [
   { value: "EFECTIVO", label: "Efectivo" },
@@ -15,7 +16,7 @@ interface Props {
 
 export default async function EditarClientePage({ params }: Props) {
   const { id } = await params;
-  const [cliente, catalogo] = await Promise.all([
+  const [cliente, { zonas, repartidores, cuentas, revendedores }] = await Promise.all([
     getCliente(Number(id)),
     getCatalogoFormulario(),
   ]);
@@ -53,7 +54,7 @@ export default async function EditarClientePage({ params }: Props) {
               defaultValue={cliente.idZona}
               className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
             >
-              {catalogo.zonas.map((z) => (
+              {zonas.map((z) => (
                 <option key={z.id} value={z.id}>{z.nombre}</option>
               ))}
             </select>
@@ -66,7 +67,7 @@ export default async function EditarClientePage({ params }: Props) {
               className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
             >
               <option value="">Sin asignar</option>
-              {catalogo.repartidores.map((r) => (
+              {repartidores.map((r) => (
                 <option key={r.id} value={r.id}>{r.nombre}</option>
               ))}
             </select>
@@ -95,7 +96,7 @@ export default async function EditarClientePage({ params }: Props) {
               className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
             >
               <option value="">Ninguna</option>
-              {catalogo.cuentas.map((cc) => (
+              {cuentas.map((cc) => (
                 <option key={cc.id} value={cc.id}>{cc.nombre}</option>
               ))}
             </select>
@@ -130,6 +131,12 @@ export default async function EditarClientePage({ params }: Props) {
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] resize-none"
           />
         </div>
+
+        <RevendedorSelector
+          revendedores={revendedores}
+          defaultIdRevendedor={cliente.idRevendedor}
+          defaultComision={cliente.comisionPorCaja}
+        />
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="requiereFactura" defaultChecked={cliente.requiereFactura} />
