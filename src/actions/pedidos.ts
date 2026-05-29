@@ -37,30 +37,28 @@ export async function getTotalesDia(fechaStr: string) {
 }
 
 export async function getCatalogoNuevoPedido() {
-  const [clientes, productos, repartidores] = await Promise.all([
-    prisma.cliente.findMany({
-      where: { activo: true },
-      select: {
-        id: true,
-        nombre: true,
-        idZona: true,
-        zona: { select: { nombre: true } },
-        formaPagoPref: true,
-        idRepartidor: true,
-        requiereFactura: true,
-      },
-      orderBy: [{ zona: { nombre: "asc" } }, { nombre: "asc" }],
-    }),
-    prisma.producto.findMany({
-      where: { activo: true },
-      select: { id: true, nombre: true, precioReferencia: true, kgPorCaja: true, stockCajas: true },
-      orderBy: { nombre: "asc" },
-    }),
-    prisma.repartidor.findMany({
-      where: { activo: true },
-      orderBy: { nombre: "asc" },
-    }),
-  ]);
+  const clientes = await prisma.cliente.findMany({
+    where: { activo: true },
+    select: {
+      id: true,
+      nombre: true,
+      idZona: true,
+      zona: { select: { nombre: true } },
+      formaPagoPref: true,
+      idRepartidor: true,
+      requiereFactura: true,
+    },
+    orderBy: [{ zona: { nombre: "asc" } }, { nombre: "asc" }],
+  });
+  const productos = await prisma.producto.findMany({
+    where: { activo: true },
+    select: { id: true, nombre: true, precioReferencia: true, kgPorCaja: true, stockCajas: true },
+    orderBy: { nombre: "asc" },
+  });
+  const repartidores = await prisma.repartidor.findMany({
+    where: { activo: true },
+    orderBy: { nombre: "asc" },
+  });
   return { clientes, productos, repartidores };
 }
 

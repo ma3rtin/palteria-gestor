@@ -82,12 +82,10 @@ export async function getClientesConSaldo(
 }
 
 export async function getCatalogoFormulario() {
-  const [zonas, repartidores, cuentas, revendedores] = await Promise.all([
-    prisma.zona.findMany({ orderBy: { nombre: "asc" } }),
-    prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-    prisma.cuentaCorriente.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-    prisma.revendedor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-  ]);
+  const zonas = await prisma.zona.findMany({ orderBy: { nombre: "asc" } });
+  const repartidores = await prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
+  const cuentas = await prisma.cuentaCorriente.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
+  const revendedores = await prisma.revendedor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
   return { zonas, repartidores, cuentas, revendedores };
 }
 

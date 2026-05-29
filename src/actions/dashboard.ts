@@ -12,20 +12,18 @@ export async function getStatsSemana() {
   const sabado = new Date(lunes);
   sabado.setDate(lunes.getDate() + 5);
 
-  const [agregado, porProducto] = await Promise.all([
-    prisma.pedido.aggregate({
-      where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
-      _sum: { cajas: true, montoTotal: true, montoPagado: true },
-      _count: { id: true },
-    }),
-    prisma.pedido.groupBy({
-      by: ["idProducto"],
-      where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
-      _sum: { cajas: true, montoTotal: true },
-      orderBy: { _sum: { cajas: "desc" } },
-      take: 6,
-    }),
-  ]);
+  const agregado = await prisma.pedido.aggregate({
+    where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+    _sum: { cajas: true, montoTotal: true, montoPagado: true },
+    _count: { id: true },
+  });
+  const porProducto = await prisma.pedido.groupBy({
+    by: ["idProducto"],
+    where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+    _sum: { cajas: true, montoTotal: true },
+    orderBy: { _sum: { cajas: "desc" } },
+    take: 6,
+  });
 
   const productos = await prisma.producto.findMany({
     where: { id: { in: porProducto.map((p) => p.idProducto) } },
@@ -52,25 +50,23 @@ export async function getStatsSemana() {
 export async function getStatsHoy() {
   const hoy = parseFechaRuta(hoyISO());
 
-  const [pedidosHoy, deudaAgregada, clientesConDeudaGrupos] = await Promise.all([
-    prisma.pedido.findMany({
-      where: { fecha: hoy, esCobro: false },
-      include: {
-        cliente: { include: { zona: true } },
-        producto: true,
-        repartidor: true,
-      },
-      orderBy: [{ cliente: { zona: { nombre: "asc" } } }, { cliente: { nombre: "asc" } }],
-    }),
-    prisma.pedido.aggregate({
-      where: { estadoPago: { not: "PAGADO" }, esCobro: false },
-      _sum: { montoTotal: true, montoPagado: true },
-    }),
-    prisma.pedido.groupBy({
-      by: ["idCliente"],
-      where: { estadoPago: { not: "PAGADO" }, esCobro: false },
-    }),
-  ]);
+  const pedidosHoy = await prisma.pedido.findMany({
+    where: { fecha: hoy, esCobro: false },
+    include: {
+      cliente: { include: { zona: true } },
+      producto: true,
+      repartidor: true,
+    },
+    orderBy: [{ cliente: { zona: { nombre: "asc" } } }, { cliente: { nombre: "asc" } }],
+  });
+  const deudaAgregada = await prisma.pedido.aggregate({
+    where: { estadoPago: { not: "PAGADO" }, esCobro: false },
+    _sum: { montoTotal: true, montoPagado: true },
+  });
+  const clientesConDeudaGrupos = await prisma.pedido.groupBy({
+    by: ["idCliente"],
+    where: { estadoPago: { not: "PAGADO" }, esCobro: false },
+  });
 
   const totalCajas = pedidosHoy.reduce((s, p) => s + p.cajas, 0);
   const totalMonto = pedidosHoy.reduce((s, p) => s + p.montoTotal, 0);

@@ -10,14 +10,12 @@ interface Props {
 export default async function ClientesPage({ searchParams }: Props) {
   const { q, zona, repartidor, inactivos } = await searchParams;
 
-  const [clientesTodos, catalogo] = await Promise.all([
-    getClientesConSaldo(
-      zona ? Number(zona) : undefined,
-      repartidor ? Number(repartidor) : undefined,
-      !!inactivos
-    ),
-    getCatalogoFormulario(),
-  ]);
+  const clientesTodos = await getClientesConSaldo(
+    zona ? Number(zona) : undefined,
+    repartidor ? Number(repartidor) : undefined,
+    !!inactivos
+  );
+  const catalogo = await getCatalogoFormulario();
 
   const filtrados = q
     ? clientesTodos.filter((c) =>

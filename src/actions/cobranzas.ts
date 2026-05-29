@@ -45,10 +45,8 @@ export async function getClientesConDeuda(idZona?: number, idRepartidor?: number
 }
 
 export async function getCatalogosCobranza() {
-  const [zonas, repartidores] = await Promise.all([
-    prisma.zona.findMany({ orderBy: { nombre: "asc" } }),
-    prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } }),
-  ]);
+  const zonas = await prisma.zona.findMany({ orderBy: { nombre: "asc" } });
+  const repartidores = await prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
   return { zonas, repartidores };
 }
 

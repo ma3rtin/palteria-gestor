@@ -5,11 +5,9 @@ import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, formatearFecha, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 
 export default async function Inicio() {
-  const [stats, resumenRepartidores, statsSemana] = await Promise.all([
-    getStatsHoy(),
-    getResumenPorRepartidorHoy(),
-    getStatsSemana(),
-  ]);
+  const stats = await getStatsHoy();
+  const resumenRepartidores = await getResumenPorRepartidorHoy();
+  const statsSemana = await getStatsSemana();
 
   const hoy = hoyISO();
 

@@ -16,10 +16,8 @@ interface Props {
 
 export default async function DetalleCuentaPage({ params }: Props) {
   const { id } = await params;
-  const [cuenta, repartidores] = await Promise.all([
-    getDetalleCuenta(Number(id)).catch(() => null),
-    getRepartidoresActivos(),
-  ]);
+  const cuenta = await getDetalleCuenta(Number(id)).catch(() => null);
+  const repartidores = await getRepartidoresActivos();
   if (!cuenta) notFound();
 
   const hoy = hoyISO();

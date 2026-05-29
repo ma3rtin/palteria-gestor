@@ -16,10 +16,8 @@ interface Props {
 
 export default async function EditarClientePage({ params }: Props) {
   const { id } = await params;
-  const [cliente, { zonas, repartidores, cuentas, revendedores }] = await Promise.all([
-    getCliente(Number(id)),
-    getCatalogoFormulario(),
-  ]);
+  const cliente = await getCliente(Number(id));
+  const { zonas, repartidores, cuentas, revendedores } = await getCatalogoFormulario();
 
   if (!cliente) notFound();
 

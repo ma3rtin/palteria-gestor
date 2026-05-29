@@ -42,10 +42,8 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
   const desde = sp.desde ?? semanaActualDesde();
   const hasta = sp.hasta ?? semanaActualHasta();
 
-  const [revendedor, { pedidos }] = await Promise.all([
-    getRevendedor(Number(id)),
-    getPedidosPeriodo(Number(id), desde, hasta),
-  ]);
+  const revendedor = await getRevendedor(Number(id));
+  const { pedidos } = await getPedidosPeriodo(Number(id), desde, hasta);
 
   if (!revendedor) notFound();
 

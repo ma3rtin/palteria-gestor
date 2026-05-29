@@ -26,10 +26,8 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
   const { fecha } = await params;
   const { zona, repartidor, estado, q } = await searchParams;
 
-  const [pedidos, totales] = await Promise.all([
-    getPedidosPorFecha(fecha),
-    getTotalesDia(fecha),
-  ]);
+  const pedidos = await getPedidosPorFecha(fecha);
+  const totales = await getTotalesDia(fecha);
 
   // Catálogo para filtros: zonas y repartidores únicos del día
   const zonasUnicas = Array.from(

@@ -11,10 +11,8 @@ interface Props {
 
 export default async function DetalleClientePage({ params }: Props) {
   const { id } = await params;
-  const [cliente, saldo] = await Promise.all([
-    getCliente(Number(id)),
-    getSaldoCliente(Number(id)),
-  ]);
+  const cliente = await getCliente(Number(id));
+  const saldo = await getSaldoCliente(Number(id));
 
   if (!cliente) notFound();
 

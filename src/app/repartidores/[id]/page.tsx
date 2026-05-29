@@ -15,10 +15,8 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
   const { fecha } = await searchParams;
   const fechaConsulta = fecha ?? hoyISO();
 
-  const [todos, resumen] = await Promise.all([
-    getRepartidores(),
-    getResumenRepartidorFecha(Number(id), fechaConsulta),
-  ]);
+  const todos = await getRepartidores();
+  const resumen = await getResumenRepartidorFecha(Number(id), fechaConsulta);
 
   const repartidor = todos.find((r) => r.id === Number(id));
   if (!repartidor) notFound();

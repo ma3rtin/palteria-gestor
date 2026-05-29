@@ -10,10 +10,8 @@ interface Props {
 
 export default async function CobranzasPage({ searchParams }: Props) {
   const { zona, repartidor } = await searchParams;
-  const [clientesDeuda, catalogos] = await Promise.all([
-    getClientesConDeuda(zona ? Number(zona) : undefined, repartidor ? Number(repartidor) : undefined),
-    getCatalogosCobranza(),
-  ]);
+  const clientesDeuda = await getClientesConDeuda(zona ? Number(zona) : undefined, repartidor ? Number(repartidor) : undefined);
+  const catalogos = await getCatalogosCobranza();
 
   const deudaTotal = clientesDeuda.reduce((s, c) => s + c.deudaTotal, 0);
 

@@ -19,10 +19,8 @@ async function getResumenSemana() {
 }
 
 export default async function RevendedoresPage() {
-  const [revendedores, { desde, hasta }] = await Promise.all([
-    getRevendedores(),
-    getResumenSemana(),
-  ]);
+  const revendedores = await getRevendedores();
+  const { desde, hasta } = await getResumenSemana();
 
   return (
     <div className="p-8">
