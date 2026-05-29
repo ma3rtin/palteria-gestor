@@ -19,6 +19,7 @@ export async function getRevendedor(id: number) {
         where: { activo: true },
         select: { id: true, nombre: true, comisionPorCaja: true },
         orderBy: { nombre: "asc" },
+        take: 100,
       },
       liquidaciones: {
         orderBy: { fechaInicio: "desc" },
@@ -34,6 +35,7 @@ export async function getPedidosPeriodo(idRevendedor: number, desde: string, has
     include: {
       clientes: {
         select: { id: true, nombre: true, comisionPorCaja: true },
+        take: 100,
       },
     },
   });
@@ -52,6 +54,7 @@ export async function getPedidosPeriodo(idRevendedor: number, desde: string, has
       producto: { select: { id: true, nombre: true, precioReferencia: true } },
     },
     orderBy: [{ cliente: { nombre: "asc" } }, { fecha: "asc" }],
+    take: 1000,
   });
 
   return { revendedor, pedidos };
@@ -70,7 +73,7 @@ export async function registrarLiquidacion(formData: FormData) {
 
   const revendedor = await prisma.revendedor.findUniqueOrThrow({
     where: { id: idRevendedor },
-    select: { tipo: true, clientes: { select: { id: true } } },
+    select: { tipo: true, clientes: { select: { id: true }, take: 100 } },
   });
 
   if (revendedor.tipo === "DESCUENTO") {
@@ -89,6 +92,7 @@ export async function registrarLiquidacion(formData: FormData) {
           esCobro: false,
         },
         select: { cajas: true },
+        take: 1000,
       });
 
       totalCajas = pedidos.reduce((sum, p) => sum + p.cajas, 0);
