@@ -56,32 +56,3 @@ export default async function ClientesPage({ searchParams }: Props) {
     </div>
   );
 }
-
-  return (
-    <div className="p-8 mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#f9fafb]">Clientes</h1>
-        <Link
-          href="/clientes/nuevo"
-          className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Nuevo cliente
-        </Link>
-      </div>
-
-      <FiltrosClientes
-        zonas={catalogo.zonas}
-        repartidores={catalogo.repartidores}
-        q={q}
-        zona={zona}
-        repartidor={repartidor}
-        inactivos={inactivos}
-      />
-
-      <ClientesListPaginated
-        initialData={initialData}
-        filters={{ q, zona, repartidor, inactivos }}
-      />
-    </div>
-  );
-}
