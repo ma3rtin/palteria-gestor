@@ -105,8 +105,8 @@ export async function getClientesConSaldoPaginado(
     ...(idRepartidor ? { idRepartidor } : {}),
     ...(busqueda ? {
       OR: [
-        { nombre: { contains: busqueda, mode: "insensitive" } },
-        { zona: { nombre: { contains: busqueda, mode: "insensitive" } } }
+        { nombre: { contains: busqueda, mode: "insensitive" as const } },
+        { zona: { nombre: { contains: busqueda, mode: "insensitive" as const } } }
       ]
     } : {})
   };
