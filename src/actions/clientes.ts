@@ -81,6 +81,74 @@ export async function getClientesConSaldo(
   return clientes.map((c) => ({ ...c, saldoPendiente: mapaDeuda.get(c.id) ?? 0 }));
 }
 
+export interface ClientesPagedResponse {
+  clientes: Awaited<ReturnType<typeof getClientesConSaldo>>;
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export async function getClientesConSaldoPaginado(
+  page: number = 0,
+  pageSize: number = 20,
+  idZona?: number,
+  idRepartidor?: number,
+  incluirInactivos: boolean = false
+): Promise<ClientesPagedResponse> {
+  const skip = page * pageSize;
+
+  const clientes = await prisma.cliente.findMany({
+    where: {
+      ...(incluirInactivos ? {} : { activo: true }),
+      ...(idZona ? { idZona } : {}),
+      ...(idRepartidor ? { idRepartidor } : {}),
+    },
+    include: { zona: true, repartidor: true },
+    orderBy: { nombre: "asc" },
+    skip,
+    take: pageSize,
+  });
+
+  const saldos = await prisma.pedido.groupBy({
+    by: ["idCliente"],
+    where: {
+      idCliente: { in: clientes.map((c) => c.id) },
+      estadoPago: { not: "PAGADO" },
+      esCobro: false,
+    },
+    _sum: { montoTotal: true, montoPagado: true },
+  });
+
+  const mapaDeuda = new Map(
+    saldos.map((s) => [
+      s.idCliente,
+      (s._sum.montoTotal ?? 0) - (s._sum.montoPagado ?? 0),
+    ])
+  );
+
+  const total = await prisma.cliente.count({
+    where: {
+      ...(incluirInactivos ? {} : { activo: true }),
+      ...(idZona ? { idZona } : {}),
+      ...(idRepartidor ? { idRepartidor } : {}),
+    },
+  });
+
+  const clientesConSaldo = clientes.map((c) => ({
+    ...c,
+    saldoPendiente: mapaDeuda.get(c.id) ?? 0,
+  }));
+
+  return {
+    clientes: clientesConSaldo,
+    total,
+    page,
+    pageSize,
+    hasMore: skip + pageSize < total,
+  };
+}
+
 export async function getCatalogoFormulario() {
   const zonas = await prisma.zona.findMany({ orderBy: { nombre: "asc" } });
   const repartidores = await prisma.repartidor.findMany({ where: { activo: true }, orderBy: { nombre: "asc" } });
