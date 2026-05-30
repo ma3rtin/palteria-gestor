@@ -18,7 +18,8 @@ export default async function ClientesPage({ searchParams }: Props) {
         20,
         zona ? Number(zona) : undefined,
         repartidor ? Number(repartidor) : undefined,
-        !!inactivos
+        !!inactivos,
+        q
       ),
     { maxAttempts: 3, baseDelayMs: 1000 }
   );

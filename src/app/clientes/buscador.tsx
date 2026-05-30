@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface Zona { id: number; nombre: string }
 interface Repartidor { id: number; nombre: string }
@@ -16,12 +17,37 @@ interface Props {
 
 export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inactivos }: Props) {
   const router = useRouter();
+  const [searchValue, setSearchValue] = useState(q ?? "");
 
   function actualizar(params: Record<string, string>) {
     const sp = new URLSearchParams();
+    // Al filtrar o buscar, reseteamos siempre a la página 0
+    sp.set("page", "0");
     Object.entries(params).forEach(([k, v]) => { if (v) sp.set(k, v); });
     router.push(`/clientes${sp.size ? "?" + sp.toString() : ""}`);
   }
+
+  // Debounce search input
+  useEffect(() => {
+    // Si el valor no ha cambiado respecto al prop q, no hacemos nada
+    if (searchValue === (q ?? "")) return;
+
+    const timer = setTimeout(() => {
+      actualizar({ 
+        q: searchValue, 
+        zona: zona ?? "", 
+        repartidor: repartidor ?? "", 
+        inactivos: inactivos ?? "" 
+      });
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  // Actualizar el estado local si el prop q cambia externamente (ej: al limpiar)
+  useEffect(() => {
+    setSearchValue(q ?? "");
+  }, [q]);
 
   const hayFiltros = q || zona || repartidor || inactivos;
 
@@ -30,19 +56,17 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       <input
         type="search"
         placeholder="Buscar por nombre o zona..."
-        defaultValue={q ?? ""}
-        onChange={(e) =>
-          actualizar({ q: e.target.value, zona: zona ?? "", repartidor: repartidor ?? "", inactivos: inactivos ?? "" })
-        }
-        className="flex-1 min-w-48 border border-[#2a2d35] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        className="flex-1 min-w-48 border border-[#2a2d35] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
       />
-
+...
       <select
         value={zona ?? ""}
         onChange={(e) =>
-          actualizar({ q: q ?? "", zona: e.target.value, repartidor: repartidor ?? "", inactivos: inactivos ?? "" })
+          actualizar({ q: searchValue, zona: e.target.value, repartidor: repartidor ?? "", inactivos: inactivos ?? "" })
         }
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todas las zonas</option>
         {zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre}</option>)}
@@ -51,9 +75,9 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       <select
         value={repartidor ?? ""}
         onChange={(e) =>
-          actualizar({ q: q ?? "", zona: zona ?? "", repartidor: e.target.value, inactivos: inactivos ?? "" })
+          actualizar({ q: searchValue, zona: zona ?? "", repartidor: e.target.value, inactivos: inactivos ?? "" })
         }
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los repartidores</option>
         {repartidores.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
@@ -62,9 +86,9 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       <select
         value={inactivos ?? ""}
         onChange={(e) =>
-          actualizar({ q: q ?? "", zona: zona ?? "", repartidor: repartidor ?? "", inactivos: e.target.value })
+          actualizar({ q: searchValue, zona: zona ?? "", repartidor: repartidor ?? "", inactivos: e.target.value })
         }
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Solo activos</option>
         <option value="1">Incluir inactivos</option>

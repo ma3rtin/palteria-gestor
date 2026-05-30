@@ -94,16 +94,25 @@ export async function getClientesConSaldoPaginado(
   pageSize: number = 20,
   idZona?: number,
   idRepartidor?: number,
-  incluirInactivos: boolean = false
+  incluirInactivos: boolean = false,
+  busqueda?: string
 ): Promise<ClientesPagedResponse> {
   const skip = page * pageSize;
 
+  const where = {
+    ...(incluirInactivos ? {} : { activo: true }),
+    ...(idZona ? { idZona } : {}),
+    ...(idRepartidor ? { idRepartidor } : {}),
+    ...(busqueda ? {
+      OR: [
+        { nombre: { contains: busqueda, mode: "insensitive" } },
+        { zona: { nombre: { contains: busqueda, mode: "insensitive" } } }
+      ]
+    } : {})
+  };
+
   const clientes = await prisma.cliente.findMany({
-    where: {
-      ...(incluirInactivos ? {} : { activo: true }),
-      ...(idZona ? { idZona } : {}),
-      ...(idRepartidor ? { idRepartidor } : {}),
-    },
+    where,
     include: { zona: true, repartidor: true },
     orderBy: { nombre: "asc" },
     skip,
@@ -127,13 +136,7 @@ export async function getClientesConSaldoPaginado(
     ])
   );
 
-  const total = await prisma.cliente.count({
-    where: {
-      ...(incluirInactivos ? {} : { activo: true }),
-      ...(idZona ? { idZona } : {}),
-      ...(idRepartidor ? { idRepartidor } : {}),
-    },
-  });
+  const total = await prisma.cliente.count({ where });
 
   const clientesConSaldo = clientes.map((c) => ({
     ...c,

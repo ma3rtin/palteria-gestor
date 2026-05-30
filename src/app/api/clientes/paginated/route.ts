@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const repartidor = searchParams.get("repartidor");
     const inactivos = searchParams.get("inactivos");
 
+    const q = searchParams.get("q") ?? undefined;
+
     const data = await retryWithExponentialBackoff(
       () =>
         getClientesConSaldoPaginado(
@@ -18,7 +20,8 @@ export async function GET(request: NextRequest) {
           pageSize,
           zona ? Number(zona) : undefined,
           repartidor ? Number(repartidor) : undefined,
-          inactivos === "true"
+          inactivos === "true",
+          q
         ),
       { maxAttempts: 3, baseDelayMs: 1000 }
     );

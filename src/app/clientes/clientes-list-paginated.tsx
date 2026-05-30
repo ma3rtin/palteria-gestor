@@ -34,6 +34,11 @@ export function ClientesListPaginated({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync state with props when initialData changes (e.g. search/filter change)
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const handlePageChange = async (newPage: number) => {
     setLoading(true);
     setError(null);
