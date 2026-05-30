@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
 
 interface Zona { id: number; nombre: string }
 interface Repartidor { id: number; nombre: string }
@@ -24,6 +24,7 @@ const ESTADOS = [
 
 export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, repartidorActual, estadoActual, busquedaActual }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [busqueda, setBusqueda] = useState(busquedaActual ?? "");
 
   function actualizar(zona: string, rep: string, estado: string, q: string) {
@@ -32,31 +33,50 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     if (rep)    sp.set("repartidor", rep);
     if (estado) sp.set("estado", estado);
     if (q)      sp.set("q", q);
-    router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
+    
+    startTransition(() => {
+      router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
+    });
   }
+
+  // Debounce para búsqueda natural
+  useEffect(() => {
+    if (busqueda === (busquedaActual ?? "")) return;
+
+    const timer = setTimeout(() => {
+      actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [busqueda]);
+
+  useEffect(() => {
+    setBusqueda(busquedaActual ?? "");
+  }, [busquedaActual]);
 
   const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual;
 
   return (
-    <div className="flex gap-2 mb-4 flex-wrap">
-      <input
-        type="text"
-        placeholder="Buscar cliente..."
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
-        }}
-        onBlur={() => {
-          if (busqueda !== (busquedaActual ?? "")) actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
-        }}
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] w-48"
-      />
+    <div className={`flex gap-2 mb-4 flex-wrap transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
+      <div className="relative">
+        <input
+          type="search"
+          placeholder="Buscar cliente..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] w-48 text-white"
+        />
+        {isPending && (
+          <div className="absolute right-2 top-2.5">
+            <div className="w-4 h-4 border-2 border-[#a3e635] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+      </div>
 
       <select
         value={zonaActual ?? ""}
         onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda)}
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todas las zonas</option>
         {zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre}</option>)}
@@ -65,7 +85,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
       <select
         value={repartidorActual ?? ""}
         onChange={(e) => actualizar(zonaActual ?? "", e.target.value, estadoActual ?? "", busqueda)}
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los repartidores</option>
         {repartidores.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
@@ -74,7 +94,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
       <select
         value={estadoActual ?? ""}
         onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", e.target.value, busqueda)}
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los estados</option>
         {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}

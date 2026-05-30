@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 
 interface Zona { id: number; nombre: string }
 interface Repartidor { id: number; nombre: string }
@@ -17,19 +17,23 @@ interface Props {
 
 export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inactivos }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(q ?? "");
 
   function actualizar(params: Record<string, string>) {
     const sp = new URLSearchParams();
-    // Al filtrar o buscar, reseteamos siempre a la página 0
     sp.set("page", "0");
     Object.entries(params).forEach(([k, v]) => { if (v) sp.set(k, v); });
-    router.push(`/clientes${sp.size ? "?" + sp.toString() : ""}`);
+    
+    // startTransition permite que la UI responda inmediatamente 
+    // y sepamos cuando la navegación del servidor está pendiente
+    startTransition(() => {
+      router.push(`/clientes${sp.size ? "?" + sp.toString() : ""}`);
+    });
   }
 
-  // Debounce search input
+  // Debounce search input - Reducido a 300ms para que sea más natural
   useEffect(() => {
-    // Si el valor no ha cambiado respecto al prop q, no hacemos nada
     if (searchValue === (q ?? "")) return;
 
     const timer = setTimeout(() => {
@@ -39,12 +43,11 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
         repartidor: repartidor ?? "", 
         inactivos: inactivos ?? "" 
       });
-    }, 500); // 500ms debounce
+    }, 300); 
 
     return () => clearTimeout(timer);
   }, [searchValue]);
 
-  // Actualizar el estado local si el prop q cambia externamente (ej: al limpiar)
   useEffect(() => {
     setSearchValue(q ?? "");
   }, [q]);
@@ -52,14 +55,21 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
   const hayFiltros = q || zona || repartidor || inactivos;
 
   return (
-    <div className="flex gap-2 flex-wrap mb-4">
-      <input
-        type="search"
-        placeholder="Buscar por nombre o zona..."
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        className="flex-1 min-w-48 border border-[#2a2d35] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-      />
+    <div className={`flex gap-2 flex-wrap mb-4 transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
+      <div className="relative flex-1 min-w-48">
+        <input
+          type="search"
+          placeholder="Buscar por nombre o zona..."
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          className="w-full border border-[#2a2d35] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+        />
+        {isPending && (
+          <div className="absolute right-3 top-2.5">
+            <div className="w-4 h-4 border-2 border-[#a3e635] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+      </div>
 ...
       <select
         value={zona ?? ""}

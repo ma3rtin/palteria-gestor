@@ -21,13 +21,13 @@ export function FiltroRepartidores({ resumen }: { resumen: ResumenRepartidor[] }
 
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-4 relative w-64">
         <input
-          type="text"
+          type="search"
           placeholder="Buscar repartidor..."
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] w-64"
+          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
         />
       </div>
 

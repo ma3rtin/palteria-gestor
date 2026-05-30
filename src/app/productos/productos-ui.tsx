@@ -197,13 +197,13 @@ export function ProductosUI({
           </form>
         </div>
 
-        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-4 self-stretch flex items-center w-56">
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-4 self-stretch flex items-center w-56 relative">
           <input
-            type="text"
+            type="search"
             placeholder="Buscar producto..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#13161e] focus:outline-none focus:border-[#a3e635]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#13161e] focus:outline-none focus:border-[#a3e635] text-white"
           />
         </div>
       </div>

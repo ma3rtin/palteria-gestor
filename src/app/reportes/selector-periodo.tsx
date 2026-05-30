@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { hoyISO } from "@/lib/utils";
 
 interface Props {
@@ -70,6 +70,7 @@ const PRESETS = [
 
 export default function SelectorPeriodo({ desde, hasta }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [fechaDesde, setFechaDesde] = useState(desde);
   const [fechaHasta, setFechaHasta] = useState(hasta);
 
@@ -78,12 +79,16 @@ export default function SelectorPeriodo({ desde, hasta }: Props) {
     const h = preset.hasta();
     setFechaDesde(d);
     setFechaHasta(h);
-    router.push(`/reportes?desde=${d}&hasta=${h}`);
+    startTransition(() => {
+      router.push(`/reportes?desde=${d}&hasta=${h}`);
+    });
   }
 
   function buscar() {
     if (fechaDesde && fechaHasta) {
-      router.push(`/reportes?desde=${fechaDesde}&hasta=${fechaHasta}`);
+      startTransition(() => {
+        router.push(`/reportes?desde=${fechaDesde}&hasta=${fechaHasta}`);
+      });
     }
   }
 
@@ -92,10 +97,11 @@ export default function SelectorPeriodo({ desde, hasta }: Props) {
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-6">
+    <div className={`flex flex-wrap items-center gap-2 mb-6 transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
       {PRESETS.map((p) => (
         <button
           key={p.label}
+          disabled={isPending}
           onClick={() => aplicarPreset(p)}
           className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
             activePreset?.label === p.label
@@ -113,20 +119,21 @@ export default function SelectorPeriodo({ desde, hasta }: Props) {
         type="date"
         value={fechaDesde}
         onChange={(e) => setFechaDesde(e.target.value)}
-        className="bg-[#1c1f26] border border-[#2a2d35] text-[#f9fafb] text-xs rounded-md px-3 py-1.5 focus:outline-none focus:border-[#a3e635]"
+        className="bg-[#1c1f26] border border-[#2a2d35] text-[#f9fafb] text-xs rounded-md px-3 py-1.5 focus:outline-none focus:border-[#a3e635] text-white"
       />
       <span className="text-[#6b7280] text-xs">→</span>
       <input
         type="date"
         value={fechaHasta}
         onChange={(e) => setFechaHasta(e.target.value)}
-        className="bg-[#1c1f26] border border-[#2a2d35] text-[#f9fafb] text-xs rounded-md px-3 py-1.5 focus:outline-none focus:border-[#a3e635]"
+        className="bg-[#1c1f26] border border-[#2a2d35] text-[#f9fafb] text-xs rounded-md px-3 py-1.5 focus:outline-none focus:border-[#a3e635] text-white"
       />
       <button
         onClick={buscar}
-        className="px-3 py-1.5 bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] text-xs font-medium rounded-md transition-colors"
+        disabled={isPending}
+        className="px-3 py-1.5 bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] text-xs font-medium rounded-md transition-colors disabled:opacity-50"
       >
-        Buscar
+        {isPending ? "Buscando..." : "Buscar"}
       </button>
     </div>
   );
