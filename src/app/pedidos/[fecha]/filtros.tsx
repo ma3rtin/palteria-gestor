@@ -26,6 +26,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busqueda, setBusqueda] = useState(busquedaActual ?? "");
+  const [isManualUpdate, setIsManualUpdate] = useState(false);
 
   function actualizar(zona: string, rep: string, estado: string, q: string) {
     const sp = new URLSearchParams();
@@ -36,12 +37,16 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     
     startTransition(() => {
       router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
+      setIsManualUpdate(false);
     });
   }
 
   // Debounce para búsqueda natural - Aumentado a 500ms
   useEffect(() => {
-    if (busqueda === (busquedaActual ?? "")) return;
+    if (busqueda === (busquedaActual ?? "")) {
+      setIsManualUpdate(false);
+      return;
+    }
 
     const timer = setTimeout(() => {
       actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
@@ -50,12 +55,12 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     return () => clearTimeout(timer);
   }, [busqueda]);
 
-  // Sincronizar solo cuando no hay una carga pendiente para no pisar el input
+  // Sincronizar solo cuando no es cambio manual para no pisar el input
   useEffect(() => {
-    if (!isPending) {
+    if (!isManualUpdate && !isPending) {
       setBusqueda(busquedaActual ?? "");
     }
-  }, [busquedaActual, isPending]);
+  }, [busquedaActual, isPending, isManualUpdate]);
 
   const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual;
 
@@ -66,7 +71,10 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
           type="search"
           placeholder="Buscar cliente..."
           value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
+          onChange={(e) => {
+            setIsManualUpdate(true);
+            setBusqueda(e.target.value);
+          }}
           className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] w-48 text-white"
         />
         {isPending && (

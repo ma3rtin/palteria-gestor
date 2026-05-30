@@ -19,23 +19,25 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(q ?? "");
+  const [isManualUpdate, setIsManualUpdate] = useState(false);
 
   function actualizar(params: Record<string, string>) {
     const sp = new URLSearchParams();
     sp.set("page", "0");
     Object.entries(params).forEach(([k, v]) => { if (v) sp.set(k, v); });
     
-    // startTransition permite que la UI responda inmediatamente 
-    // y sepamos cuando la navegación del servidor está pendiente
     startTransition(() => {
       router.push(`/clientes${sp.size ? "?" + sp.toString() : ""}`);
+      setIsManualUpdate(false);
     });
   }
 
-  // Debounce search input - Aumentado a 500ms para evitar que sea muy agresivo
+  // Debounce search input
   useEffect(() => {
-    // Si el valor local coincide con el de la URL, no hacemos nada
-    if (searchValue === (q ?? "")) return;
+    if (searchValue === (q ?? "")) {
+      setIsManualUpdate(false);
+      return;
+    }
 
     const timer = setTimeout(() => {
       actualizar({ 
@@ -49,13 +51,12 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
     return () => clearTimeout(timer);
   }, [searchValue]);
 
-  // Solo sincronizamos el estado local con la URL si NO estamos en medio de una transición
-  // Esto evita que la búsqueda "pise" lo que el usuario está escribiendo
+  // Sincronizar solo si NO es un cambio manual del usuario
   useEffect(() => {
-    if (!isPending) {
+    if (!isManualUpdate && !isPending) {
       setSearchValue(q ?? "");
     }
-  }, [q, isPending]);
+  }, [q, isPending, isManualUpdate]);
 
   const hayFiltros = q || zona || repartidor || inactivos;
 
@@ -66,7 +67,10 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
           type="search"
           placeholder="Buscar por nombre o zona..."
           value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
+          onChange={(e) => {
+            setIsManualUpdate(true);
+            setSearchValue(e.target.value);
+          }}
           className="w-full border border-[#2a2d35] rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
         />
         {isPending && (
