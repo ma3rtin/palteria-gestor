@@ -32,8 +32,9 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
     });
   }
 
-  // Debounce search input - Reducido a 300ms para que sea más natural
+  // Debounce search input - Aumentado a 500ms para evitar que sea muy agresivo
   useEffect(() => {
+    // Si el valor local coincide con el de la URL, no hacemos nada
     if (searchValue === (q ?? "")) return;
 
     const timer = setTimeout(() => {
@@ -43,14 +44,18 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
         repartidor: repartidor ?? "", 
         inactivos: inactivos ?? "" 
       });
-    }, 300); 
+    }, 500); 
 
     return () => clearTimeout(timer);
   }, [searchValue]);
 
+  // Solo sincronizamos el estado local con la URL si NO estamos en medio de una transición
+  // Esto evita que la búsqueda "pise" lo que el usuario está escribiendo
   useEffect(() => {
-    setSearchValue(q ?? "");
-  }, [q]);
+    if (!isPending) {
+      setSearchValue(q ?? "");
+    }
+  }, [q, isPending]);
 
   const hayFiltros = q || zona || repartidor || inactivos;
 

@@ -39,20 +39,23 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     });
   }
 
-  // Debounce para búsqueda natural
+  // Debounce para búsqueda natural - Aumentado a 500ms
   useEffect(() => {
     if (busqueda === (busquedaActual ?? "")) return;
 
     const timer = setTimeout(() => {
       actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [busqueda]);
 
+  // Sincronizar solo cuando no hay una carga pendiente para no pisar el input
   useEffect(() => {
-    setBusqueda(busquedaActual ?? "");
-  }, [busquedaActual]);
+    if (!isPending) {
+      setBusqueda(busquedaActual ?? "");
+    }
+  }, [busquedaActual, isPending]);
 
   const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual;
 
