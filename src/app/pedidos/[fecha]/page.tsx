@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
-import { BadgeEstadoPago, BadgeEstadoFactura } from "@/components/badge-estado";
+import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, formatearFecha, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesPedido } from "./acciones";
 import { FiltrosPedidos } from "./filtros";
+import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
 
 interface Props {
   params: Promise<{ fecha: string }>;
@@ -180,7 +181,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                         <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
                       </td>
                       <td className="px-4 py-2.5">
-                        <BadgeEstadoFactura estado={p.estadoFactura as "NO_REQUIERE" | "PENDIENTE" | "EMITIDA"} />
+                        <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura} />
                       </td>
                       <td className="px-4 py-2.5">
                         <AccionesPedido pedido={p} fecha={fecha} />

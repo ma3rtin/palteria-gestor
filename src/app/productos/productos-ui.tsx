@@ -34,9 +34,9 @@ function FilaProducto({
   actualizarStock: Props["actualizarStock"];
   toggleProducto: Props["toggleProducto"];
 }) {
-  const [precio, setPrecio] = useState(p.precioReferencia);
+  const [precio, setPrecio] = useState<number | "">(p.precioReferencia);
   const [kg, setKg] = useState<number | "">(p.kgPorCaja ?? "");
-  const [stock, setStock] = useState(p.stockCajas);
+  const [stock, setStock] = useState<number | "">(p.stockCajas);
 
   useEffect(() => { setPrecio(p.precioReferencia); }, [p.precioReferencia]);
   useEffect(() => { setKg(p.kgPorCaja ?? ""); }, [p.kgPorCaja]);
@@ -79,8 +79,13 @@ function FilaProducto({
             type="number"
             step={0.5}
             min={0}
+            required
+            placeholder="0"
             value={stock}
-            onChange={(e) => setStock(parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setStock(val === "" ? "" : parseFloat(val));
+            }}
             className={`w-24 border rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] ${
               p.stockCajas <= 0 ? "border-red-800 text-red-400" : "border-[#2a2d35]"
             }`}
@@ -100,8 +105,13 @@ function FilaProducto({
             name="precioReferencia"
             type="number"
             step={1000}
+            required
+            placeholder="0"
             value={precio}
-            onChange={(e) => setPrecio(parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPrecio(val === "" ? "" : parseFloat(val));
+            }}
             className="w-32 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
           />
           {precioDirty && (

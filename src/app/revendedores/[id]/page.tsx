@@ -228,6 +228,7 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                     step={500}
                     defaultValue={10000}
                     required
+                    placeholder="0"
                     className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
                   />
                   <p className="text-xs text-[#6b7280] mt-1">

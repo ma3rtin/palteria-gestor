@@ -51,8 +51,8 @@ export function FormNuevoPedido({
 }: Props) {
   const [idClienteSelec, setIdClienteSelec] = useState<number | null>(null);
   const [idProductoSelec, setIdProductoSelec] = useState<number | null>(null);
-  const [cajas, setCajas] = useState<number>(1);
-  const [montoManual, setMontoManual] = useState<number | null>(null);
+  const [cajas, setCajas] = useState<number | "">(1);
+  const [montoManual, setMontoManual] = useState<number | "" | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [mostrarLista, setMostrarLista] = useState(false);
   const [errorCliente, setErrorCliente] = useState(false);
@@ -63,7 +63,7 @@ export function FormNuevoPedido({
   const productoSelec = productos.find((p) => p.id === idProductoSelec);
 
   const esCambio = formaPago === "CAMBIO";
-  const montoCalculado = productoSelec ? Math.round(productoSelec.precioReferencia * cajas) : 0;
+  const montoCalculado = productoSelec ? Math.round(productoSelec.precioReferencia * (cajas === "" ? 0 : cajas)) : "";
   const montoFinal = esCambio && esReposicion ? 0 : (montoManual ?? montoCalculado);
   const pagoHabitual = clienteSelec ? FORMAS_PAGO.find((f) => f.value === clienteSelec.formaPagoPref)?.label : null;
 
@@ -87,6 +87,7 @@ export function FormNuevoPedido({
     setBusqueda(c.nombre + " · " + c.zona.nombre);
     setMostrarLista(false);
     setErrorCliente(false);
+    setFormaPago(c.formaPagoPref); // Auto-select preferred payment method
   }
 
   return (
@@ -166,12 +167,12 @@ export function FormNuevoPedido({
             ))}
           </select>
           {productoSelec && (
-            <p className={`text-xs mt-1 ${productoSelec.stockCajas < cajas ? "text-red-400" : "text-[#6b7280]"}`}>
+            <p className={`text-xs mt-1 ${productoSelec.stockCajas < (cajas === "" ? 0 : cajas) ? "text-red-400" : "text-[#6b7280]"}`}>
               Stock: <span className="font-medium">{productoSelec.stockCajas} cajas</span>
               {productoSelec.kgPorCaja && (
                 <span className="ml-2">· {productoSelec.kgPorCaja} kg/caja</span>
               )}
-              {productoSelec.stockCajas < cajas && (
+              {productoSelec.stockCajas < (cajas === "" ? 0 : cajas) && (
                 <span className="ml-2 font-medium">— insuficiente</span>
               )}
             </p>
@@ -204,9 +205,11 @@ export function FormNuevoPedido({
             required
             min={0.5}
             step={0.5}
+            placeholder="0"
             value={cajas}
             onChange={(e) => {
-              setCajas(parseFloat(e.target.value) || 0);
+              const val = e.target.value;
+              setCajas(val === "" ? "" : parseFloat(val));
               setMontoManual(null);
             }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
@@ -227,9 +230,13 @@ export function FormNuevoPedido({
             type="number"
             required
             min={0}
+            placeholder="0"
             value={montoFinal}
             readOnly={esCambio && esReposicion}
-            onChange={(e) => setMontoManual(parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setMontoManual(val === "" ? "" : parseInt(val));
+            }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] read-only:opacity-40 read-only:cursor-not-allowed"
           />
         </div>
@@ -243,17 +250,23 @@ export function FormNuevoPedido({
             name="formaPago"
             required
             value={formaPago}
+            disabled={formaPago === "PAGO_SEMANAL"}
             onChange={(e) => {
               setFormaPago(e.target.value);
               if (e.target.value === "CAMBIO") setEsReposicion(true);
               setMontoManual(null);
             }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+            className={`w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] ${
+              formaPago === "PAGO_SEMANAL" ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             {FORMAS_PAGO.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
           </select>
+          {formaPago === "PAGO_SEMANAL" && (
+            <input type="hidden" name="formaPago" value="PAGO_SEMANAL" />
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-[#f9fafb] mb-1">Repartidor</label>

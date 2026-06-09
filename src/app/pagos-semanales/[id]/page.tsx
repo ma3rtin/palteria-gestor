@@ -256,6 +256,7 @@ export default async function DetalleCuentaPage({ params }: Props) {
                                 required
                                 min={0}
                                 step={100}
+                                placeholder="0"
                                 defaultValue={deudaCliente}
                                 className="w-full border border-[#2a2d35] rounded px-2 py-1.5 text-xs bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
                               />

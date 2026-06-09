@@ -152,3 +152,59 @@ export async function eliminarPedido(idPedido: number, fechaStr: string) {
   revalidatePath("/productos");
   revalidatePath("/");
 }
+
+export async function getPedido(idPedido: number) {
+  return prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    include: { cliente: true, producto: true, repartidor: true },
+  });
+}
+
+export async function actualizarPedido(idPedido: number, formData: FormData) {
+  const fecha = formData.get("fecha") as string;
+  const cajas = parseFloat(formData.get("cajas") as string);
+  const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
+  const formaPago = formData.get("formaPago") as string;
+  const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
+  const requiereFactura = formData.get("requiereFactura") === "on";
+  const observaciones = formData.get("observaciones") as string | null;
+
+  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+
+  // Si no es cobro, ajustar stock
+  if (!pedido.esCobro) {
+    const diferencia = pedido.cajas - cajas;
+    if (diferencia !== 0) {
+      await prisma.producto.update({
+        where: { id: pedido.idProducto },
+        data: { stockCajas: { increment: diferencia } },
+      });
+    }
+  }
+
+  await prisma.pedido.update({
+    where: { id: idPedido },
+    data: {
+      cajas,
+      montoTotal,
+      formaPago: formaPago as never,
+      idRepartidor,
+      requiereFactura,
+      estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
+      observaciones: observaciones?.trim() || null,
+    },
+  });
+
+  revalidatePath(`/pedidos/${fecha}`);
+  revalidatePath("/productos");
+  revalidatePath("/");
+  redirect(`/pedidos/${fecha}`);
+}
+
+export async function actualizarEstadoFactura(idPedido: number, estadoFactura: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA") {
+  await prisma.pedido.update({
+    where: { id: idPedido },
+    data: { estadoFactura: estadoFactura as never },
+  });
+  revalidatePath("/pedidos/[fecha]", "page");
+}

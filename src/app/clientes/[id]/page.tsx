@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCliente, getSaldoCliente } from "@/actions/clientes";
+import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, formatearFechaCorta, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesCliente } from "./acciones";
@@ -125,6 +126,7 @@ export default async function DetalleClientePage({ params }: Props) {
                     <th className="text-right px-4 py-3 font-medium">Cajas</th>
                     <th className="text-right px-4 py-3 font-medium">Monto</th>
                     <th className="text-left px-4 py-3 font-medium">Estado</th>
+                    <th className="text-left px-4 py-3 font-medium">Factura</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -139,6 +141,9 @@ export default async function DetalleClientePage({ params }: Props) {
                       <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
                       <td className="px-4 py-2.5">
                         <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura as any} />
                       </td>
                     </tr>
                   ))}

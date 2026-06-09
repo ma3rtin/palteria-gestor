@@ -1,23 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { marcarPagado, registrarCobro, eliminarPedido } from "@/actions/pedidos";
-import { formatearPeso } from "@/lib/utils";
 import { BotonSubmit } from "@/components/boton-submit";
+import { BotonCopiarEtiqueta } from "@/components/boton-copiar-etiqueta";
+import { useToast } from "@/hooks/use-toast";
 
-interface Pedido {
-  id: number;
-  estadoPago: string;
-  montoTotal: number;
-  montoPagado: number;
-  esCobro: boolean;
-}
-
-export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: string }) {
+export function AccionesPedido({ pedido, fecha }: { pedido: any; fecha: string }) {
   const [mostrarCobro, setMostrarCobro] = useState(false);
+  const { showToast, ToastComponent } = useToast();
+
+  const handleCopied = () => showToast("Etiqueta copiada");
 
   if (pedido.estadoPago === "PAGADO") {
-    return <span className="text-xs text-[#6b7280]">✓</span>;
+    return (
+      <div className="flex items-center gap-1.5">
+        <BotonCopiarEtiqueta pedido={pedido} onCopied={handleCopied} />
+        <Link
+          href={`/pedidos/${fecha}/${pedido.id}/editar`}
+          className="border border-[#2a2d35] text-[#9ca3af] px-2 py-1 rounded text-xs hover:border-[#a3e635] hover:text-[#a3e635] transition-colors"
+        >
+          Editar
+        </Link>
+        {ToastComponent}
+      </div>
+    );
   }
 
   const marcarPagadoAction = marcarPagado.bind(null, pedido.id);
@@ -37,6 +45,8 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
             name="monto"
             type="number"
             defaultValue={deuda}
+            required
+            placeholder="0"
             min={1}
             max={deuda}
             className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#a3e635]"
@@ -56,6 +66,13 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
         </form>
       ) : (
         <>
+          <BotonCopiarEtiqueta pedido={pedido} onCopied={handleCopied} />
+          <Link
+            href={`/pedidos/${fecha}/${pedido.id}/editar`}
+            className="border border-[#2a2d35] text-[#9ca3af] px-2 py-1 rounded text-xs hover:border-[#a3e635] hover:text-[#a3e635] transition-colors"
+          >
+            Editar
+          </Link>
           <form action={marcarPagadoAction}>
             <BotonSubmit
               className="bg-[#16a34a] text-white px-2.5 py-1 rounded text-xs hover:bg-[#15803d] transition-colors"
@@ -78,6 +95,7 @@ export function AccionesPedido({ pedido, fecha }: { pedido: Pedido; fecha: strin
           </form>
         </>
       )}
+      {ToastComponent}
     </div>
   );
 }

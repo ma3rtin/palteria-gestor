@@ -46,6 +46,8 @@ option {
   color: var(--texto);
 }
 
+/* ... */
+
 /* Quitar la cruz default de los inputs de búsqueda en Chrome/Safari/Edge/iOS */
 input[type="search"]::-webkit-search-decoration,
 input[type="search"]::-webkit-search-cancel-button,
@@ -53,4 +55,14 @@ input[type="search"]::-webkit-search-results-button,
 input[type="search"]::-webkit-search-results-decoration {
   -webkit-appearance: none;
   display: none;
+}
+
+@keyframes fade-in-out {
+  0% { opacity: 0; transform: translateY(10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10px); }
+}
+.animate-fade-in-out {
+  animation: fade-in-out 2s ease-in-out forwards;
 }
