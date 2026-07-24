@@ -10,6 +10,8 @@ interface Cliente {
   formaPagoPref: string;
   idRepartidor: number | null;
   requiereFactura: boolean;
+  idRevendedor: number | null;
+  revendedor?: { nombre: string } | null;
 }
 
 interface Producto {
@@ -32,6 +34,7 @@ interface Props {
   repartidores: Repartidor[];
   maduracionesSugeridas: string[];
   crearPedido: (formData: FormData) => Promise<void>;
+  clienteInicialId?: number;
 }
 
 const FORMAS_PAGO = [
@@ -48,15 +51,19 @@ export function FormNuevoPedido({
   repartidores,
   maduracionesSugeridas,
   crearPedido,
+  clienteInicialId,
 }: Props) {
-  const [idClienteSelec, setIdClienteSelec] = useState<number | null>(null);
+  const initialCliente = clienteInicialId ? clientes.find((c) => c.id === clienteInicialId) : null;
+
+  const [idClienteSelec, setIdClienteSelec] = useState<number | null>(clienteInicialId ?? null);
   const [idProductoSelec, setIdProductoSelec] = useState<number | null>(null);
   const [cajas, setCajas] = useState<number | "">(1);
   const [montoManual, setMontoManual] = useState<number | "" | null>(null);
-  const [busqueda, setBusqueda] = useState("");
+  const [comisionRevendedor, setComisionRevendedor] = useState<number | "">("");
+  const [busqueda, setBusqueda] = useState(initialCliente ? `${initialCliente.nombre} · ${initialCliente.zona.nombre}` : "");
   const [mostrarLista, setMostrarLista] = useState(false);
   const [errorCliente, setErrorCliente] = useState(false);
-  const [formaPago, setFormaPago] = useState("EFECTIVO");
+  const [formaPago, setFormaPago] = useState(initialCliente?.formaPagoPref ?? "EFECTIVO");
   const [esReposicion, setEsReposicion] = useState(true);
 
   const clienteSelec = clientes.find((c) => c.id === idClienteSelec);
@@ -141,8 +148,8 @@ export function FormNuevoPedido({
           <p className="text-xs text-red-400 mt-1">Seleccioná un cliente de la lista</p>
         )}
         {clienteSelec && (
-          <p className="text-xs text-[#4ade80] mt-1">
-            ✓ Pago habitual: <span className="font-medium">{pagoHabitual}</span>
+          <p className="text-xs text-[#16a34a] mt-1">
+            Pago habitual: <span className="font-medium">{pagoHabitual}</span>
           </p>
         )}
       </div>
@@ -282,6 +289,27 @@ export function FormNuevoPedido({
           </select>
         </div>
       </div>
+
+      {clienteSelec?.idRevendedor && (
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+            Ganancia Revendedor * 
+            <span className="text-xs font-medium text-[#16a34a] ml-1.5 uppercase">
+              {clienteSelec.revendedor?.nombre || "Revendedor"}
+            </span>
+          </label>
+          <input
+            name="comisionRevendedor"
+            type="number"
+            required
+            min={0}
+            placeholder="Monto a pagar al revendedor..."
+            value={comisionRevendedor}
+            onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+          />
+        </div>
+      )}
 
       <input type="hidden" name="esReposicion" value={String(esReposicion)} />
 

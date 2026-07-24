@@ -47,6 +47,8 @@ export async function getCatalogoNuevoPedido() {
       formaPagoPref: true,
       idRepartidor: true,
       requiereFactura: true,
+      idRevendedor: true,
+      revendedor: { select: { nombre: true } },
     },
     orderBy: [{ zona: { nombre: "asc" } }, { nombre: "asc" }],
   });
@@ -70,6 +72,7 @@ export async function crearPedido(formData: FormData) {
   const cajas = parseFloat(formData.get("cajas") as string);
   const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
   const formaPago = formData.get("formaPago") as string;
+  const comisionRevendedor = parseFloat(formData.get("comisionRevendedor") as string) || 0;
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const esCobro = formData.get("esCobro") === "on";
@@ -95,6 +98,7 @@ export async function crearPedido(formData: FormData) {
       estadoFactura: requiereFactura ? "PENDIENTE" : "NO_REQUIERE",
       esCobro,
       esReposicion,
+      comisionRevendedor,
       observaciones: observaciones?.trim() || null,
     },
   });
@@ -156,7 +160,13 @@ export async function eliminarPedido(idPedido: number, fechaStr: string) {
 export async function getPedido(idPedido: number) {
   return prisma.pedido.findUniqueOrThrow({
     where: { id: idPedido },
-    include: { cliente: true, producto: true, repartidor: true },
+    include: {
+      cliente: {
+        include: { revendedor: true }
+      },
+      producto: true,
+      repartidor: true
+    },
   });
 }
 
@@ -165,6 +175,9 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   const cajas = parseFloat(formData.get("cajas") as string);
   const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
   const formaPago = formData.get("formaPago") as string;
+  const estadoPago = formData.get("estadoPago") as string;
+  const montoPagado = parseFloat(formData.get("montoPagado") as string) || 0;
+  const comisionRevendedor = parseFloat(formData.get("comisionRevendedor") as string) || 0;
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const observaciones = formData.get("observaciones") as string | null;
@@ -188,9 +201,12 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
       cajas,
       montoTotal,
       formaPago: formaPago as never,
+      estadoPago: estadoPago as never,
+      montoPagado,
       idRepartidor,
       requiereFactura,
       estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
+      comisionRevendedor,
       observaciones: observaciones?.trim() || null,
     },
   });

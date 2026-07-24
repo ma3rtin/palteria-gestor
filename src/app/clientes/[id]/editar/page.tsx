@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import { getCliente, getCatalogoFormulario, actualizarCliente } from "@/actions/clientes";
 import { BotonSubmit } from "@/components/boton-submit";
 import RevendedorSelector from "../../revendedor-selector";
@@ -26,8 +27,9 @@ export default async function EditarClientePage({ params }: Props) {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <a href={`/clientes/${id}`} className="text-xs text-[#6b7280] hover:text-[#a3e635]">
-          ← {cliente.nombre}
+        <a href={`/clientes/${id}`} className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
+          <ChevronLeft size={14} />
+          {cliente.nombre}
         </a>
         <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">Editar cliente</h1>
       </div>
@@ -133,7 +135,6 @@ export default async function EditarClientePage({ params }: Props) {
         <RevendedorSelector
           revendedores={revendedores}
           defaultIdRevendedor={cliente.idRevendedor}
-          defaultComision={cliente.comisionPorCaja}
         />
 
         <label className="flex items-center gap-2 cursor-pointer">

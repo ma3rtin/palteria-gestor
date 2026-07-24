@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatearPeso } from "@/lib/utils";
 import { retryWithExponentialBackoff } from "@/lib/retry";
 
@@ -123,16 +124,18 @@ export function ClientesListPaginated({
           <button
             onClick={() => handlePageChange(data.page - 1)}
             disabled={data.page === 0 || loading}
-            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors"
+            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors flex items-center gap-1"
           >
-            ← Anterior
+            <ChevronLeft size={16} />
+            Anterior
           </button>
           <button
             onClick={() => handlePageChange(data.page + 1)}
             disabled={!data.hasMore || loading}
-            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors"
+            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors flex items-center gap-1"
           >
-            Siguiente →
+            Siguiente
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>

@@ -36,7 +36,10 @@ export async function getCliente(id: number) {
       pedidos: {
         orderBy: { fecha: "desc" },
         take: 50,
-        include: { producto: true },
+        include: {
+          producto: true,
+          cliente: { include: { zona: true } }
+        },
       },
     },
   });
@@ -170,7 +173,6 @@ export async function crearCliente(formData: FormData) {
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
-  const comisionPorCaja = formData.get("comisionPorCaja") ? parseFloat(formData.get("comisionPorCaja") as string) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   const cliente = await prisma.cliente.create({
@@ -184,7 +186,6 @@ export async function crearCliente(formData: FormData) {
       requiereFactura,
       idCuentaCorriente,
       idRevendedor,
-      comisionPorCaja: idRevendedor && comisionPorCaja ? comisionPorCaja : null,
       observaciones: observaciones?.trim() || null,
     },
   });
@@ -203,7 +204,6 @@ export async function actualizarCliente(id: number, formData: FormData) {
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
-  const comisionPorCaja = formData.get("comisionPorCaja") ? parseFloat(formData.get("comisionPorCaja") as string) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   await prisma.cliente.update({
@@ -218,7 +218,6 @@ export async function actualizarCliente(id: number, formData: FormData) {
       requiereFactura,
       idCuentaCorriente,
       idRevendedor,
-      comisionPorCaja: idRevendedor && comisionPorCaja ? comisionPorCaja : null,
       observaciones: observaciones?.trim() || null,
     },
   });

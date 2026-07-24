@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import {
   getDetalleCuenta,
   registrarPagoSemanal,
@@ -42,8 +43,9 @@ export default async function DetalleCuentaPage({ params }: Props) {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <Link href="/pagos-semanales" className="text-xs text-[#6b7280] hover:text-[#a3e635]">
-          ← Pagos semanales
+        <Link href="/pagos-semanales" className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
+          <ChevronLeft size={14} />
+          Pagos semanales
         </Link>
         <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">{cuenta.nombre}</h1>
         <p className="text-[#9ca3af] text-sm">
@@ -56,9 +58,9 @@ export default async function DetalleCuentaPage({ params }: Props) {
         {/* Columna izquierda: deuda + cobro global + historial */}
         <div className="flex flex-col gap-4">
           <div
-            className={`rounded-lg border p-5 ${
+            className={`rounded-lg border p-5 transition-colors ${
               cuenta.deudaTotal > 0
-                ? "bg-red-50 border-red-200"
+                ? "bg-[#251619]/40 border-red-900/50"
                 : "bg-[#1c1f26] border-[#2a2d35]"
             }`}
           >
@@ -67,7 +69,7 @@ export default async function DetalleCuentaPage({ params }: Props) {
             </p>
             <p
               className={`text-2xl font-bold ${
-                cuenta.deudaTotal > 0 ? "text-red-600" : "text-[#4ade80]"
+                cuenta.deudaTotal > 0 ? "text-red-400" : "text-[#4ade80]"
               }`}
             >
               {cuenta.deudaTotal > 0 ? formatearPeso(cuenta.deudaTotal) : "Sin deuda ✓"}
@@ -90,7 +92,7 @@ export default async function DetalleCuentaPage({ params }: Props) {
                       defaultValue={lunesStr}
                       className="border border-[#2a2d35] rounded px-2 py-1.5 text-xs focus:outline-none"
                     />
-                    <span className="text-[#6b7280]">→</span>
+                    <span className="text-[#6b7280]">-</span>
                     <input
                       type="date"
                       name="fechaFin"

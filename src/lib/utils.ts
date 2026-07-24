@@ -62,3 +62,25 @@ export const ETIQUETAS_ESTADO_PAGO: Record<string, string> = {
   PAGADO: "Pagado",
   PARCIAL: "Parcial",
 };
+
+export function obtenerFilaExcel(pedido: {
+  cliente: { nombre: string; zona: { nombre: string } };
+  producto: { nombre: string; kgPorCaja: number | null };
+  cajas: number;
+  montoTotal: number;
+  maduracion: string;
+}): string {
+  const cajaVal = pedido.producto.kgPorCaja ? `${pedido.producto.kgPorCaja} kg` : "—";
+  const cantidadVal = pedido.cajas.toString().replace(".", ",");
+  const totalFormateado = `$ ${pedido.montoTotal.toLocaleString("es-AR")}`;
+
+  return [
+    pedido.cliente.nombre,
+    pedido.cliente.zona.nombre,
+    cajaVal,
+    cantidadVal,
+    pedido.producto.nombre,
+    pedido.maduracion,
+    totalFormateado
+  ].join("\t");
+}

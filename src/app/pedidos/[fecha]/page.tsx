@@ -1,10 +1,9 @@
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
-import { BadgeEstadoPago } from "@/components/badge-estado";
-import { formatearPeso, formatearFecha, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
-import { AccionesPedido } from "./acciones";
+import { formatearPeso, formatearFecha } from "@/lib/utils";
 import { FiltrosPedidos } from "./filtros";
-import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
+import { TablaEntregas } from "./tabla-entregas";
 
 interface Props {
   params: Promise<{ fecha: string }>;
@@ -57,9 +56,9 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
         <div className="flex items-center gap-3">
           <Link
             href={`/pedidos/${fechaAnterior(fecha)}`}
-            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors"
+            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors flex items-center justify-center"
           >
-            ←
+            <ChevronLeft size={16} />
           </Link>
           <div>
             <h1 className="text-xl font-bold text-[#f9fafb] capitalize">{formatearFecha(fecha)}</h1>
@@ -67,9 +66,9 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
           </div>
           <Link
             href={`/pedidos/${fechaSiguiente(fecha)}`}
-            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors"
+            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors flex items-center justify-center"
           >
-            →
+            <ChevronRight size={16} />
           </Link>
         </div>
         <Link
@@ -129,67 +128,21 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
 
           {/* Tabla de entregas */}
           <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden mb-4">
-            <div className="px-4 py-3 border-b border-[#2a2d35] flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
-                Entregas ({entregados.length}{entregados.length !== pedidos.filter((p) => !p.esCobro).length ? ` de ${pedidos.filter((p) => !p.esCobro).length}` : ""})
-              </h2>
-            </div>
             {entregados.length === 0 ? (
-              <div className="p-6 text-center text-[#6b7280] text-sm">Sin entregas con esos filtros.</div>
+              <>
+                <div className="px-4 py-3 border-b border-[#2a2d35] flex items-center justify-between">
+                  <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
+                    Entregas (0)
+                  </h2>
+                </div>
+                <div className="p-6 text-center text-[#6b7280] text-sm">Sin entregas con esos filtros.</div>
+              </>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
-                    <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                    <th className="text-left px-4 py-3 font-medium">Producto · Mad.</th>
-                    <th className="text-left px-4 py-3 font-medium">Repartidor</th>
-                    <th className="text-right px-4 py-3 font-medium">Cajas</th>
-                    <th className="text-right px-4 py-3 font-medium">Monto</th>
-                    <th className="text-left px-4 py-3 font-medium">Pago</th>
-                    <th className="text-left px-4 py-3 font-medium">Estado</th>
-                    <th className="text-left px-4 py-3 font-medium">Factura</th>
-                    <th className="px-4 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entregados.map((p) => (
-                    <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]">
-                      <td className="px-4 py-2.5">
-                        <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
-                          <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                        </Link>
-                        <span className="text-[#6b7280] text-xs ml-1">{p.cliente.zona.nombre}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-[#9ca3af]">
-                        {p.producto.nombre}
-                        <span className="text-[#6b7280] text-xs ml-1">{p.maduracion}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-[#9ca3af] text-xs">{p.repartidor?.nombre ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className="font-medium text-[#f9fafb]">{formatearPeso(p.montoTotal)}</span>
-                        {p.estadoPago === "PARCIAL" && (
-                          <div className="text-xs mt-0.5 space-x-1">
-                            <span className="text-[#4ade80]">Pagado {formatearPeso(p.montoPagado)}</span>
-                            <span className="text-[#6b7280]">·</span>
-                            <span className="text-red-400">Debe {formatearPeso(p.montoTotal - p.montoPagado)}</span>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{ETIQUETAS_FORMA_PAGO[p.formaPago]}</td>
-                      <td className="px-4 py-2.5">
-                        <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura} />
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <AccionesPedido pedido={p} fecha={fecha} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <TablaEntregas
+                pedidos={entregados as any}
+                fecha={fecha}
+                totalEntregasDia={pedidos.filter((p) => !p.esCobro).length}
+              />
             )}
           </div>
 

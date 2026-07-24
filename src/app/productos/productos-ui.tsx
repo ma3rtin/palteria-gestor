@@ -10,12 +10,14 @@ interface Producto {
   kgPorCaja: number | null;
   stockCajas: number;
   activo: boolean;
+  costo: number;
 }
 
 interface Props {
   productos: Producto[];
   crearProducto: (formData: FormData) => Promise<void>;
   actualizarPrecio: (formData: FormData) => Promise<void>;
+  actualizarCosto: (formData: FormData) => Promise<void>;
   actualizarKg: (formData: FormData) => Promise<void>;
   actualizarStock: (formData: FormData) => Promise<void>;
   toggleProducto: (formData: FormData) => Promise<void>;
@@ -24,25 +26,30 @@ interface Props {
 function FilaProducto({
   p,
   actualizarPrecio,
+  actualizarCosto,
   actualizarKg,
   actualizarStock,
   toggleProducto,
 }: {
   p: Producto;
   actualizarPrecio: Props["actualizarPrecio"];
+  actualizarCosto: Props["actualizarCosto"];
   actualizarKg: Props["actualizarKg"];
   actualizarStock: Props["actualizarStock"];
   toggleProducto: Props["toggleProducto"];
 }) {
   const [precio, setPrecio] = useState<number | "">(p.precioReferencia);
+  const [costo, setCosto] = useState<number | "">(p.costo);
   const [kg, setKg] = useState<number | "">(p.kgPorCaja ?? "");
   const [stock, setStock] = useState<number | "">(p.stockCajas);
 
   useEffect(() => { setPrecio(p.precioReferencia); }, [p.precioReferencia]);
+  useEffect(() => { setCosto(p.costo); }, [p.costo]);
   useEffect(() => { setKg(p.kgPorCaja ?? ""); }, [p.kgPorCaja]);
   useEffect(() => { setStock(p.stockCajas); }, [p.stockCajas]);
 
   const precioDirty = precio !== p.precioReferencia;
+  const costoDirty = costo !== p.costo;
   const kgDirty = kg !== (p.kgPorCaja ?? "");
   const stockDirty = stock !== p.stockCajas;
 
@@ -99,6 +106,30 @@ function FilaProducto({
       </td>
 
       <td className="px-4 py-3">
+        <form action={actualizarCosto} className="flex items-center justify-end gap-2">
+          <input type="hidden" name="id" value={p.id} />
+          <input
+            name="costo"
+            type="number"
+            step={1000}
+            required
+            placeholder="0"
+            value={costo}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCosto(val === "" ? "" : parseFloat(val));
+            }}
+            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
+          />
+          {costoDirty && (
+            <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
+              Guardar
+            </BotonSubmit>
+          )}
+        </form>
+      </td>
+
+      <td className="px-4 py-3">
         <form action={actualizarPrecio} className="flex items-center justify-end gap-2">
           <input type="hidden" name="id" value={p.id} />
           <input
@@ -112,7 +143,7 @@ function FilaProducto({
               const val = e.target.value;
               setPrecio(val === "" ? "" : parseFloat(val));
             }}
-            className="w-32 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
+            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
           />
           {precioDirty && (
             <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
@@ -139,6 +170,7 @@ export function ProductosUI({
   productos,
   crearProducto,
   actualizarPrecio,
+  actualizarCosto,
   actualizarKg,
   actualizarStock,
   toggleProducto,
@@ -188,7 +220,19 @@ export function ProductosUI({
               className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
             />
           </div>
-          <div className="flex flex-col gap-1 w-32">
+          <div className="flex flex-col gap-1 w-28">
+            <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Costo/caja</label>
+            <input
+              form="form-crear"
+              name="costo"
+              type="number"
+              required
+              step={1000}
+              placeholder="0"
+              className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-28">
             <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Precio/caja *</label>
             <input
               form="form-crear"
@@ -226,6 +270,7 @@ export function ProductosUI({
               <th className="text-left px-4 py-3 font-medium">Producto</th>
               <th className="text-right px-4 py-3 font-medium">Kg/caja</th>
               <th className="text-right px-4 py-3 font-medium">Stock (cajas)</th>
+              <th className="text-right px-4 py-3 font-medium">Costo ref.</th>
               <th className="text-right px-4 py-3 font-medium">Precio ref.</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -233,7 +278,7 @@ export function ProductosUI({
           <tbody>
             {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[#6b7280] text-sm">
+                <td colSpan={6} className="px-4 py-6 text-center text-[#6b7280] text-sm">
                   {busqueda ? `Sin resultados para "${busqueda}"` : "Sin productos cargados."}
                 </td>
               </tr>
@@ -243,6 +288,7 @@ export function ProductosUI({
                   key={p.id}
                   p={p}
                   actualizarPrecio={actualizarPrecio}
+                  actualizarCosto={actualizarCosto}
                   actualizarKg={actualizarKg}
                   actualizarStock={actualizarStock}
                   toggleProducto={toggleProducto}

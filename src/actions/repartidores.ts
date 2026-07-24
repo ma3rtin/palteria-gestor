@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta } from "@/lib/utils";
 
@@ -64,4 +65,28 @@ export async function getResumenTodosRepartidoresHoy() {
       totalCobrado: g?._sum.montoPagado ?? 0,
     };
   });
+}
+
+export async function crearRepartidor(formData: FormData) {
+  const nombre = (formData.get("nombre") as string).trim().toUpperCase();
+  if (!nombre) return;
+  const max = await prisma.repartidor.aggregate({ _max: { id: true } });
+  const nuevoId = (max._max.id ?? 0) + 1;
+  await prisma.repartidor.create({ data: { id: nuevoId, nombre } });
+  revalidatePath("/config/repartidores");
+}
+
+export async function toggleActivo(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const activo = formData.get("activo") === "true";
+  await prisma.repartidor.update({ where: { id }, data: { activo: !activo } });
+  revalidatePath("/config/repartidores");
+}
+
+export async function renombrarRepartidor(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const nombre = (formData.get("nombre") as string).trim().toUpperCase();
+  if (!nombre) return;
+  await prisma.repartidor.update({ where: { id }, data: { nombre } });
+  revalidatePath("/config/repartidores");
 }

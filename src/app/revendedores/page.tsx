@@ -3,11 +3,7 @@ import { getRevendedores } from "@/actions/revendedores";
 import { prisma } from "@/lib/prisma";
 import { formatearPeso, hoyISO, parseFechaRuta } from "@/lib/utils";
 
-const ETIQUETAS_TIPO: Record<string, string> = {
-  COMISION: "Comisión/caja",
-  MARGEN: "Margen precio",
-  DESCUENTO: "Descuento/caja",
-};
+// Removed ETIQUETAS_TIPO
 
 async function getResumenSemana() {
   const hoy = parseFechaRuta(hoyISO());
@@ -41,7 +37,7 @@ export default async function RevendedoresPage() {
         <div className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-12 text-center">
           <p className="text-[#6b7280] text-sm">No hay revendedores activos.</p>
           <Link href="/config/revendedores" className="inline-block mt-3 text-[#a3e635] text-sm hover:underline">
-            Agregar revendedor →
+            Agregar revendedor
           </Link>
         </div>
       ) : (
@@ -54,14 +50,11 @@ export default async function RevendedoresPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <span className="font-semibold text-[#f9fafb]">{r.nombre}</span>
-                <span className="text-[10px] uppercase tracking-widest text-[#6b7280] bg-[#22252e] px-2 py-0.5 rounded">
-                  {ETIQUETAS_TIPO[r.tipo] ?? r.tipo}
-                </span>
               </div>
               <p className="text-xs text-[#6b7280]">
                 {r._count.clientes} cliente{r._count.clientes !== 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-[#a3e635] mt-2">Ver liquidación →</p>
+              <p className="text-xs text-[#a3e635] mt-2">Ver liquidación</p>
             </Link>
           ))}
         </div>

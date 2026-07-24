@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { getRepartidores, getResumenRepartidorFecha } from "@/actions/repartidores";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
@@ -25,8 +26,9 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <Link href="/repartidores" className="text-xs text-[#6b7280] hover:text-[#a3e635]">
-            ← Repartidores
+          <Link href="/repartidores" className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
+            <ChevronLeft size={14} />
+            Repartidores
           </Link>
           <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">{repartidor.nombre}</h1>
         </div>

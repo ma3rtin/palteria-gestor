@@ -17,9 +17,8 @@ export function BotonSubmit({ children, className, pendingText }: Props) {
       className={`${className ?? ""} disabled:opacity-50 disabled:cursor-not-allowed`}
     >
       {pending ? (
-        <span className="flex items-center gap-2">
+        <span className="inline-flex items-center justify-center">
           <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
-          {pendingText ?? "Guardando..."}
         </span>
       ) : children}
     </button>

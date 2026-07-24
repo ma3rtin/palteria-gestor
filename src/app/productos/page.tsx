@@ -12,12 +12,14 @@ async function crearProducto(formData: FormData) {
   const precio = parseFloat(formData.get("precioReferencia") as string);
   const kg = parseFloat(formData.get("kgPorCaja") as string);
   const stock = parseFloat(formData.get("stockCajas") as string);
+  const costo = parseFloat(formData.get("costo") as string);
   await prisma.producto.create({
     data: {
       nombre,
       precioReferencia: precio,
       kgPorCaja: isNaN(kg) ? null : kg,
       stockCajas: isNaN(stock) ? 0 : stock,
+      costo: isNaN(costo) ? 0 : costo,
     },
   });
   revalidatePath("/productos");
@@ -28,6 +30,14 @@ async function actualizarPrecio(formData: FormData) {
   const id = Number(formData.get("id"));
   const precio = parseFloat(formData.get("precioReferencia") as string);
   await prisma.producto.update({ where: { id }, data: { precioReferencia: precio } });
+  revalidatePath("/productos");
+}
+
+async function actualizarCosto(formData: FormData) {
+  "use server";
+  const id = Number(formData.get("id"));
+  const costo = parseFloat(formData.get("costo") as string);
+  await prisma.producto.update({ where: { id }, data: { costo: isNaN(costo) ? 0 : costo } });
   revalidatePath("/productos");
 }
 
@@ -68,6 +78,7 @@ export default async function ProductosPage() {
         productos={productos}
         crearProducto={crearProducto}
         actualizarPrecio={actualizarPrecio}
+        actualizarCosto={actualizarCosto}
         actualizarKg={actualizarKg}
         actualizarStock={actualizarStock}
         toggleProducto={toggleProducto}

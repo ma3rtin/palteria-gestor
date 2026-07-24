@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { getCliente, getSaldoCliente } from "@/actions/clientes";
 import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
 import { BadgeEstadoPago } from "@/components/badge-estado";
-import { formatearPeso, formatearFechaCorta, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
+import { formatearPeso, formatearFechaCorta, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesCliente } from "./acciones";
+import { AccionesPedido } from "../../pedidos/[fecha]/acciones";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -26,8 +28,9 @@ export default async function DetalleClientePage({ params }: Props) {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/clientes" className="text-xs text-[#6b7280] hover:text-[#a3e635]">
-              ← Clientes
+            <Link href="/clientes" className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
+              <ChevronLeft size={14} />
+              Clientes
             </Link>
           </div>
           <h1 className="text-2xl font-bold text-[#f9fafb]">{cliente.nombre}</h1>
@@ -40,7 +43,7 @@ export default async function DetalleClientePage({ params }: Props) {
         <AccionesCliente id={cliente.id} activo={cliente.activo} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Info + saldo */}
         <div className="flex flex-col gap-4">
           <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-5">
@@ -79,18 +82,22 @@ export default async function DetalleClientePage({ params }: Props) {
           </div>
 
           {/* Saldo */}
-          <div className={`rounded-lg border p-5 ${saldo > 0 ? "bg-red-50 border-red-200" : "bg-[#1c1f26] border-[#2a2d35]"}`}>
+          <div className={`rounded-lg border p-5 transition-colors ${
+            saldo > 0 
+              ? "bg-[#251619]/40 border-red-900/50" 
+              : "bg-[#1c1f26] border-[#2a2d35]"
+          }`}>
             <p className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mb-1">Saldo pendiente</p>
-            <p className={`text-2xl font-bold ${saldo > 0 ? "text-red-600" : "text-[#4ade80]"}`}>
+            <p className={`text-2xl font-bold ${saldo > 0 ? "text-red-400" : "text-[#4ade80]"}`}>
               {saldo > 0 ? formatearPeso(saldo) : "Sin deuda"}
             </p>
             {saldo > 0 && (
-              <p className="text-xs text-red-500 mt-1">{pedidosPendientes.length} pedido(s) pendientes</p>
+              <p className="text-xs text-red-400/90 mt-1">{pedidosPendientes.length} pedido(s) pendientes</p>
             )}
           </div>
 
           <Link
-            href={`/pedidos?cliente=${cliente.id}`}
+            href={`/pedidos/${hoyISO()}/nuevo?cliente=${cliente.id}`}
             className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-center"
           >
             + Nuevo pedido
@@ -107,7 +114,7 @@ export default async function DetalleClientePage({ params }: Props) {
         </div>
 
         {/* Historial de pedidos */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <h3 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mb-3">
             Historial de pedidos
           </h3>
@@ -118,37 +125,42 @@ export default async function DetalleClientePage({ params }: Props) {
             </div>
           ) : (
             <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
-                    <th className="text-left px-4 py-3 font-medium">Fecha</th>
-                    <th className="text-left px-4 py-3 font-medium">Producto</th>
-                    <th className="text-right px-4 py-3 font-medium">Cajas</th>
-                    <th className="text-right px-4 py-3 font-medium">Monto</th>
-                    <th className="text-left px-4 py-3 font-medium">Estado</th>
-                    <th className="text-left px-4 py-3 font-medium">Factura</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cliente.pedidos.map((p) => (
-                    <tr key={p.id} className="border-b border-[#22252e] last:border-0">
-                      <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
-                      <td className="px-4 py-2.5">
-                        <span>{p.producto.nombre}</span>
-                        <span className="text-[#6b7280] ml-1 text-xs">{p.maduracion}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
-                      <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
-                      <td className="px-4 py-2.5">
-                        <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura as any} />
-                      </td>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-sm min-w-max table-auto">
+                  <thead>
+                    <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
+                      <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                      <th className="text-left px-4 py-3 font-medium">Producto</th>
+                      <th className="text-right px-4 py-3 font-medium">Cajas</th>
+                      <th className="text-right px-4 py-3 font-medium">Monto</th>
+                      <th className="text-left px-4 py-3 font-medium">Estado</th>
+                      <th className="text-left px-4 py-3 font-medium">Factura</th>
+                      <th className="px-4 py-3"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {cliente.pedidos.map((p) => (
+                      <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
+                        <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
+                        <td className="px-4 py-2.5 text-[#9ca3af]">
+                          {p.producto.nombre}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
+                        <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
+                        <td className="px-4 py-2.5">
+                          <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura as any} />
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <AccionesPedido pedido={p} fecha={p.fecha.toISOString().split("T")[0]} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

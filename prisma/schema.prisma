@@ -68,7 +68,6 @@ model Zona {
 model Revendedor {
   id            Int                     @id @default(autoincrement()) @map("id_revendedor")
   nombre        String                  @unique
-  tipo          TipoRevendedor
   activo        Boolean                 @default(true)
   clientes      Cliente[]
   liquidaciones LiquidacionRevendedor[]
@@ -111,6 +110,7 @@ model Producto {
   precioReferencia Float     @default(0) @map("precio_referencia")
   kgPorCaja        Float?    @map("kg_por_caja")
   stockCajas       Float     @default(0) @map("stock_cajas")
+  costo            Float     @default(0)
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
   fechaIngreso     DateTime? @db.Date @map("fecha_ingreso")
   activo           Boolean   @default(true)
@@ -190,7 +190,6 @@ model Cliente {
   idCuentaCorriente Int?             @map("id_cuenta_corriente")
   revendedor        Revendedor?      @relation(fields: [idRevendedor], references: [id])
   idRevendedor      Int?             @map("id_revendedor")
-  comisionPorCaja   Float?           @map("comision_por_caja")
   activo            Boolean          @default(true)
   observaciones     String?
   pedidos           Pedido[]
@@ -222,12 +221,13 @@ model Pedido {
   requiereFactura Boolean       @default(false) @map("requiere_factura")
   estadoFactura   EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
   // true para filas de COBRANZA (cobro de deuda, no entrega)
-  esCobro         Boolean       @default(false) @map("es_cobro")
+  esCobro           Boolean       @default(false) @map("es_cobro")
   // true cuando el cambio no tiene cargo (fruta descartada); false = se cobra diferencia de kg
-  esReposicion    Boolean       @default(false) @map("es_reposicion")
-  observaciones   String?
-  creadoEn        DateTime      @default(now()) @map("creado_en")
-  actualizadoEn   DateTime      @updatedAt @map("actualizado_en")
+  esReposicion      Boolean       @default(false) @map("es_reposicion")
+  comisionRevendedor Float        @default(0) @map("comision_revendedor")
+  observaciones     String?
+  creadoEn          DateTime      @default(now()) @map("creado_en")
+  actualizadoEn     DateTime      @updatedAt @map("actualizado_en")
 
   @@map("pedidos")
 }
