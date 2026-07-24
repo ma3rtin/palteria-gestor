@@ -59,7 +59,7 @@ export default async function Inicio() {
           titulo="Deuda total"
           valor={formatearPeso(stats.montoTotalDeuda)}
           subtitulo={`${stats.clientesConDeuda} clientes`}
-          colorValor={stats.montoTotalDeuda > 0 ? "text-red-600" : "text-[#f9fafb]"}
+          colorValor={stats.montoTotalDeuda > 0 ? "text-red-500" : "text-[#f9fafb]"}
         />
       </div>
 

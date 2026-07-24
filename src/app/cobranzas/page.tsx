@@ -53,7 +53,7 @@ export default async function CobranzasPage({ searchParams }: Props) {
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-red-600">{formatearPeso(deuda)}</span>
+                    <span className="font-bold text-red-500">{formatearPeso(deuda)}</span>
                     <form action={marcarTodosAction}>
                       <BotonSubmit
                         className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"

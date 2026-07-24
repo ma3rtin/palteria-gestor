@@ -33,7 +33,7 @@ export default async function PagosSemanalesPage() {
             </div>
             <div className="text-right">
               {cc.deudaTotal > 0 ? (
-                <span className="font-bold text-red-600">{formatearPeso(cc.deudaTotal)}</span>
+                <span className="font-bold text-red-500">{formatearPeso(cc.deudaTotal)}</span>
               ) : (
                 <span className="text-[#4ade80] font-medium text-sm">Al día ✓</span>
               )}
