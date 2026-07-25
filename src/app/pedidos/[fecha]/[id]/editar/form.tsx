@@ -2,6 +2,7 @@
 
 import { BotonSubmit } from "@/components/boton-submit";
 import { useState, useEffect } from "react";
+import { Plus, Trash2 } from "lucide-react";
 
 interface Cliente {
   id: number;
@@ -27,10 +28,17 @@ interface Repartidor {
   nombre: string;
 }
 
+interface PagoParcialItem {
+  monto: number;
+  formaPago: "EFECTIVO" | "TRANSFERENCIA" | "PAGO_SEMANAL" | "CAMBIO";
+  fecha: string;
+}
+
 interface Pedido {
   id: number;
   idCliente: number;
   idProducto: number;
+  fecha: Date;
   maduracion: string;
   cajas: number;
   montoTotal: number;
@@ -42,6 +50,7 @@ interface Pedido {
   requiereFactura: boolean;
   esCobro: boolean;
   observaciones: string | null;
+  pagosParciales: any;
 }
 
 interface Props {
@@ -77,24 +86,112 @@ export function FormEditarPedido({
   const [montoPagado, setMontoPagado] = useState<number | "">(pedido.montoPagado);
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(pedido.comisionRevendedor);
 
+  // Inicializar pagosList
+  const [pagosList, setPagosList] = useState<PagoParcialItem[]>(() => {
+    if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales)) {
+      return pedido.pagosParciales as PagoParcialItem[];
+    }
+    if (pedido.montoPagado > 0) {
+      return [
+        {
+          monto: pedido.montoPagado,
+          formaPago: pedido.formaPago as any,
+          fecha: new Date(pedido.fecha).toISOString().split("T")[0],
+        },
+      ];
+    }
+    return [];
+  });
+
   const productoSelec = productos.find((p) => p.id === pedido.idProducto);
 
-  // Al editar, recalculamos si no es monto manual o si el usuario cambia cajas
   const montoCalculado = productoSelec ? Math.round(productoSelec.precioReferencia * (cajas === "" ? 0 : cajas)) : "";
   const montoFinal = montoManual ?? montoCalculado;
+  const totalReq = montoFinal === "" ? 0 : Number(montoFinal);
 
-  // Reactivamente sincronizar el monto pagado según el estado seleccionado y el monto total
+  const totalPagosList = pagosList.reduce((acc, curr) => acc + curr.monto, 0);
+
+  // Sincronizar el input de monto pagado con el total de la lista
   useEffect(() => {
-    if (estadoPago === "PAGADO") {
-      setMontoPagado(montoFinal === "" ? 0 : Number(montoFinal));
-    } else if (estadoPago === "PENDIENTE") {
-      setMontoPagado(0);
-    } else if (estadoPago === "PARCIAL") {
-      if (montoFinal !== "" && typeof montoPagado === "number" && montoPagado > Number(montoFinal)) {
-        setMontoPagado(Number(montoFinal));
+    setMontoPagado(totalPagosList);
+  }, [totalPagosList]);
+
+  // Recalcular estado de pago según la lista de pagos
+  const actualizarEstadoSegunSuma = (nuevaLista: PagoParcialItem[]) => {
+    const suma = nuevaLista.reduce((acc, curr) => acc + curr.monto, 0);
+    if (suma === 0) {
+      setEstadoPago("PENDIENTE");
+    } else if (suma >= totalReq) {
+      setEstadoPago("PAGADO");
+    } else {
+      setEstadoPago("PARCIAL");
+    }
+  };
+
+  const agregarPago = () => {
+    const resto = totalReq - totalPagosList;
+    const montoNuevo = resto > 0 ? resto : 0;
+    const nuevaLista: PagoParcialItem[] = [
+      ...pagosList,
+      {
+        monto: montoNuevo,
+        formaPago: formaPago as any,
+        fecha: new Date().toLocaleDateString("sv-SE"),
+      },
+    ];
+    setPagosList(nuevaLista);
+    actualizarEstadoSegunSuma(nuevaLista);
+  };
+
+  const eliminarPago = (idx: number) => {
+    const nuevaLista = pagosList.filter((_, i) => i !== idx);
+    setPagosList(nuevaLista);
+    actualizarEstadoSegunSuma(nuevaLista);
+  };
+
+  const cambiarPago = (idx: number, key: keyof PagoParcialItem, val: any) => {
+    const nuevaLista = pagosList.map((p, i) => (i === idx ? { ...p, [key]: val } : p));
+    setPagosList(nuevaLista);
+    actualizarEstadoSegunSuma(nuevaLista);
+  };
+
+  // Manejar el cambio manual del selector del estado de pago
+  const handleEstadoPagoChange = (nuevoEstado: string) => {
+    setEstadoPago(nuevoEstado);
+    const hoyStr = new Date().toLocaleDateString("sv-SE");
+
+    if (nuevoEstado === "PENDIENTE") {
+      setPagosList([]);
+    } else if (nuevoEstado === "PAGADO") {
+      if (totalPagosList < totalReq) {
+        const diferencia = totalReq - totalPagosList;
+        if (pagosList.length > 0) {
+          const nuevaLista = [...pagosList];
+          nuevaLista[nuevaLista.length - 1].monto += diferencia;
+          setPagosList(nuevaLista);
+        } else {
+          setPagosList([
+            {
+              monto: totalReq,
+              formaPago: formaPago as any,
+              fecha: hoyStr,
+            },
+          ]);
+        }
+      }
+    } else if (nuevoEstado === "PARCIAL") {
+      if (totalPagosList === 0 || totalPagosList >= totalReq) {
+        const montoSugerido = Math.round(totalReq / 2);
+        setPagosList([
+          {
+            monto: montoSugerido,
+            formaPago: formaPago as any,
+            fecha: hoyStr,
+          },
+        ]);
       }
     }
-  }, [estadoPago, montoFinal]);
+  };
 
   const clienteAsociado = clientes.find(c => c.id === pedido.idCliente);
 
@@ -104,6 +201,7 @@ export function FormEditarPedido({
       className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5"
     >
       <input type="hidden" name="fecha" value={fecha} />
+      <input type="hidden" name="pagosParcialesJson" value={JSON.stringify(pagosList)} />
 
       <div className="text-sm text-[#9ca3af] mb-2">
         <p>Cliente: <span className="font-medium text-[#f9fafb]">{clientes.find(c => c.id === pedido.idCliente)?.nombre}</span></p>
@@ -126,7 +224,7 @@ export function FormEditarPedido({
               setCajas(val === "" ? "" : parseFloat(val));
               setMontoManual(null); // Resetear a calculado si cambia cantidad
             }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           />
         </div>
         <div>
@@ -142,7 +240,7 @@ export function FormEditarPedido({
               const val = e.target.value;
               setMontoManual(val === "" ? "" : parseInt(val));
             }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           />
         </div>
       </div>
@@ -156,7 +254,7 @@ export function FormEditarPedido({
             value={formaPago}
             disabled={pedido.formaPago === "PAGO_SEMANAL"}
             onChange={(e) => setFormaPago(e.target.value)}
-            className={`w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] ${
+            className={`w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white ${
               pedido.formaPago === "PAGO_SEMANAL" ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -173,7 +271,7 @@ export function FormEditarPedido({
           <select
             name="idRepartidor"
             defaultValue={pedido.idRepartidor ?? ""}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           >
             <option value="">Sin asignar</option>
             {repartidores.map((r) => (
@@ -190,8 +288,8 @@ export function FormEditarPedido({
             name="estadoPago"
             required
             value={estadoPago}
-            onChange={(e) => setEstadoPago(e.target.value)}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+            onChange={(e) => handleEstadoPagoChange(e.target.value)}
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           >
             <option value="PENDIENTE">Pendiente</option>
             <option value="PAGADO">Pagado</option>
@@ -211,21 +309,74 @@ export function FormEditarPedido({
             min={0}
             max={montoFinal === "" ? undefined : Number(montoFinal)}
             value={montoPagado}
-            readOnly={estadoPago !== "PARCIAL"}
-            onChange={(e) => {
-              const val = e.target.value;
-              let numVal: number | "" = val === "" ? "" : parseFloat(val);
-              if (typeof numVal === "number" && !isNaN(numVal) && montoFinal !== "") {
-                const maxLimit = Number(montoFinal);
-                if (numVal > maxLimit) {
-                  numVal = maxLimit;
-                }
-              }
-              setMontoPagado(numVal);
-            }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] read-only:opacity-50 read-only:cursor-not-allowed"
+            readOnly={true}
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] opacity-60 cursor-not-allowed text-white font-mono"
           />
         </div>
+      </div>
+
+      {/* Desglose de pagos parciales - Siempre visible */}
+      <div className="border border-[#2a2d35] bg-[#17191e]/50 rounded-lg p-4 flex flex-col gap-3">
+        <div className="flex justify-between items-center pb-2 border-b border-[#2a2d35]">
+          <div>
+            <span className="text-sm font-semibold text-[#f9fafb]">Desglose de Pagos Registrados</span>
+            <p className="text-xs text-[#6b7280] mt-0.5">
+              Total cobrado: <span className="font-mono font-bold text-[#4ade80]">{formatearPeso(totalPagosList)}</span> de <span className="font-mono">{formatearPeso(totalReq)}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={agregarPago}
+            className="inline-flex items-center gap-1 border border-[#2a2d35] hover:border-[#a3e635] text-[#9ca3af] hover:text-[#a3e635] px-3 py-1.5 rounded-md text-xs font-semibold transition-colors bg-[#1c1f26] cursor-pointer"
+          >
+            <Plus size={14} />
+            Agregar pago
+          </button>
+        </div>
+
+        {pagosList.length === 0 ? (
+          <p className="text-xs text-[#6b7280] py-2 italic text-center">No hay pagos registrados para este pedido.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {pagosList.map((pago, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <select
+                  value={pago.formaPago}
+                  onChange={(e) => cambiarPago(index, "formaPago", e.target.value)}
+                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] flex-1 cursor-pointer"
+                >
+                  {FORMAS_PAGO.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  required
+                  min={0}
+                  placeholder="Monto"
+                  value={pago.monto}
+                  onChange={(e) => cambiarPago(index, "monto", e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-28 font-mono text-right"
+                />
+                <input
+                  type="date"
+                  required
+                  value={pago.fecha}
+                  onChange={(e) => cambiarPago(index, "fecha", e.target.value)}
+                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-32 cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => eliminarPago(index)}
+                  className="text-red-500 hover:text-red-400 p-2 border border-transparent hover:border-[#2a2d35] hover:bg-[#22252e] rounded-lg transition-colors cursor-pointer"
+                  title="Eliminar pago"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {clienteAsociado?.idRevendedor && (
@@ -244,7 +395,7 @@ export function FormEditarPedido({
             placeholder="Monto a pagar al revendedor..."
             value={comisionRevendedor}
             onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           />
         </div>
       )}
@@ -254,7 +405,7 @@ export function FormEditarPedido({
         <input
           name="observaciones"
           defaultValue={pedido.observaciones ?? ""}
-          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
         />
       </div>
 
@@ -284,4 +435,14 @@ export function FormEditarPedido({
       </div>
     </form>
   );
+}
+
+// Utilidad local para formatear pesos
+function formatearPeso(num: number) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(num);
 }

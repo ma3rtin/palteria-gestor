@@ -4,17 +4,57 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta, hoyISO } from "@/lib/utils";
 
-export async function getCuentasCorrientes() {
-  const cuentas = await prisma.cuentaCorriente.findMany({
-    where: { activo: true },
-    include: { clientes: { include: { zona: true } } },
-    orderBy: { nombre: "asc" },
-  });
+export async function getCuentasCorrientesPaginadas(
+  busqueda?: string,
+  page: number = 0,
+  pageSize: number = 20
+) {
+  const where = {
+    activo: true,
+    ...(busqueda
+      ? {
+          OR: [
+            { nombre: { contains: busqueda, mode: "insensitive" as const } },
+            {
+              clientes: {
+                some: {
+                  nombre: { contains: busqueda, mode: "insensitive" as const }
+                }
+              }
+            }
+          ]
+        }
+      : {})
+  };
+
+  const skip = page * pageSize;
+
+  const [cuentas, total, aggGlobalDeuda] = await Promise.all([
+    prisma.cuentaCorriente.findMany({
+      where,
+      include: { clientes: { include: { zona: true } } },
+      orderBy: { nombre: "asc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.cuentaCorriente.count({ where }),
+    prisma.pedido.aggregate({
+      where: {
+        estadoPago: { not: "PAGADO" as const },
+        esCobro: false,
+        cliente: {
+          idCuentaCorriente: { not: null },
+          activo: true,
+        }
+      },
+      _sum: { montoTotal: true, montoPagado: true }
+    })
+  ]);
 
   const deudas = await prisma.pedido.groupBy({
     by: ["idCliente"],
     where: {
-      estadoPago: { not: "PAGADO" },
+      estadoPago: { not: "PAGADO" as const },
       esCobro: false,
       cliente: { idCuentaCorriente: { not: null } },
     },
@@ -25,13 +65,24 @@ export async function getCuentasCorrientes() {
     deudas.map((d) => [d.idCliente, (d._sum.montoTotal ?? 0) - (d._sum.montoPagado ?? 0)])
   );
 
-  return cuentas.map((cc) => {
+  const cuentasConDeuda = cuentas.map((cc) => {
     const deudaTotal = cc.clientes.reduce(
       (s, c) => s + (deudaPorCliente.get(c.id) ?? 0),
       0
     );
     return { ...cc, deudaTotal };
   });
+
+  const deudaTotalGlobal = (aggGlobalDeuda._sum.montoTotal ?? 0) - (aggGlobalDeuda._sum.montoPagado ?? 0);
+
+  return {
+    cuentas: cuentasConDeuda,
+    total,
+    deudaTotalGlobal,
+    page,
+    pageSize,
+    hasMore: skip + pageSize < total,
+  };
 }
 
 export async function getDetalleCuenta(idCuenta: number) {

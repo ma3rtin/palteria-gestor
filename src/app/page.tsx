@@ -164,7 +164,7 @@ export default async function Inicio() {
               <p className="text-[#6b7280] text-sm">Sin actividad registrada.</p>
             </div>
           ) : (
-            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] divide-y divide-[#f2f5f2]">
+            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] divide-y divide-[#22252e]">
               {resumenRepartidores.map((r, i) => (
                 <div key={i} className="px-4 py-3">
                   <div className="flex justify-between items-center">

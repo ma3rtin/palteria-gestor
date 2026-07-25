@@ -2,19 +2,19 @@
 
 import { useFormStatus } from "react-dom";
 
-interface Props {
+interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
-  className?: string;
   pendingText?: string;
 }
 
-export function BotonSubmit({ children, className, pendingText }: Props) {
+export function BotonSubmit({ children, className, pendingText, ...rest }: Props) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || rest.disabled}
       className={`${className ?? ""} disabled:opacity-50 disabled:cursor-not-allowed`}
+      {...rest}
     >
       {pending ? (
         <span className="inline-flex items-center justify-center">

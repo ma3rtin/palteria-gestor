@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatearPeso } from "@/lib/utils";
 import { retryWithExponentialBackoff } from "@/lib/retry";
+import { Paginador } from "@/components/paginador";
 
 interface ClientesListPaginatedProps {
   initialData: {
@@ -25,6 +25,18 @@ interface ClientesListPaginatedProps {
     repartidor?: string;
     inactivos?: string;
   };
+}
+
+function ClienteCardSkeleton() {
+  return (
+    <div className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg px-4 py-2.5 animate-pulse flex justify-between items-center h-[46px]">
+      <div className="flex items-center gap-3">
+        <div className="h-4 bg-[#22252e] rounded w-32"></div>
+        <div className="h-3.5 bg-[#22252e] rounded w-16"></div>
+      </div>
+      <div className="h-4 bg-[#22252e] rounded w-12"></div>
+    </div>
+  );
 }
 
 export function ClientesListPaginated({
@@ -81,7 +93,11 @@ export function ClientesListPaginated({
     <div>
       {/* Cliente list */}
       <div className="space-y-2 mb-6">
-        {ordenados.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <ClienteCardSkeleton key={i} />
+          ))
+        ) : ordenados.length === 0 ? (
           <div className="text-center text-[#9ca3af] py-8">
             No hay clientes para mostrar
           </div>
@@ -90,17 +106,19 @@ export function ClientesListPaginated({
             <Link
               key={cliente.id}
               href={`/clientes/${cliente.id}`}
-              className="block bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-4 hover:border-[#a3e635] transition-colors"
+              className="block bg-[#1c1f26] border border-[#2a2d35] rounded-lg px-4 py-2.5 hover:border-[#a3e635] transition-colors"
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="text-[#f9fafb] font-medium">{cliente.nombre}</div>
-                  <div className="text-[#9ca3af] text-xs mt-1">{cliente.zona.nombre}</div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-[#f9fafb]">{cliente.nombre}</span>
+                  <span className="text-[10px] text-[#6b7280] bg-[#22252e] px-1.5 py-0.5 rounded uppercase tracking-wide">
+                    {cliente.zona.nombre}
+                  </span>
                 </div>
                 {cliente.saldoPendiente > 0 && (
-                  <div className="text-[#ef4444] text-sm font-medium">
+                  <span className="text-[#ef4444] text-sm font-semibold font-mono">
                     {formatearPeso(cliente.saldoPendiente)}
-                  </div>
+                  </span>
                 )}
               </div>
             </Link>
@@ -116,35 +134,16 @@ export function ClientesListPaginated({
       )}
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between gap-4 mt-6">
-        <span className="text-[#9ca3af] text-sm">
-          Página {data.page + 1} de {totalPages} ({data.total} total)
-        </span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handlePageChange(data.page - 1)}
-            disabled={data.page === 0 || loading}
-            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors flex items-center gap-1"
-          >
-            <ChevronLeft size={16} />
-            Anterior
-          </button>
-          <button
-            onClick={() => handlePageChange(data.page + 1)}
-            disabled={!data.hasMore || loading}
-            className="px-3 py-1 border border-[#2a2d35] rounded-lg text-sm text-[#9ca3af] disabled:opacity-50 disabled:cursor-not-allowed hover:border-[#a3e635] transition-colors flex items-center gap-1"
-          >
-            Siguiente
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      {loading && (
-        <div className="text-center text-[#9ca3af] text-sm mt-4">
-          Cargando página...
-        </div>
-      )}
+      <Paginador
+        pageActual={data.page}
+        totalPaginas={totalPages}
+        totalItems={data.total}
+        onAnterior={() => handlePageChange(data.page - 1)}
+        onSiguiente={() => handlePageChange(data.page + 1)}
+        hasMore={data.hasMore}
+        loading={loading}
+        className="mt-6"
+      />
     </div>
   );
 }

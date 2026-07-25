@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
 import { formatearPeso, formatearFecha } from "@/lib/utils";
 import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
+import { NavegacionFecha } from "./navegacion-fecha";
 
 interface Props {
   params: Promise<{ fecha: string }>;
@@ -52,25 +52,13 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
   return (
     <div className="p-8 mx-auto">
       {/* Header con navegación de fechas */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href={`/pedidos/${fechaAnterior(fecha)}`}
-            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors flex items-center justify-center"
-          >
-            <ChevronLeft size={16} />
-          </Link>
-          <div>
-            <h1 className="text-xl font-bold text-[#f9fafb] capitalize">{formatearFecha(fecha)}</h1>
-            <p className="text-xs text-[#6b7280]">{fecha}</p>
-          </div>
-          <Link
-            href={`/pedidos/${fechaSiguiente(fecha)}`}
-            className="p-2 border border-[#2a2d35] rounded-lg hover:border-[#4b5563] text-[#9ca3af] text-sm transition-colors flex items-center justify-center"
-          >
-            <ChevronRight size={16} />
-          </Link>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <NavegacionFecha
+          fechaActual={fecha}
+          fechaAnteriorStr={fechaAnterior(fecha)}
+          fechaSiguienteStr={fechaSiguiente(fecha)}
+          fechaFormateada={formatearFecha(fecha)}
+        />
         <Link
           href={`/pedidos/${fecha}/nuevo`}
           className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"

@@ -7,6 +7,7 @@ import { BadgeEstadoPago } from "@/components/badge-estado";
 import { formatearPeso, formatearFechaCorta, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesCliente } from "./acciones";
 import { AccionesPedido } from "../../pedidos/[fecha]/acciones";
+import { TabsCliente } from "@/components/tabs-cliente";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -20,7 +21,184 @@ export default async function DetalleClientePage({ params }: Props) {
   if (!cliente) notFound();
 
   const pedidosPendientes = cliente.pedidos.filter((p) => p.estadoPago !== "PAGADO");
-  const pedidosPagados = cliente.pedidos.filter((p) => p.estadoPago === "PAGADO");
+
+  // Consolidación de Pagos Históricos
+  const listaPagosConsolidados: {
+    fecha: Date;
+    monto: number;
+    formaPago: string;
+    origen: "COBRANZA" | "PARCIAL" | "CUENTA_CORRIENTE";
+    pedidoId: number | null;
+    fechaPedido: string | null;
+    observaciones: string | null;
+  }[] = [];
+
+  // 1. Cobros directos (Pedidos con esCobro = true)
+  cliente.pedidos
+    .filter((p) => p.esCobro)
+    .forEach((p) => {
+      listaPagosConsolidados.push({
+        fecha: new Date(p.fecha),
+        monto: p.montoTotal,
+        formaPago: p.formaPago,
+        origen: "COBRANZA",
+        pedidoId: p.id,
+        fechaPedido: p.fecha.toISOString().split("T")[0],
+        observaciones: p.observaciones,
+      });
+    });
+
+  // 2. Desgloses de pagos parciales en pedidos de entrega (esCobro = false)
+  cliente.pedidos
+    .filter((p) => !p.esCobro)
+    .forEach((p) => {
+      if (p.pagosParciales && Array.isArray(p.pagosParciales)) {
+        const items = p.pagosParciales as { monto: number; formaPago: string; fecha: string }[];
+        items.forEach((item) => {
+          listaPagosConsolidados.push({
+            fecha: new Date(item.fecha + "T00:00:00Z"), // fecha pura UTC
+            monto: item.monto,
+            formaPago: item.formaPago,
+            origen: "PARCIAL",
+            pedidoId: p.id,
+            fechaPedido: p.fecha.toISOString().split("T")[0],
+            observaciones: `Pago parcial de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
+          });
+        });
+      } else if (p.montoPagado > 0) {
+        // Fallback para pedidos previos a esta migración
+        listaPagosConsolidados.push({
+          fecha: new Date(p.fecha),
+          monto: p.montoPagado,
+          formaPago: p.formaPago,
+          origen: "PARCIAL",
+          pedidoId: p.id,
+          fechaPedido: p.fecha.toISOString().split("T")[0],
+          observaciones: `Pago de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
+        });
+      }
+    });
+
+  // 3. Pagos de Cuenta Corriente (pagosLocales)
+  cliente.pagosLocales.forEach((p) => {
+    listaPagosConsolidados.push({
+      fecha: new Date(p.fechaPago),
+      monto: p.monto,
+      formaPago: "TRANSFERENCIA",
+      origen: "CUENTA_CORRIENTE",
+      pedidoId: null,
+      fechaPedido: null,
+      observaciones: p.observaciones || (p.repartidor ? `Cobrado por ${p.repartidor.nombre}` : "Pago de Cuenta Corriente"),
+    });
+  });
+
+  // Ordenar cronológicamente descendente
+  listaPagosConsolidados.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+
+  // Render para pestaña de Pedidos
+  const tabPedidos = (
+    <div className="flex flex-col gap-4">
+      {cliente.pedidos.length === 0 ? (
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-8 text-center text-[#6b7280] text-sm">
+          Sin pedidos registrados.
+        </div>
+      ) : (
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-sm min-w-max table-auto">
+              <thead>
+                <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
+                  <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                  <th className="text-left px-4 py-3 font-medium">Producto</th>
+                  <th className="text-right px-4 py-3 font-medium">Cajas</th>
+                  <th className="text-right px-4 py-3 font-medium">Monto</th>
+                  <th className="text-left px-4 py-3 font-medium">Estado</th>
+                  <th className="text-left px-4 py-3 font-medium">Factura</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {cliente.pedidos.map((p) => (
+                  <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
+                    <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
+                    <td className="px-4 py-2.5 text-[#9ca3af]">
+                      {p.esCobro ? <span className="text-[#a3e635] font-semibold italic">Cobranza</span> : p.producto.nombre}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.esCobro ? "—" : p.cajas}</td>
+                    <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
+                    <td className="px-4 py-2.5">
+                      <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {p.esCobro ? (
+                        <span className="text-xs text-[#6b7280]">—</span>
+                      ) : (
+                        <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura as any} />
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <AccionesPedido pedido={p as any} fecha={p.fecha.toISOString().split("T")[0]} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Render para pestaña de Pagos
+  const tabPagos = (
+    <div className="flex flex-col gap-4">
+      {listaPagosConsolidados.length === 0 ? (
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-8 text-center text-[#6b7280] text-sm">
+          No hay pagos registrados para este cliente.
+        </div>
+      ) : (
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
+          <div className="overflow-x-auto scrollbar-thin">
+            <table className="w-full text-sm min-w-max table-auto">
+              <thead>
+                <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
+                  <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                  <th className="text-left px-4 py-3 font-medium">Forma de Pago</th>
+                  <th className="text-right px-4 py-3 font-medium">Monto</th>
+                  <th className="text-left px-4 py-3 font-medium">Tipo / Concepto</th>
+                  <th className="text-left px-4 py-3 font-medium">Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listaPagosConsolidados.map((pago, index) => (
+                  <tr key={index} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
+                    <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(pago.fecha)}</td>
+                    <td className="px-4 py-2.5 text-[#9ca3af] font-semibold text-xs">{pago.formaPago}</td>
+                    <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80] font-mono">{formatearPeso(pago.monto)}</td>
+                    <td className="px-4 py-2.5 text-[#9ca3af] text-xs">
+                      {pago.origen === "COBRANZA" && <span className="text-[#a3e635] font-semibold">Cobro de deuda</span>}
+                      {pago.origen === "CUENTA_CORRIENTE" && <span className="text-blue-400 font-semibold">Pago C. Corriente</span>}
+                      {pago.origen === "PARCIAL" && pago.pedidoId && (
+                        <Link
+                          href={`/pedidos/${pago.fechaPedido}?pedidoId=${pago.pedidoId}`}
+                          className="text-[#9ca3af] hover:text-[#a3e635] underline transition-colors flex-inline items-center"
+                        >
+                          Pago de pedido
+                        </Link>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-[#6b7280] text-xs truncate max-w-xs" title={pago.observaciones ?? ""}>
+                      {pago.observaciones ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-8">
@@ -113,56 +291,12 @@ export default async function DetalleClientePage({ params }: Props) {
           )}
         </div>
 
-        {/* Historial de pedidos */}
+        {/* Panel derecho con pestañas */}
         <div className="lg:col-span-3">
-          <h3 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest mb-3">
-            Historial de pedidos
-          </h3>
-
-          {cliente.pedidos.length === 0 ? (
-            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-8 text-center text-[#6b7280] text-sm">
-              Sin pedidos registrados.
-            </div>
-          ) : (
-            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
-              <div className="overflow-x-auto scrollbar-thin">
-                <table className="w-full text-sm min-w-max table-auto">
-                  <thead>
-                    <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
-                      <th className="text-left px-4 py-3 font-medium">Fecha</th>
-                      <th className="text-left px-4 py-3 font-medium">Producto</th>
-                      <th className="text-right px-4 py-3 font-medium">Cajas</th>
-                      <th className="text-right px-4 py-3 font-medium">Monto</th>
-                      <th className="text-left px-4 py-3 font-medium">Estado</th>
-                      <th className="text-left px-4 py-3 font-medium">Factura</th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cliente.pedidos.map((p) => (
-                      <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
-                        <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
-                        <td className="px-4 py-2.5 text-[#9ca3af]">
-                          {p.producto.nombre}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
-                        <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
-                        <td className="px-4 py-2.5">
-                          <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura as any} />
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <AccionesPedido pedido={p} fecha={p.fecha.toISOString().split("T")[0]} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <TabsCliente
+            tabPedidos={tabPedidos}
+            tabPagos={tabPagos}
+          />
         </div>
       </div>
     </div>

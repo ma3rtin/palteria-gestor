@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Fragment } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
@@ -31,6 +32,7 @@ interface Pedido {
   cliente: {
     id: number;
     nombre: string;
+    direccion: string | null;
     zona: { id: number; nombre: string };
   };
   producto: {
@@ -43,6 +45,7 @@ interface Pedido {
     id: number;
     nombre: string;
   } | null;
+  pagosParciales?: any;
 }
 
 interface Props {
@@ -52,8 +55,16 @@ interface Props {
 }
 
 export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
+  const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { showToast, ToastComponent } = useToast();
+
+  useEffect(() => {
+    const pId = searchParams.get("pedidoId");
+    if (pId) {
+      setExpandedId(Number(pId));
+    }
+  }, [searchParams]);
 
   const toggleExpand = (id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -103,10 +114,9 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
           {pedidos.map((p) => {
             const isExpanded = expandedId === p.id;
             return (
-              <>
+              <Fragment key={p.id}>
                 {/* Fila Principal */}
                 <tr
-                  key={p.id}
                   className={`border-b border-[#22252e] hover:bg-[#22252e] whitespace-nowrap transition-colors ${
                     isExpanded ? "bg-[#22252e]/40 border-b-0" : "last:border-0"
                   }`}
@@ -209,24 +219,34 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                                 Deuda restante: <span className="font-semibold text-[#f87171]">{formatearPeso(p.montoTotal - p.montoPagado)}</span>
                               </span>
                             </div>
-                            <form action={registrarCobro.bind(null, p.id)} className="flex items-center gap-2">
-                              <div className="relative">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
-                                <input
-                                  name="monto"
-                                  type="number"
-                                  defaultValue={p.montoTotal - p.montoPagado}
-                                  required
-                                  placeholder="0"
-                                  min={1}
-                                  max={p.montoTotal - p.montoPagado}
-                                  className="w-32 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
-                                />
-                              </div>
-                              <BotonSubmit className="bg-[#16a34a] hover:bg-[#15803d] text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">
-                                Cobrar Parcial
-                              </BotonSubmit>
-                            </form>
+                             <form action={registrarCobro.bind(null, p.id)} className="flex items-center gap-2">
+                               <select
+                                 name="formaPago"
+                                 defaultValue={p.formaPago}
+                                 className="text-xs border border-[#2a2d35] rounded-md px-2 py-1 bg-[#1c1f26] text-[#f9fafb] focus:outline-none focus:border-[#a3e635] cursor-pointer"
+                               >
+                                 <option value="EFECTIVO">Efectivo</option>
+                                 <option value="TRANSFERENCIA">Transferencia</option>
+                                 <option value="PAGO_SEMANAL">Pago Semanal</option>
+                                 <option value="CAMBIO">Cambio</option>
+                               </select>
+                               <div className="relative">
+                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
+                                 <input
+                                   name="monto"
+                                   type="number"
+                                   defaultValue={p.montoTotal - p.montoPagado}
+                                   required
+                                   placeholder="0"
+                                   min={1}
+                                   max={p.montoTotal - p.montoPagado}
+                                   className="w-24 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
+                                 />
+                               </div>
+                               <BotonSubmit className="bg-[#16a34a] hover:bg-[#15803d] text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">
+                                 Cobrar Parcial
+                               </BotonSubmit>
+                             </form>
                           </div>
                         ) : (
                           <div className="text-xs text-[#6b7280]">
@@ -234,7 +254,6 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                           </div>
                         )}
 
-                        {/* Derecha: Copiar Etiqueta */}
                         <div>
                           <BotonCopiarEtiqueta
                             pedido={{
@@ -243,8 +262,10 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                               producto: p.producto,
                               cajas: p.cajas,
                               montoTotal: p.montoTotal,
+                              montoPagado: p.montoPagado,
                               formaPago: p.formaPago,
-                              maduracion: p.maduracion
+                              maduracion: p.maduracion,
+                              pagosParciales: p.pagosParciales
                             }}
                             onCopied={() => showToast("Etiqueta copiada")}
                           />
@@ -260,7 +281,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>

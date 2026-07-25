@@ -41,6 +41,10 @@ export async function getCliente(id: number) {
           cliente: { include: { zona: true } }
         },
       },
+      pagosLocales: {
+        orderBy: { fechaPago: "desc" },
+        include: { repartidor: true }
+      }
     },
   });
 }

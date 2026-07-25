@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
 import { BotonSubmit } from "@/components/boton-submit";
 
 interface Producto {
@@ -38,6 +40,9 @@ function FilaProducto({
   actualizarStock: Props["actualizarStock"];
   toggleProducto: Props["toggleProducto"];
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const [precio, setPrecio] = useState<number | "">(p.precioReferencia);
   const [costo, setCosto] = useState<number | "">(p.costo);
   const [kg, setKg] = useState<number | "">(p.kgPorCaja ?? "");
@@ -53,33 +58,83 @@ function FilaProducto({
   const kgDirty = kg !== (p.kgPorCaja ?? "");
   const stockDirty = stock !== p.stockCajas;
 
+  const handleSubmitKg = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await actualizarKg(fd);
+      router.refresh();
+    });
+  };
+
+  const handleSubmitStock = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await actualizarStock(fd);
+      router.refresh();
+    });
+  };
+
+  const handleSubmitCosto = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await actualizarCosto(fd);
+      router.refresh();
+    });
+  };
+
+  const handleSubmitPrecio = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await actualizarPrecio(fd);
+      router.refresh();
+    });
+  };
+
+  const handleToggle = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await toggleProducto(fd);
+      router.refresh();
+    });
+  };
+
   return (
-    <tr className={`border-b border-[#22252e] last:border-0 ${!p.activo ? "opacity-50" : ""}`}>
+    <tr className={`border-b border-[#22252e] last:border-0 transition-opacity duration-200 ${!p.activo ? "opacity-50" : ""} ${isPending ? "opacity-60" : ""}`}>
       <td className="px-4 py-3 font-medium text-[#f9fafb]">{p.nombre}</td>
 
       <td className="px-4 py-3">
-        <form action={actualizarKg} className="flex items-center justify-end gap-2">
+        <form onSubmit={handleSubmitKg} className="flex items-center justify-end gap-1">
           <input type="hidden" name="id" value={p.id} />
           <select
             name="kgPorCaja"
             value={kg}
             onChange={(e) => setKg(e.target.value === "" ? "" : parseFloat(e.target.value))}
-            className="w-20 border border-[#2a2d35] rounded px-2 py-1 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635]"
+            className="w-20 border border-[#2a2d35] rounded px-2 py-1 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
           >
             <option value="">—</option>
             <option value="10">10 kg</option>
             <option value="11">11 kg</option>
           </select>
-          {kgDirty && (
-            <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
-              Guardar
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <BotonSubmit
+              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                kgDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+              title="Guardar cambios"
+            >
+              <Save size={15} />
             </BotonSubmit>
-          )}
+          </div>
         </form>
       </td>
 
       <td className="px-4 py-3">
-        <form action={actualizarStock} className="flex items-center justify-end gap-2">
+        <form onSubmit={handleSubmitStock} className="flex items-center justify-end gap-1">
           <input type="hidden" name="id" value={p.id} />
           <input
             name="stockCajas"
@@ -93,20 +148,25 @@ function FilaProducto({
               const val = e.target.value;
               setStock(val === "" ? "" : parseFloat(val));
             }}
-            className={`w-24 border rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] ${
+            className={`w-24 border rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white ${
               p.stockCajas <= 0 ? "border-red-800 text-red-400" : "border-[#2a2d35]"
             }`}
           />
-          {stockDirty && (
-            <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
-              Guardar
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <BotonSubmit
+              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                stockDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+              title="Guardar cambios"
+            >
+              <Save size={15} />
             </BotonSubmit>
-          )}
+          </div>
         </form>
       </td>
 
       <td className="px-4 py-3">
-        <form action={actualizarCosto} className="flex items-center justify-end gap-2">
+        <form onSubmit={handleSubmitCosto} className="flex items-center justify-end gap-1">
           <input type="hidden" name="id" value={p.id} />
           <input
             name="costo"
@@ -119,18 +179,23 @@ function FilaProducto({
               const val = e.target.value;
               setCosto(val === "" ? "" : parseFloat(val));
             }}
-            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
+            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           />
-          {costoDirty && (
-            <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
-              Guardar
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <BotonSubmit
+              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                costoDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+              title="Guardar cambios"
+            >
+              <Save size={15} />
             </BotonSubmit>
-          )}
+          </div>
         </form>
       </td>
 
       <td className="px-4 py-3">
-        <form action={actualizarPrecio} className="flex items-center justify-end gap-2">
+        <form onSubmit={handleSubmitPrecio} className="flex items-center justify-end gap-1">
           <input type="hidden" name="id" value={p.id} />
           <input
             name="precioReferencia"
@@ -143,18 +208,23 @@ function FilaProducto({
               const val = e.target.value;
               setPrecio(val === "" ? "" : parseFloat(val));
             }}
-            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635]"
+            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
           />
-          {precioDirty && (
-            <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
-              Guardar
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <BotonSubmit
+              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                precioDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+              title="Guardar cambios"
+            >
+              <Save size={15} />
             </BotonSubmit>
-          )}
+          </div>
         </form>
       </td>
 
       <td className="px-4 py-3 text-right">
-        <form action={toggleProducto}>
+        <form onSubmit={handleToggle}>
           <input type="hidden" name="id" value={p.id} />
           <input type="hidden" name="activo" value={p.activo.toString()} />
           <BotonSubmit className="text-xs text-[#6b7280] hover:text-[#9ca3af]">
@@ -268,11 +338,11 @@ export function ProductosUI({
           <thead>
             <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
               <th className="text-left px-4 py-3 font-medium">Producto</th>
-              <th className="text-right px-4 py-3 font-medium">Kg/caja</th>
-              <th className="text-right px-4 py-3 font-medium">Stock (cajas)</th>
-              <th className="text-right px-4 py-3 font-medium">Costo ref.</th>
-              <th className="text-right px-4 py-3 font-medium">Precio ref.</th>
-              <th className="px-4 py-3"></th>
+              <th className="text-right pl-4 pr-[52px] py-3 font-medium">Kg/caja</th>
+              <th className="text-right pl-4 pr-[52px] py-3 font-medium">Stock (cajas)</th>
+              <th className="text-right pl-4 pr-[52px] py-3 font-medium">Costo ref.</th>
+              <th className="text-right pl-4 pr-[52px] py-3 font-medium">Precio ref.</th>
+              <th className="text-right px-4 py-3 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>

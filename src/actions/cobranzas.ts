@@ -3,45 +3,102 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
-export async function getClientesConDeuda(idZona?: number, idRepartidor?: number) {
-  const pedidos = await prisma.pedido.findMany({
-    where: {
-      estadoPago: { not: "PAGADO" },
-      esCobro: false,
-      cliente: {
-        ...(idZona ? { idZona } : {}),
-        ...(idRepartidor ? { idRepartidor } : {}),
-        activo: true,
+export async function getClientesConDeudaPaginado(
+  page: number = 0,
+  pageSize: number = 20,
+  idZona?: number,
+  idRepartidor?: number,
+  busqueda?: string
+) {
+  const where = {
+    activo: true,
+    ...(idZona ? { idZona } : {}),
+    ...(idRepartidor ? { idRepartidor } : {}),
+    ...(busqueda ? { nombre: { contains: busqueda, mode: "insensitive" as const } } : {}),
+    pedidos: {
+      some: {
+        estadoPago: { not: "PAGADO" as const },
+        esCobro: false,
+      }
+    }
+  };
+
+  const skip = page * pageSize;
+
+  const [clientes, total, aggGlobal] = await Promise.all([
+    prisma.cliente.findMany({
+      where,
+      include: {
+        zona: true,
+        repartidor: true,
+        pedidos: {
+          where: {
+            estadoPago: { not: "PAGADO" as const },
+            esCobro: false,
+          },
+          include: { producto: true },
+          orderBy: { fecha: "asc" },
+        }
       },
-    },
-    include: {
-      cliente: { include: { zona: true, repartidor: true } },
-      producto: true,
-    },
-    orderBy: { fecha: "asc" },
+      orderBy: { nombre: "asc" },
+      skip,
+      take: pageSize,
+    }),
+    prisma.cliente.count({ where }),
+    prisma.pedido.aggregate({
+      where: {
+        estadoPago: { not: "PAGADO" as const },
+        esCobro: false,
+        cliente: {
+          activo: true,
+          ...(idZona ? { idZona } : {}),
+          ...(idRepartidor ? { idRepartidor } : {}),
+          ...(busqueda ? { nombre: { contains: busqueda, mode: "insensitive" as const } } : {}),
+        }
+      },
+      _sum: {
+        montoTotal: true,
+        montoPagado: true,
+      }
+    })
+  ]);
+
+  const clientesDeuda = clientes.map((c) => {
+    const deudaTotal = c.pedidos.reduce((s, p) => s + (p.montoTotal - p.montoPagado), 0);
+    return {
+      cliente: {
+        id: c.id,
+        nombre: c.nombre,
+        direccion: c.direccion,
+        telefono: c.telefono,
+        idZona: c.idZona,
+        idRepartidor: c.idRepartidor,
+        formaPagoPref: c.formaPagoPref,
+        requiereFactura: c.requiereFactura,
+        idCuentaCorriente: c.idCuentaCorriente,
+        idRevendedor: c.idRevendedor,
+        activo: c.activo,
+        observaciones: c.observaciones,
+        creadoEn: c.creadoEn,
+        actualizadoEn: c.actualizadoEn,
+        zona: c.zona,
+        repartidor: c.repartidor,
+      },
+      pedidos: c.pedidos,
+      deudaTotal,
+    };
   });
 
-  // Agrupar por cliente
-  const mapaClientes = new Map<
-    number,
-    {
-      cliente: (typeof pedidos)[0]["cliente"];
-      pedidos: typeof pedidos;
-      deudaTotal: number;
-    }
-  >();
+  const deudaTotalGlobal = (aggGlobal._sum.montoTotal ?? 0) - (aggGlobal._sum.montoPagado ?? 0);
 
-  for (const p of pedidos) {
-    const deuda = p.montoTotal - p.montoPagado;
-    if (!mapaClientes.has(p.idCliente)) {
-      mapaClientes.set(p.idCliente, { cliente: p.cliente, pedidos: [], deudaTotal: 0 });
-    }
-    const entry = mapaClientes.get(p.idCliente)!;
-    entry.pedidos.push(p);
-    entry.deudaTotal += deuda;
-  }
-
-  return Array.from(mapaClientes.values()).sort((a, b) => b.deudaTotal - a.deudaTotal);
+  return {
+    clientesDeuda,
+    total,
+    deudaTotalGlobal,
+    page,
+    pageSize,
+    hasMore: skip + pageSize < total,
+  };
 }
 
 export async function getCatalogosCobranza() {

@@ -129,13 +129,42 @@ export async function marcarPagado(idPedido: number, _?: FormData) {
 
 export async function registrarCobro(idPedido: number, formData: FormData) {
   const monto = parseFloat(formData.get("monto") as string);
+  const formaPago = (formData.get("formaPago") as string) || "EFECTIVO";
+  
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
   const nuevoPagado = Math.min(pedido.montoPagado + monto, pedido.montoTotal);
   const estadoPago = nuevoPagado >= pedido.montoTotal ? "PAGADO" : "PARCIAL";
 
+  // Reconstruir/crear la lista de pagos parciales
+  let listaPagos: any[] = [];
+  if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales)) {
+    listaPagos = [...pedido.pagosParciales];
+  } else if (pedido.montoPagado > 0) {
+    // Si no había desglose pero sí un pago anterior, se conserva
+    listaPagos = [
+      {
+        monto: pedido.montoPagado,
+        formaPago: pedido.formaPago,
+        fecha: pedido.fecha.toISOString().split("T")[0]
+      }
+    ];
+  }
+
+  // Agregar el nuevo pago parcial (usando fecha local YYYY-MM-DD)
+  const hoyLocal = new Date().toLocaleDateString("sv-SE");
+  listaPagos.push({
+    monto: monto,
+    formaPago: formaPago,
+    fecha: hoyLocal
+  });
+
   await prisma.pedido.update({
     where: { id: idPedido },
-    data: { montoPagado: nuevoPagado, estadoPago: estadoPago as never },
+    data: { 
+      montoPagado: nuevoPagado, 
+      estadoPago: estadoPago as never,
+      pagosParciales: listaPagos
+    },
   });
 
   revalidatePath("/pedidos/[fecha]", "page");
@@ -181,6 +210,16 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const requiereFactura = formData.get("requiereFactura") === "on";
   const observaciones = formData.get("observaciones") as string | null;
+  
+  const pagosParcialesJson = formData.get("pagosParcialesJson") as string | null;
+  let pagosParciales = null;
+  if (pagosParcialesJson) {
+    try {
+      pagosParciales = JSON.parse(pagosParcialesJson);
+    } catch (e) {
+      console.error("Error al parsear pagosParcialesJson:", e);
+    }
+  }
 
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
 
@@ -203,11 +242,12 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
       formaPago: formaPago as never,
       estadoPago: estadoPago as never,
       montoPagado,
-      idRepartidor,
+      repartidor: idRepartidor ? { connect: { id: idRepartidor } } : { disconnect: true },
       requiereFactura,
       estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
       comisionRevendedor,
       observaciones: observaciones?.trim() || null,
+      pagosParciales: pagosParciales ?? null,
     },
   });
 

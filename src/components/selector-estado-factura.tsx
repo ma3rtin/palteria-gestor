@@ -14,14 +14,6 @@ export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: nu
     }
   };
 
-  const getLabel = (est: string) => {
-    switch (est) {
-      case "EMITIDA": return "Emitida";
-      case "PENDIENTE": return "Pendiente";
-      default: return "Sin facturar";
-    }
-  };
-
   return (
     <div className="relative inline-block group">
       <select
@@ -31,14 +23,14 @@ export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: nu
           setEstado(nuevoEstado);
           await actualizarEstadoFactura(idPedido, nuevoEstado);
         }}
-        className={`appearance-none text-xs rounded px-2 py-1 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] ${getStyle(estado)} pr-6`}
+        className={`appearance-none text-[11px] rounded px-1.5 py-0.5 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] ${getStyle(estado)} pr-[18px]`}
       >
         <option value="NO_REQUIERE">Sin facturar</option>
         <option value="PENDIENTE">Pendiente</option>
         <option value="EMITIDA">Emitida</option>
       </select>
-      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] opacity-0 group-hover:opacity-100 pointer-events-none text-white">
-        ✎
+      <span className="absolute right-1 top-[52%] -translate-y-1/2 text-[7px] opacity-0 group-hover:opacity-100 pointer-events-none text-current transition-opacity duration-150">
+        ▼
       </span>
     </div>
   );

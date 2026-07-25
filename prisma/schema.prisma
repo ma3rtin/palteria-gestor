@@ -226,6 +226,7 @@ model Pedido {
   esReposicion      Boolean       @default(false) @map("es_reposicion")
   comisionRevendedor Float        @default(0) @map("comision_revendedor")
   observaciones     String?
+  pagosParciales    Json?         @map("pagos_parciales")
   creadoEn          DateTime      @default(now()) @map("creado_en")
   actualizadoEn     DateTime      @updatedAt @map("actualizado_en")
 
