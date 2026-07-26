@@ -51,6 +51,7 @@ interface Pedido {
   esCobro: boolean;
   observaciones: string | null;
   pagosParciales: any;
+  cliente: any;
 }
 
 interface Props {
@@ -193,7 +194,7 @@ export function FormEditarPedido({
     }
   };
 
-  const clienteAsociado = clientes.find(c => c.id === pedido.idCliente);
+  const clienteAsociado = pedido.cliente;
 
   return (
     <form
@@ -204,7 +205,7 @@ export function FormEditarPedido({
       <input type="hidden" name="pagosParcialesJson" value={JSON.stringify(pagosList)} />
 
       <div className="text-sm text-[#9ca3af] mb-2">
-        <p>Cliente: <span className="font-medium text-[#f9fafb]">{clientes.find(c => c.id === pedido.idCliente)?.nombre}</span></p>
+        <p>Cliente: <span className="font-medium text-[#f9fafb]">{pedido.cliente.nombre}</span></p>
         <p>Producto: <span className="font-medium text-[#f9fafb]">{productoSelec?.nombre}</span></p>
       </div>
 
