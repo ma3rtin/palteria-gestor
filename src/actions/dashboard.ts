@@ -9,17 +9,17 @@ export async function getStatsSemana() {
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
 
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
 
   const agregado = await prisma.pedido.aggregate({
-    where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+    where: { fecha: { gte: lunes, lte: domingo }, esCobro: false },
     _sum: { cajas: true, montoTotal: true, montoPagado: true },
     _count: { id: true },
   });
   const porProducto = await prisma.pedido.groupBy({
     by: ["idProducto"],
-    where: { fecha: { gte: lunes, lte: sabado }, esCobro: false },
+    where: { fecha: { gte: lunes, lte: domingo }, esCobro: false },
     _sum: { cajas: true, montoTotal: true },
     orderBy: { _sum: { cajas: "desc" } },
     take: 6,
@@ -43,7 +43,7 @@ export async function getStatsSemana() {
       cajas: p._sum.cajas ?? 0,
       monto: p._sum.montoTotal ?? 0,
     })),
-    semanaLabel: `${fmt(lunes)} – ${fmt(sabado)}`,
+    semanaLabel: `${fmt(lunes)} – ${fmt(domingo)}`,
   };
 }
 

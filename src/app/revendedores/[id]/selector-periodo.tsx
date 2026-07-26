@@ -14,11 +14,11 @@ function semanaActual() {
   const hoy = new Date();
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
   return {
     desde: lunes.toLocaleDateString("en-CA"),
-    hasta: sabado.toLocaleDateString("en-CA"),
+    hasta: domingo.toLocaleDateString("en-CA"),
   };
 }
 
@@ -26,11 +26,11 @@ function semanaAnterior() {
   const hoy = new Date();
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7) - 7);
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
   return {
     desde: lunes.toLocaleDateString("en-CA"),
-    hasta: sabado.toLocaleDateString("en-CA"),
+    hasta: domingo.toLocaleDateString("en-CA"),
   };
 }
 

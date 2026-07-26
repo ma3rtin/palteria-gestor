@@ -12,12 +12,12 @@ export default async function Inicio() {
   const hoyFecha = parseFechaRuta(hoy);
   const lunes = new Date(hoyFecha);
   lunes.setDate(hoyFecha.getDate() - ((hoyFecha.getDay() + 6) % 7));
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
 
   const fmtISO = (d: Date) => d.toLocaleDateString("en-CA");
   const lunesStr = fmtISO(lunes);
-  const sabadoStr = fmtISO(sabado);
+  const domingoStr = fmtISO(domingo);
 
   return (
     <div className="p-8 mx-auto">
@@ -140,7 +140,7 @@ export default async function Inicio() {
           </h2>
           <div className="flex flex-col gap-2">
             {[
-              { href: `/reportes?desde=${lunesStr}&hasta=${sabadoStr}`, label: "Pedidos de la semana" },
+              { href: `/reportes?desde=${lunesStr}&hasta=${domingoStr}`, label: "Pedidos de la semana" },
               { href: "/cobranzas", label: "Cobranzas pendientes" },
               { href: "/pagos-semanales", label: "Pagos semanales" },
               { href: "/clientes/nuevo", label: "Agregar cliente" },

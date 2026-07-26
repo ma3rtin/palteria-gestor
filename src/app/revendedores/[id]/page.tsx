@@ -24,9 +24,9 @@ function semanaActualHasta() {
   const hoy = parseFechaRuta(hoyISO());
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
-  return sabado.toLocaleDateString("en-CA");
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  return domingo.toLocaleDateString("en-CA");
 }
 
 interface Props {

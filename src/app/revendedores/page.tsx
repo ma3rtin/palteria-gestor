@@ -9,9 +9,9 @@ async function getResumenSemana() {
   const hoy = parseFechaRuta(hoyISO());
   const lunes = new Date(hoy);
   lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
-  const sabado = new Date(lunes);
-  sabado.setDate(lunes.getDate() + 5);
-  return { desde: lunes, hasta: sabado };
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  return { desde: lunes, hasta: domingo };
 }
 
 export default async function RevendedoresPage() {
