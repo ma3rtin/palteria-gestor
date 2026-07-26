@@ -149,7 +149,6 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
               <thead>
                 <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
                   <th className="text-left px-4 py-3 font-medium">Período</th>
-                  <th className="text-right px-4 py-3 font-medium">Comisión Calculada</th>
                   <th className="text-right px-4 py-3 font-medium">Monto Pagado</th>
                   <th className="text-left px-4 py-3 font-medium">Fecha Pago</th>
                   <th className="text-left px-4 py-3 font-medium">Forma de pago</th>
@@ -162,7 +161,6 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                     <td className="px-4 py-3 text-[#9ca3af] whitespace-nowrap">
                       {formatearFechaCorta(l.fechaInicio)} – {formatearFechaCorta(l.fechaFin)}
                     </td>
-                    <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{formatearPeso(l.montoCalculado)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-[#4ade80] font-mono">{formatearPeso(l.montoPagado)}</td>
                     <td className="px-4 py-3 text-[#9ca3af] text-xs whitespace-nowrap">
                       {l.fechaPago ? formatearFechaCorta(l.fechaPago) : "—"}
