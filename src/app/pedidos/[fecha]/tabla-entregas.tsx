@@ -10,7 +10,7 @@ import { registrarCobro } from "@/actions/pedidos";
 import { BotonSubmit } from "@/components/boton-submit";
 import { BotonCopiarEtiqueta } from "@/components/boton-copiar-etiqueta";
 import { useToast } from "@/hooks/use-toast";
-import { formatearPeso, ETIQUETAS_FORMA_PAGO, obtenerFilaExcel } from "@/lib/utils";
+import { formatearPeso, ETIQUETAS_FORMA_PAGO, obtenerFilaExcel, formatearHora } from "@/lib/utils";
 import { ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 
 interface Pedido {
@@ -29,6 +29,7 @@ interface Pedido {
   idRepartidor: number | null;
   observaciones: string | null;
   fecha: Date;
+  creadoEn: Date;
   cliente: {
     id: number;
     nombre: string;
@@ -187,7 +188,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                 {isExpanded && (
                   <tr key={`${p.id}-details`} className="bg-[#13151c]/90 border-b border-[#22252e]">
                     <td colSpan={9} className="px-10 py-4 text-left">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm">
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
                           <span className="text-[#f9fafb]">
@@ -205,6 +206,10 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Forma de Pago</span>
                           <span className="text-[#f9fafb]">{ETIQUETAS_FORMA_PAGO[p.formaPago] || p.formaPago}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Hora de Carga</span>
+                          <span className="text-[#f9fafb]">{formatearHora(p.creadoEn)} hs</span>
                         </div>
                       </div>
 

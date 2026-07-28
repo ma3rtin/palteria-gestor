@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
-import { formatearPeso, formatearFecha } from "@/lib/utils";
+import { formatearPeso, formatearFecha, formatearHora } from "@/lib/utils";
 import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
 import { NavegacionFecha } from "./navegacion-fecha";
@@ -148,6 +148,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                     <tr key={p.id} className="border-b border-[#22252e] last:border-0">
                       <td className="px-4 py-2.5 font-medium">{p.cliente.nombre}</td>
                       <td className="px-4 py-2.5 text-[#9ca3af]">{p.observaciones ?? "Cobranza"}</td>
+                      <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{formatearHora(p.creadoEn)} hs</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80]">
                         {formatearPeso(p.montoPagado)}
                       </td>

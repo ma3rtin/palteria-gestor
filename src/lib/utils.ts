@@ -22,6 +22,16 @@ export function formatearFechaCorta(fecha: Date | string) {
   return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
+export function formatearHora(fecha: Date | string) {
+  const d = typeof fecha === "string" ? new Date(fecha) : fecha;
+  return d.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+}
+
 export function hoyISO(): string {
   // en-CA formatea como YYYY-MM-DD; timeZone evita que el servidor UTC devuelva "mañana" después de las 21hs AR
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
@@ -70,14 +80,12 @@ export function obtenerFilaExcel(pedido: {
   montoTotal: number;
   maduracion: string;
 }): string {
-  const cajaVal = pedido.producto.kgPorCaja ? `${pedido.producto.kgPorCaja} kg` : "—";
   const cantidadVal = pedido.cajas.toString().replace(".", ",");
   const totalFormateado = `$ ${pedido.montoTotal.toLocaleString("es-AR")}`;
 
   return [
     pedido.cliente.nombre,
     pedido.cliente.zona.nombre,
-    cajaVal,
     cantidadVal,
     pedido.producto.nombre,
     pedido.maduracion,

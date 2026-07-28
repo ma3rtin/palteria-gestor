@@ -3,7 +3,8 @@ import {
   formatearPeso, 
   parseFechaRuta, 
   formatearFechaCorta, 
-  obtenerFilaExcel 
+  obtenerFilaExcel,
+  formatearHora
 } from "./utils";
 
 describe("Utility Functions tests", () => {
@@ -40,6 +41,15 @@ describe("Utility Functions tests", () => {
     });
   });
 
+  describe("formatearHora", () => {
+    it("should format a date to HH:MM in ART", () => {
+      // 2026-05-15T15:30:00Z is 12:30 in America/Argentina/Buenos_Aires (UTC-3)
+      const date = new Date("2026-05-15T15:30:00Z");
+      const formatted = formatearHora(date);
+      expect(formatted).toBe("12:30");
+    });
+  });
+
   describe("obtenerFilaExcel", () => {
     it("should join order details with tab character", () => {
       const mockPedido = {
@@ -59,14 +69,13 @@ describe("Utility Functions tests", () => {
       const result = obtenerFilaExcel(mockPedido);
       const splitResult = result.split("\t");
       
-      expect(splitResult).toHaveLength(7);
+      expect(splitResult).toHaveLength(6);
       expect(splitResult[0]).toBe("Cervecería 1");
       expect(splitResult[1]).toBe("CABA");
-      expect(splitResult[2]).toBe("10 kg");
-      expect(splitResult[3]).toBe("5,5");
-      expect(splitResult[4]).toBe("HASS IMPORTADA");
-      expect(splitResult[5]).toBe("SEMI");
-      expect(splitResult[6]).toBe("$ 25.000");
+      expect(splitResult[2]).toBe("5,5");
+      expect(splitResult[3]).toBe("HASS IMPORTADA");
+      expect(splitResult[4]).toBe("SEMI");
+      expect(splitResult[5]).toBe("$ 25.000");
     });
   });
 });

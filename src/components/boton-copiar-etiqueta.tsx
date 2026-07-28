@@ -55,8 +55,7 @@ ZONA: ${pedido.cliente.zona.nombre.toUpperCase()}
 CAJAS: ${pedido.cajas}
 MARCA: ${pedido.producto.nombre.toUpperCase()}
 MADURACIÓN: ${pedido.maduracion.toUpperCase()}
-${pagosStr}
-PESO POR CAJÓN: ${pedido.producto.kgPorCaja ? `${pedido.producto.kgPorCaja} kg` : "—"}`;
+${pagosStr}`;
 
     navigator.clipboard.writeText(texto).then(() => {
       onCopied();

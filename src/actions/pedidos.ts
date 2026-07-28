@@ -15,8 +15,7 @@ export async function getPedidosPorFecha(fechaStr: string) {
       repartidor: true,
     },
     orderBy: [
-      { cliente: { zona: { nombre: "asc" } } },
-      { cliente: { nombre: "asc" } },
+      { creadoEn: "desc" }
     ],
   });
 }
