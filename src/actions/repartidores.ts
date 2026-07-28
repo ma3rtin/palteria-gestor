@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { parseFechaRuta } from "@/lib/utils";
+import { parseFechaRuta, hoyISO } from "@/lib/utils";
 
 export async function getRepartidores() {
   return prisma.repartidor.findMany({
@@ -38,8 +38,7 @@ export async function getResumenRepartidorFecha(idRepartidor: number, fechaStr: 
 }
 
 export async function getResumenTodosRepartidoresHoy() {
-  const hoy = new Date();
-  hoy.setHours(12, 0, 0, 0);
+  const hoy = parseFechaRuta(hoyISO());
 
   const repartidores = await prisma.repartidor.findMany({
     where: { activo: true },

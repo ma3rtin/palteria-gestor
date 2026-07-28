@@ -57,7 +57,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
       ) : (
         <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+             <thead>
               <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
                 <th className="text-left px-4 py-3 font-medium">Cliente</th>
                 <th className="text-left px-4 py-3 font-medium">Producto</th>
@@ -65,6 +65,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                 <th className="text-right px-4 py-3 font-medium">Monto</th>
                 <th className="text-left px-4 py-3 font-medium">Pago</th>
                 <th className="text-left px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -84,6 +85,14 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                   <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{ETIQUETAS_FORMA_PAGO[p.formaPago]}</td>
                   <td className="px-4 py-2.5">
                     <BadgeEstadoPago estado={p.estadoPago as "PENDIENTE" | "PAGADO" | "PARCIAL"} />
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Link
+                      href={`/pedidos/${fechaConsulta}?pedidoId=${p.id}`}
+                      className="border border-[#2a2d35] text-[#9ca3af] px-2 py-1 rounded text-xs hover:border-[#a3e635] hover:text-[#a3e635] transition-colors"
+                    >
+                      Ver pedido
+                    </Link>
                   </td>
                 </tr>
               ))}
