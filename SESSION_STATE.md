@@ -36,6 +36,7 @@ Este archivo registra el historial de desarrollo por sesiones y las tareas pendi
 | **26 — Limpieza de peso y ordenación de pedidos por hora** | ✅ | Remoción de la información de peso en etiquetas y portapapeles. Registro de la hora ART de creación en pedidos/cobros, visualización en el desglose de entregas y cobros, y ordenación por defecto de forma descendente (los últimos creados arriba) tanto en la lista diaria como en el dashboard de inicio (Home). |
 | **27 — Script de reseteo transaccional** | ✅ | Creación de script `prisma/clear-transactions.ts` y comando en `package.json` para limpiar pedidos, pagos y liquidaciones de prueba, y resetear stock a 0, preservando catálogos maestros de clientes, zonas, etc. |
 | **28 — Fix de stats de repartidor hoy y link de redirección** | ✅ | Corrección de bug de zona horaria en estadísticas diarias de repartidores que mostraba "Sin actividad hoy" a partir de las 21:00 hs (ART). Adición de enlace "Ver pedido" en el detalle del repartidor para abrir la ruta del pedido con su desglose desplegado automáticamente. |
+| **29 — Homogeneización de Ver pedido** | ✅ | Homogeneización del enlace "Ver pedido" en la vista de detalle de repartidores para utilizar el mismo estilo minimalista que en la vista de revendedores (text-xs text-[#a3e635] hover:underline). |
 
 ---
 

@@ -89,7 +89,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                   <td className="px-4 py-2.5 text-right">
                     <Link
                       href={`/pedidos/${fechaConsulta}?pedidoId=${p.id}`}
-                      className="border border-[#2a2d35] text-[#9ca3af] px-2 py-1 rounded text-xs hover:border-[#a3e635] hover:text-[#a3e635] transition-colors"
+                      className="text-xs text-[#a3e635] hover:underline"
                     >
                       Ver pedido
                     </Link>
