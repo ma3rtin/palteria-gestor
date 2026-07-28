@@ -13,7 +13,8 @@
     "db:full-seed": "tsx prisma/seed.ts && tsx prisma/seed-pedidos.ts && tsx prisma/fix-sequences.ts",
     "db:reset": "PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION='si, confirmo' prisma migrate reset --force && npm run db:seed",
     "db:fix-seq": "tsx prisma/fix-sequences.ts",
-    "crear-usuario": "tsx prisma/crear-usuario.ts"
+    "crear-usuario": "tsx prisma/crear-usuario.ts",
+    "db:clear-transactions": "tsx prisma/clear-transactions.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
