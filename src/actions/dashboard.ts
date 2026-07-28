@@ -57,7 +57,9 @@ export async function getStatsHoy() {
       producto: true,
       repartidor: true,
     },
-    orderBy: [{ cliente: { zona: { nombre: "asc" } } }, { cliente: { nombre: "asc" } }],
+    orderBy: [
+      { creadoEn: "desc" }
+    ],
   });
   const deudaAgregada = await prisma.pedido.aggregate({
     where: { estadoPago: { not: "PAGADO" }, esCobro: false },
