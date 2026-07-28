@@ -14,7 +14,8 @@
     "db:reset": "PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION='si, confirmo' prisma migrate reset --force && npm run db:seed",
     "db:fix-seq": "tsx prisma/fix-sequences.ts",
     "crear-usuario": "tsx prisma/crear-usuario.ts",
-    "db:clear-transactions": "tsx prisma/clear-transactions.ts"
+    "db:clear-transactions": "tsx prisma/clear-transactions.ts",
+    "db:reset-revendedores": "tsx prisma/reset-revendedores.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
