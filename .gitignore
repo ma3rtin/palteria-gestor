@@ -3,3 +3,11 @@
 .next/
 node_modules/
 src/generated/
+.agents/
+skills-lock.json
+
+# Backups locales y scripts utilitarios
+prisma/backup-catalogos.json
+prisma/backup-catalogos.ts
+prisma/clear-db-except-users.ts
+prisma/restore-catalogos.ts

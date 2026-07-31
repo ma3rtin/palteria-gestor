@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { BotonSubmit } from "@/components/boton-submit";
 import { CreadorConfig } from "@/components/config-creator";
 import { crearZona, renombrarZona } from "@/actions/zonas";
@@ -18,17 +19,36 @@ interface Props {
 }
 
 export function ZonasConfigUI({ initialZonas }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState("nombre"); // "nombre" o "clientes"
 
-  // Filter local array in memory
+  // Acción de edición
+  const handleEditar = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        await renombrarZona(fd);
+        setEditandoId(null);
+        router.refresh();
+      } catch (err: any) {
+        alert(err.message || "Error al renombrar zona");
+      }
+    });
+  };
+
+  // Filtrado en memoria
   let filtradas = busqueda.trim()
     ? initialZonas.filter((z) =>
         z.nombre.toLowerCase().includes(busqueda.toLowerCase())
       )
     : [...initialZonas];
 
-  // Sort local array in memory
+  // Ordenamiento en memoria
   if (orden === "nombre") {
     filtradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
   } else if (orden === "clientes") {
@@ -45,7 +65,7 @@ export function ZonasConfigUI({ initialZonas }: Props) {
       />
 
       {/* CARD 2: Búsqueda y Listado Unificados */}
-      <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
+      <div className={`bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden transition-opacity ${isPending ? "opacity-60" : ""}`}>
         {/* Cabecera / Buscador + Orden */}
         <div className="px-5 py-4 border-b border-[#2a2d35] bg-[#161920]/40 flex gap-4">
           <input
@@ -53,7 +73,7 @@ export function ZonasConfigUI({ initialZonas }: Props) {
             placeholder="Buscar zona por nombre..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="flex-1 border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#13161e] text-white focus:outline-none focus:border-[#a3e635]"
+            className="flex-1 border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#13161e] text-white focus:outline-none focus:border-[#a3e635] placeholder:text-gray-600"
           />
           <select
             value={orden}
@@ -71,7 +91,7 @@ export function ZonasConfigUI({ initialZonas }: Props) {
             <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs bg-[#171920]">
               <th className="text-left px-4 py-3 font-medium">Nombre</th>
               <th className="text-right px-4 py-3 font-medium w-32">Clientes</th>
-              <th className="w-24"></th>
+              <th className="px-4 py-3 w-40 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -82,25 +102,62 @@ export function ZonasConfigUI({ initialZonas }: Props) {
                 </td>
               </tr>
             ) : (
-              filtradas.map((z) => (
-                <tr key={z.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/30 transition-colors">
-                  <td className="px-4 py-2">
-                    <form action={renombrarZona} className="flex items-center gap-2">
-                      <input type="hidden" name="id" value={z.id} />
-                      <input
-                        name="nombre"
-                        defaultValue={z.nombre}
-                        className="border border-[#2a2d35] rounded px-2 py-1 text-sm bg-[#13161e] text-white focus:outline-none focus:border-[#a3e635] w-48"
-                      />
-                      <BotonSubmit className="text-xs text-[#a3e635] hover:underline whitespace-nowrap">
-                        Renombrar
-                      </BotonSubmit>
-                    </form>
-                  </td>
-                  <td className="px-4 py-2 text-right text-[#6b7280] font-medium">{z._count.clientes}</td>
-                  <td className="px-4 py-2"></td>
-                </tr>
-              ))
+              filtradas.map((z) => {
+                const editando = editandoId === z.id;
+                return (
+                  <tr
+                    key={z.id}
+                    className={`border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/30 transition-colors ${
+                      editando ? "bg-[#1f232d]/40" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-2">
+                      {editando ? (
+                        <form id={`edit-form-${z.id}`} onSubmit={handleEditar}>
+                          <input type="hidden" name="id" value={z.id} />
+                          <input
+                            name="nombre"
+                            required
+                            defaultValue={z.nombre}
+                            className="border border-[#2a2d35] rounded px-2.5 py-1 text-sm bg-[#13161e] text-white focus:outline-none focus:border-[#a3e635] w-64"
+                          />
+                        </form>
+                      ) : (
+                        <span className="font-medium text-[#f9fafb]">{z.nombre}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[#6b7280] font-medium">{z._count.clientes}</td>
+                    <td className="px-4 py-2 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        {editando ? (
+                          <>
+                            <BotonSubmit
+                              form={`edit-form-${z.id}`}
+                              className="text-xs text-[#a3e635] hover:underline font-medium"
+                            >
+                              Guardar
+                            </BotonSubmit>
+                            <button
+                              type="button"
+                              onClick={() => setEditandoId(null)}
+                              className="text-xs text-[#6b7280] hover:text-white font-medium"
+                            >
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setEditandoId(z.id)}
+                            className="text-xs text-[#6b7280] hover:text-[#a3e635] font-medium"
+                          >
+                            Editar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

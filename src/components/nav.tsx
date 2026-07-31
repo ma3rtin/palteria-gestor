@@ -22,7 +22,7 @@ const configLinks = [
   { href: "/config/zonas", label: "Zonas" },
   { href: "/config/repartidores", label: "Repartidores" },
   { href: "/config/revendedores", label: "Revendedores" },
-  { href: "/perfil", label: "Perfil" },
+  { href: "/config/cuentas-corrientes", label: "Cuentas Corrientes" },
 ];
 
 interface Props {
@@ -32,7 +32,7 @@ interface Props {
 export default function Nav({ usuario }: Props) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(() => {
-    return pathname.startsWith("/config") || pathname === "/perfil";
+    return pathname.startsWith("/config");
   });
 
   return (
@@ -99,7 +99,13 @@ export default function Nav({ usuario }: Props) {
       {/* Usuario + cerrar sesión */}
       <div className="px-4 py-3 border-t border-[#1f2330]">
         {usuario && (
-          <p className="text-xs text-[#6b7280] truncate mb-2">{usuario}</p>
+          <Link
+            href="/perfil"
+            className="block text-xs truncate mb-2 font-medium text-[#a3e635] hover:text-[#84cc16] hover:underline transition-colors"
+            title="Ver mi perfil"
+          >
+            {usuario}
+          </Link>
         )}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}

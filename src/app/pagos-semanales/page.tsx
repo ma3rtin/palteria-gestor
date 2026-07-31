@@ -19,11 +19,19 @@ export default async function PagosSemanalesPage({ searchParams }: Props) {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#f9fafb]">Pagos semanales</h1>
-        <p className="text-[#9ca3af] mt-0.5 text-sm">
-          {total} cuentas corrientes · {formatearPeso(deudaTotalGlobal)} pendiente total
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#f9fafb]">Pagos semanales</h1>
+          <p className="text-[#9ca3af] mt-0.5 text-sm">
+            {total} cuentas corrientes · {formatearPeso(deudaTotalGlobal)} pendiente total
+          </p>
+        </div>
+        <Link
+          href="/config/cuentas-corrientes"
+          className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          + Administrar cuentas
+        </Link>
       </div>
 
       {/* Buscador */}
