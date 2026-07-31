@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { BotonSubmit } from "@/components/boton-submit";
+import { formatearFechaCorta } from "@/lib/utils";
 
 interface Producto {
   id: number;
@@ -13,6 +14,7 @@ interface Producto {
   stockCajas: number;
   activo: boolean;
   costo: number;
+  fechaIngreso: Date | string | null;
 }
 
 interface Props {
@@ -43,15 +45,33 @@ function FilaProducto({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const [prevPrecioReferencia, setPrevPrecioReferencia] = useState(p.precioReferencia);
   const [precio, setPrecio] = useState<number | "">(p.precioReferencia);
-  const [costo, setCosto] = useState<number | "">(p.costo);
-  const [kg, setKg] = useState<number | "">(p.kgPorCaja ?? "");
-  const [stock, setStock] = useState<number | "">(p.stockCajas);
+  if (p.precioReferencia !== prevPrecioReferencia) {
+    setPrevPrecioReferencia(p.precioReferencia);
+    setPrecio(p.precioReferencia);
+  }
 
-  useEffect(() => { setPrecio(p.precioReferencia); }, [p.precioReferencia]);
-  useEffect(() => { setCosto(p.costo); }, [p.costo]);
-  useEffect(() => { setKg(p.kgPorCaja ?? ""); }, [p.kgPorCaja]);
-  useEffect(() => { setStock(p.stockCajas); }, [p.stockCajas]);
+  const [prevCosto, setPrevCosto] = useState(p.costo);
+  const [costo, setCosto] = useState<number | "">(p.costo);
+  if (p.costo !== prevCosto) {
+    setPrevCosto(p.costo);
+    setCosto(p.costo);
+  }
+
+  const [prevKg, setPrevKg] = useState(p.kgPorCaja);
+  const [kg, setKg] = useState<number | "">(p.kgPorCaja ?? "");
+  if (p.kgPorCaja !== prevKg) {
+    setPrevKg(p.kgPorCaja);
+    setKg(p.kgPorCaja ?? "");
+  }
+
+  const [prevStock, setPrevStock] = useState(p.stockCajas);
+  const [stock, setStock] = useState<number | "">(p.stockCajas);
+  if (p.stockCajas !== prevStock) {
+    setPrevStock(p.stockCajas);
+    setStock(p.stockCajas);
+  }
 
   const precioDirty = precio !== p.precioReferencia;
   const costoDirty = costo !== p.costo;
@@ -105,7 +125,14 @@ function FilaProducto({
 
   return (
     <tr className={`border-b border-[#22252e] last:border-0 transition-opacity duration-200 ${!p.activo ? "opacity-50" : ""} ${isPending ? "opacity-60" : ""}`}>
-      <td className="px-4 py-3 font-medium text-[#f9fafb]">{p.nombre}</td>
+      <td className="px-4 py-3">
+        <div className="font-medium text-[#f9fafb]">{p.nombre}</div>
+        {p.fechaIngreso && (
+          <div className="text-[10px] text-[#6b7280] mt-0.5 font-normal">
+            Lote: {formatearFechaCorta(p.fechaIngreso)}
+          </div>
+        )}
+      </td>
 
       <td className="px-4 py-3">
         <form onSubmit={handleSubmitKg} className="flex items-center justify-end gap-1">
@@ -264,6 +291,16 @@ export function ProductosUI({
               required
               placeholder="CAT, WHITE, PERU 60..."
               className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-36">
+            <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Fecha Lote</label>
+            <input
+              form="form-crear"
+              name="fechaIngreso"
+              type="date"
+              defaultValue={new Date().toLocaleDateString("en-CA")}
+              className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635]"
             />
           </div>
           <div className="flex flex-col gap-1 w-24">
