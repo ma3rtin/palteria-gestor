@@ -78,8 +78,19 @@ export async function crearPedido(formData: FormData) {
   const esReposicion = formData.get("esReposicion") === "true";
   const observaciones = formData.get("observaciones") as string | null;
 
-  // CAMBIO sin cargo ya está saldado (montoTotal = 0); cualquier otro caso queda pendiente
-  const estadoPago = formaPago === "CAMBIO" && esReposicion ? "PAGADO" : "PENDIENTE";
+  // Si es un cobro de dinero, ya está pagado por definición;
+  // si es un CAMBIO sin cargo (reposición), también. Cualquier otro caso empieza PENDIENTE.
+  const estadoPago = esCobro || (formaPago === "CAMBIO" && esReposicion) ? "PAGADO" : "PENDIENTE";
+  const montoPagado = esCobro ? montoTotal : 0;
+  const pagosParciales = esCobro
+    ? [
+        {
+          monto: montoTotal,
+          formaPago: formaPago,
+          fecha: fecha,
+        },
+      ]
+    : null;
 
   await prisma.pedido.create({
     data: {
@@ -91,7 +102,7 @@ export async function crearPedido(formData: FormData) {
       montoTotal,
       formaPago: formaPago as never,
       estadoPago: estadoPago as never,
-      montoPagado: 0,
+      montoPagado,
       idRepartidor,
       requiereFactura,
       estadoFactura: requiereFactura ? "PENDIENTE" : "NO_REQUIERE",
@@ -99,6 +110,7 @@ export async function crearPedido(formData: FormData) {
       esReposicion,
       comisionRevendedor,
       observaciones: observaciones?.trim() || null,
+      pagosParciales: pagosParciales ? (pagosParciales as any) : null,
     },
   });
 
@@ -200,7 +212,6 @@ export async function getPedido(idPedido: number) {
 
 export async function actualizarPedido(idPedido: number, formData: FormData) {
   const fecha = formData.get("fecha") as string;
-  const cajas = parseFloat(formData.get("cajas") as string);
   const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
   const formaPago = formData.get("formaPago") as string;
   const estadoPago = formData.get("estadoPago") as string;
@@ -208,6 +219,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   const comisionRevendedor = parseFloat(formData.get("comisionRevendedor") as string) || 0;
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const requiereFactura = formData.get("requiereFactura") === "on";
+  const esCobro = formData.get("esCobro") === "on";
   const observaciones = formData.get("observaciones") as string | null;
   
   const pagosParcialesJson = formData.get("pagosParcialesJson") as string | null;
@@ -221,9 +233,23 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   }
 
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+  const cajas = esCobro ? 0 : parseFloat(formData.get("cajas") as string);
 
-  // Si no es cobro, ajustar stock
-  if (!pedido.esCobro) {
+  // Ajuste de stock según la transición
+  if (pedido.esCobro && !esCobro) {
+    // Transición A: Era cobro (stock no afectado) y ahora es pedido (descontar stock de cajas)
+    await prisma.producto.update({
+      where: { id: pedido.idProducto },
+      data: { stockCajas: { decrement: cajas } },
+    });
+  } else if (!pedido.esCobro && esCobro) {
+    // Transición B: Era pedido (descontó stock) y ahora es cobro (devolver stock original)
+    await prisma.producto.update({
+      where: { id: pedido.idProducto },
+      data: { stockCajas: { increment: pedido.cajas } },
+    });
+  } else if (!pedido.esCobro && !esCobro) {
+    // Transición C: Sigue siendo pedido, ajustar diferencia habitual
     const diferencia = pedido.cajas - cajas;
     if (diferencia !== 0) {
       await prisma.producto.update({
@@ -244,6 +270,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
       repartidor: idRepartidor ? { connect: { id: idRepartidor } } : { disconnect: true },
       requiereFactura,
       estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
+      esCobro,
       comisionRevendedor,
       observaciones: observaciones?.trim() || null,
       pagosParciales: pagosParciales ?? null,

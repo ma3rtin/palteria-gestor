@@ -86,6 +86,7 @@ export function FormEditarPedido({
   const [estadoPago, setEstadoPago] = useState(pedido.estadoPago);
   const [montoPagado, setMontoPagado] = useState<number | "">(pedido.montoPagado);
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(pedido.comisionRevendedor);
+  const [esCobro, setEsCobro] = useState(pedido.esCobro);
 
   // Inicializar pagosList
   const [pagosList, setPagosList] = useState<PagoParcialItem[]>(() => {
@@ -209,42 +210,64 @@ export function FormEditarPedido({
         <p>Producto: <span className="font-medium text-[#f9fafb]">{productoSelec?.nombre}</span></p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
-          <input
-            name="cajas"
-            type="number"
-            required
-            min={0.5}
-            step={0.5}
-            placeholder="0"
-            value={cajas}
-            onChange={(e) => {
-              const val = e.target.value;
-              setCajas(val === "" ? "" : parseFloat(val));
-              setMontoManual(null); // Resetear a calculado si cambia cantidad
-            }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-          />
+      {esCobro ? (
+        <div className="flex flex-col gap-4">
+          <input type="hidden" name="cajas" value={0} />
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto cobrado *</label>
+            <input
+              name="montoTotal"
+              type="number"
+              required
+              min={1}
+              placeholder="0"
+              value={montoFinal}
+              onChange={(e) => {
+                const val = e.target.value;
+                setMontoManual(val === "" ? "" : parseInt(val));
+              }}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto total *</label>
-          <input
-            name="montoTotal"
-            type="number"
-            required
-            min={0}
-            placeholder="0"
-            value={montoFinal}
-            onChange={(e) => {
-              const val = e.target.value;
-              setMontoManual(val === "" ? "" : parseInt(val));
-            }}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-          />
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
+            <input
+              name="cajas"
+              type="number"
+              required
+              min={0.5}
+              step={0.5}
+              placeholder="0"
+              value={cajas}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCajas(val === "" ? "" : parseFloat(val));
+                setMontoManual(null); // Resetear a calculado si cambia cantidad
+              }}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto total *</label>
+            <input
+              name="montoTotal"
+              type="number"
+              required
+              min={0}
+              placeholder="0"
+              value={montoFinal}
+              onChange={(e) => {
+                const val = e.target.value;
+                setMontoManual(val === "" ? "" : parseInt(val));
+              }}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -282,103 +305,124 @@ export function FormEditarPedido({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Estado de pago *</label>
-          <select
-            name="estadoPago"
-            required
-            value={estadoPago}
-            onChange={(e) => handleEstadoPagoChange(e.target.value)}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-          >
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="PAGADO">Pagado</option>
-            <option value="PARCIAL">Parcial</option>
-          </select>
+      {esCobro ? (
+        <>
+          <input type="hidden" name="estadoPago" value="PAGADO" />
+          <input type="hidden" name="montoPagado" value={montoFinal} />
+        </>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Estado de pago *</label>
+            <select
+              name="estadoPago"
+              required
+              value={estadoPago}
+              onChange={(e) => handleEstadoPagoChange(e.target.value)}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            >
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="PAGADO">Pagado</option>
+              <option value="PARCIAL">Parcial</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+              Monto pagado *
+              {estadoPago === "PAGADO" && <span className="text-xs text-[#6b7280] ml-1">(total)</span>}
+              {estadoPago === "PENDIENTE" && <span className="text-xs text-[#6b7280] ml-1">(cero)</span>}
+            </label>
+            <input
+              name="montoPagado"
+              type="number"
+              required
+              min={0}
+              max={montoFinal === "" ? undefined : Number(montoFinal)}
+              value={montoPagado}
+              readOnly={true}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] opacity-60 cursor-not-allowed text-white font-mono"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-            Monto pagado *
-            {estadoPago === "PAGADO" && <span className="text-xs text-[#6b7280] ml-1">(total)</span>}
-            {estadoPago === "PENDIENTE" && <span className="text-xs text-[#6b7280] ml-1">(cero)</span>}
-          </label>
-          <input
-            name="montoPagado"
-            type="number"
-            required
-            min={0}
-            max={montoFinal === "" ? undefined : Number(montoFinal)}
-            value={montoPagado}
-            readOnly={true}
-            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] opacity-60 cursor-not-allowed text-white font-mono"
-          />
-        </div>
-      </div>
+      )}
 
       {/* Desglose de pagos parciales - Siempre visible */}
-      <div className="border border-[#2a2d35] bg-[#17191e]/50 rounded-lg p-4 flex flex-col gap-3">
-        <div className="flex justify-between items-center pb-2 border-b border-[#2a2d35]">
-          <div>
-            <span className="text-sm font-semibold text-[#f9fafb]">Desglose de Pagos Registrados</span>
-            <p className="text-xs text-[#6b7280] mt-0.5">
-              Total cobrado: <span className="font-mono font-bold text-[#4ade80]">{formatearPeso(totalPagosList)}</span> de <span className="font-mono">{formatearPeso(totalReq)}</span>
-            </p>
+      {esCobro ? (
+        <input
+          type="hidden"
+          name="pagosParcialesJson"
+          value={JSON.stringify([
+            {
+              monto: Number(montoFinal) || 0,
+              formaPago: formaPago,
+              fecha: fecha,
+            },
+          ])}
+        />
+      ) : (
+        <div className="border border-[#2a2d35] bg-[#17191e]/50 rounded-lg p-4 flex flex-col gap-3">
+          <div className="flex justify-between items-center pb-2 border-b border-[#2a2d35]">
+            <div>
+              <span className="text-sm font-semibold text-[#f9fafb]">Desglose de Pagos Registrados</span>
+              <p className="text-xs text-[#6b7280] mt-0.5">
+                Total cobrado: <span className="font-mono font-bold text-[#4ade80]">{formatearPeso(totalPagosList)}</span> de <span className="font-mono">{formatearPeso(totalReq)}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={agregarPago}
+              className="inline-flex items-center gap-1 border border-[#2a2d35] hover:border-[#a3e635] text-[#9ca3af] hover:text-[#a3e635] px-3 py-1.5 rounded-md text-xs font-semibold transition-colors bg-[#1c1f26] cursor-pointer"
+            >
+              <Plus size={14} />
+              Agregar pago
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={agregarPago}
-            className="inline-flex items-center gap-1 border border-[#2a2d35] hover:border-[#a3e635] text-[#9ca3af] hover:text-[#a3e635] px-3 py-1.5 rounded-md text-xs font-semibold transition-colors bg-[#1c1f26] cursor-pointer"
-          >
-            <Plus size={14} />
-            Agregar pago
-          </button>
-        </div>
 
-        {pagosList.length === 0 ? (
-          <p className="text-xs text-[#6b7280] py-2 italic text-center">No hay pagos registrados para este pedido.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {pagosList.map((pago, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <select
-                  value={pago.formaPago}
-                  onChange={(e) => cambiarPago(index, "formaPago", e.target.value)}
-                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] flex-1 cursor-pointer"
-                >
-                  {FORMAS_PAGO.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  required
-                  min={0}
-                  placeholder="Monto"
-                  value={pago.monto}
-                  onChange={(e) => cambiarPago(index, "monto", e.target.value === "" ? 0 : parseFloat(e.target.value))}
-                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-28 font-mono text-right"
-                />
-                <input
-                  type="date"
-                  required
-                  value={pago.fecha}
-                  onChange={(e) => cambiarPago(index, "fecha", e.target.value)}
-                  className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-32 cursor-pointer"
-                />
-                <button
-                  type="button"
-                  onClick={() => eliminarPago(index)}
-                  className="text-red-500 hover:text-red-400 p-2 border border-transparent hover:border-[#2a2d35] hover:bg-[#22252e] rounded-lg transition-colors cursor-pointer"
-                  title="Eliminar pago"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          {pagosList.length === 0 ? (
+            <p className="text-xs text-[#6b7280] py-2 italic text-center">No hay pagos registrados para este pedido.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {pagosList.map((pago, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <select
+                    value={pago.formaPago}
+                    onChange={(e) => cambiarPago(index, "formaPago", e.target.value)}
+                    className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] flex-1 cursor-pointer"
+                  >
+                    {FORMAS_PAGO.map((f) => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    placeholder="Monto"
+                    value={pago.monto}
+                    onChange={(e) => cambiarPago(index, "monto", e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                    className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-28 font-mono text-right"
+                  />
+                  <input
+                    type="date"
+                    required
+                    value={pago.fecha}
+                    onChange={(e) => cambiarPago(index, "fecha", e.target.value)}
+                    className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] w-32 cursor-pointer"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => eliminarPago(index)}
+                    className="text-red-500 hover:text-red-400 p-2 border border-transparent hover:border-[#2a2d35] hover:bg-[#22252e] rounded-lg transition-colors cursor-pointer"
+                    title="Eliminar pago"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {clienteAsociado?.idRevendedor && (
         <div className="w-full md:w-1/2">
@@ -410,7 +454,27 @@ export function FormEditarPedido({
         />
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="esCobro"
+            checked={esCobro}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setEsCobro(checked);
+              if (checked) {
+                setCajas(0);
+                setEstadoPago("PAGADO");
+              } else {
+                setCajas(pedido.cajas > 0 ? pedido.cajas : 1);
+                setEstadoPago(pedido.estadoPago);
+              }
+            }}
+          />
+          <span className="text-sm text-[#f9fafb]">Es cobranza (no entrega)</span>
+        </label>
+
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"

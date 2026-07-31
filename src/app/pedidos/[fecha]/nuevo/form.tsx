@@ -2,6 +2,7 @@
 
 import { BotonSubmit } from "@/components/boton-submit";
 import { useState } from "react";
+import { formatearFechaCorta } from "@/lib/utils";
 
 interface Cliente {
   id: number;
@@ -20,6 +21,7 @@ interface Producto {
   precioReferencia: number;
   kgPorCaja: number | null;
   stockCajas: number;
+  fechaIngreso?: Date | string | null;
 }
 
 interface Repartidor {
@@ -170,7 +172,9 @@ export function FormNuevoPedido({
           >
             <option value="">Seleccionar...</option>
             {productos.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre}</option>
+              <option key={p.id} value={p.id}>
+                {p.nombre} {p.fechaIngreso ? `(${formatearFechaCorta(p.fechaIngreso)})` : ""}
+              </option>
             ))}
           </select>
           {productoSelec && (

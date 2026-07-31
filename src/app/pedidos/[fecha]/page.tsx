@@ -4,6 +4,7 @@ import { formatearPeso, formatearFecha, formatearHora } from "@/lib/utils";
 import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
 import { NavegacionFecha } from "./navegacion-fecha";
+import { AccionesPedido } from "./acciones";
 
 interface Props {
   params: Promise<{ fecha: string }>;
@@ -137,25 +138,50 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
           {/* Cobros del día */}
           {cobros.length > 0 && (
             <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#2a2d35]">
+              <div className="px-4 py-3 border-b border-[#2a2d35] bg-[#17191e]/50">
                 <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
                   Cobros / cobranzas ({cobros.length})
                 </h2>
               </div>
-              <table className="w-full text-sm">
-                <tbody>
-                  {cobros.map((p) => (
-                    <tr key={p.id} className="border-b border-[#22252e] last:border-0">
-                      <td className="px-4 py-2.5 font-medium">{p.cliente.nombre}</td>
-                      <td className="px-4 py-2.5 text-[#9ca3af]">{p.observaciones ?? "Cobranza"}</td>
-                      <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{formatearHora(p.creadoEn)} hs</td>
-                      <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80]">
-                        {formatearPeso(p.montoPagado)}
-                      </td>
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-sm min-w-max table-auto border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs whitespace-nowrap">
+                      <th className="text-left px-4 py-3 font-medium">Cliente</th>
+                      <th className="text-left px-4 py-3 font-medium">Concepto / Observaciones</th>
+                      <th className="text-center px-4 py-3 font-medium w-28">Hora</th>
+                      <th className="text-right px-4 py-3 font-medium w-36">Total Cobrado</th>
+                      <th className="px-4 py-3 w-28"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {cobros.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="border-b border-[#22252e] hover:bg-[#22252e]/30 whitespace-nowrap transition-colors last:border-0"
+                      >
+                        <td className="px-4 py-2.5 font-medium text-left">
+                          <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] text-[#f9fafb]">
+                            {p.cliente.nombre}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-2.5 text-[#9ca3af] text-left">
+                          {p.observaciones ?? "Cobranza"}
+                        </td>
+                        <td className="px-4 py-2.5 text-[#9ca3af] text-center font-mono text-xs">
+                          {formatearHora(p.creadoEn)} hs
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80] font-mono">
+                          {formatearPeso(p.montoPagado)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right w-28">
+                          <AccionesPedido pedido={p as any} fecha={fecha} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
