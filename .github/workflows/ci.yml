@@ -10,9 +10,27 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        # Esperar a que postgres esté listo y saludable antes de correr los jobs
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necesario para que Git pueda auditar las ramas/diffs
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -23,8 +41,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run Destructive Migrations Linter
+        run: node scripts/check-destructive-migrations.mjs
+
       - name: Generate Prisma Client
         run: npx prisma generate
+
+      - name: Validate database schema deployment (Migrate Deploy)
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db?schema=public"
 
       - name: Run lint
         run: npm run lint
@@ -35,5 +61,5 @@ jobs:
       - name: Build Next.js app
         run: npm run build
         env:
-          DATABASE_URL: "postgresql://mock_user:mock_pass@localhost:5432/mock_db"
+          DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db?schema=public"
           NEXTAUTH_SECRET: "mock_secret_key_minimum_32_characters_long"
