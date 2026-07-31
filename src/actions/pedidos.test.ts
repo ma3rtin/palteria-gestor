@@ -78,7 +78,7 @@ describe("Server Actions - Pedidos", () => {
           esReposicion: false,
           comisionRevendedor: 500,
           observaciones: null,
-          pagosParciales: null,
+          pagosParciales: undefined,
         },
       });
 
