@@ -199,3 +199,15 @@ export async function toggleRevendedor(formData: FormData) {
   revalidatePath("/config/revendedores");
   revalidatePath("/revendedores");
 }
+
+export async function renombrarRevendedor(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const nombre = (formData.get("nombre") as string).trim().toUpperCase();
+  if (!id || !nombre) {
+    throw new Error("El ID y nombre del revendedor son requeridos");
+  }
+  await prisma.revendedor.update({ where: { id }, data: { nombre } });
+  revalidatePath("/config/revendedores");
+  revalidatePath("/revendedores");
+  revalidatePath(`/revendedores/${id}`);
+}
