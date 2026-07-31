@@ -1,7 +1,7 @@
 "use client";
 
 import { BotonSubmit } from "@/components/boton-submit";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 interface Cliente {
@@ -50,8 +50,12 @@ interface Pedido {
   requiereFactura: boolean;
   esCobro: boolean;
   observaciones: string | null;
-  pagosParciales: any;
-  cliente: any;
+  pagosParciales: unknown;
+  cliente: {
+    nombre: string;
+    idRevendedor?: number | null;
+    revendedor?: { nombre: string } | null;
+  };
 }
 
 interface Props {
@@ -74,17 +78,14 @@ const FORMAS_PAGO = [
 export function FormEditarPedido({
   fecha,
   pedido,
-  clientes,
   productos,
   repartidores,
-  maduracionesSugeridas,
   actualizarPedido,
 }: Props) {
   const [cajas, setCajas] = useState<number | "">(pedido.cajas);
   const [montoManual, setMontoManual] = useState<number | "" | null>(pedido.montoTotal);
   const [formaPago, setFormaPago] = useState(pedido.formaPago);
   const [estadoPago, setEstadoPago] = useState(pedido.estadoPago);
-  const [montoPagado, setMontoPagado] = useState<number | "">(pedido.montoPagado);
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(pedido.comisionRevendedor);
   const [esCobro, setEsCobro] = useState(pedido.esCobro);
 
@@ -97,7 +98,7 @@ export function FormEditarPedido({
       return [
         {
           monto: pedido.montoPagado,
-          formaPago: pedido.formaPago as any,
+          formaPago: pedido.formaPago as PagoParcialItem["formaPago"],
           fecha: new Date(pedido.fecha).toISOString().split("T")[0],
         },
       ];
@@ -112,11 +113,7 @@ export function FormEditarPedido({
   const totalReq = montoFinal === "" ? 0 : Number(montoFinal);
 
   const totalPagosList = pagosList.reduce((acc, curr) => acc + curr.monto, 0);
-
-  // Sincronizar el input de monto pagado con el total de la lista
-  useEffect(() => {
-    setMontoPagado(totalPagosList);
-  }, [totalPagosList]);
+  const montoPagado = esCobro ? totalReq : totalPagosList;
 
   // Recalcular estado de pago según la lista de pagos
   const actualizarEstadoSegunSuma = (nuevaLista: PagoParcialItem[]) => {
@@ -137,7 +134,7 @@ export function FormEditarPedido({
       ...pagosList,
       {
         monto: montoNuevo,
-        formaPago: formaPago as any,
+        formaPago: formaPago as PagoParcialItem["formaPago"],
         fecha: new Date().toLocaleDateString("sv-SE"),
       },
     ];
@@ -151,7 +148,7 @@ export function FormEditarPedido({
     actualizarEstadoSegunSuma(nuevaLista);
   };
 
-  const cambiarPago = (idx: number, key: keyof PagoParcialItem, val: any) => {
+  const cambiarPago = <K extends keyof PagoParcialItem>(idx: number, key: K, val: PagoParcialItem[K]) => {
     const nuevaLista = pagosList.map((p, i) => (i === idx ? { ...p, [key]: val } : p));
     setPagosList(nuevaLista);
     actualizarEstadoSegunSuma(nuevaLista);
@@ -175,7 +172,7 @@ export function FormEditarPedido({
           setPagosList([
             {
               monto: totalReq,
-              formaPago: formaPago as any,
+              formaPago: formaPago as PagoParcialItem["formaPago"],
               fecha: hoyStr,
             },
           ]);
@@ -187,7 +184,7 @@ export function FormEditarPedido({
         setPagosList([
           {
             monto: montoSugerido,
-            formaPago: formaPago as any,
+            formaPago: formaPago as PagoParcialItem["formaPago"],
             fecha: hoyStr,
           },
         ]);
@@ -386,7 +383,7 @@ export function FormEditarPedido({
                 <div key={index} className="flex gap-2 items-center">
                   <select
                     value={pago.formaPago}
-                    onChange={(e) => cambiarPago(index, "formaPago", e.target.value)}
+                    onChange={(e) => cambiarPago(index, "formaPago", e.target.value as PagoParcialItem["formaPago"])}
                     className="border border-[#2a2d35] rounded-lg px-2.5 py-1.5 text-xs bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635] flex-1 cursor-pointer"
                   >
                     {FORMAS_PAGO.map((f) => (

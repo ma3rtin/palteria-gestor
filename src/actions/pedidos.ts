@@ -110,7 +110,7 @@ export async function crearPedido(formData: FormData) {
       esReposicion,
       comisionRevendedor,
       observaciones: observaciones?.trim() || null,
-      pagosParciales: pagosParciales ? (pagosParciales as any) : null,
+      pagosParciales: pagosParciales ? (pagosParciales as never) : undefined,
     },
   });
 
@@ -127,7 +127,7 @@ export async function crearPedido(formData: FormData) {
   redirect(`/pedidos/${fecha}`);
 }
 
-export async function marcarPagado(idPedido: number, _?: FormData) {
+export async function marcarPagado(idPedido: number) {
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
   await prisma.pedido.update({
     where: { id: idPedido },
@@ -147,9 +147,9 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
   const estadoPago = nuevoPagado >= pedido.montoTotal ? "PAGADO" : "PARCIAL";
 
   // Reconstruir/crear la lista de pagos parciales
-  let listaPagos: any[] = [];
+  let listaPagos: { monto: number; formaPago: string; fecha: string }[] = [];
   if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales)) {
-    listaPagos = [...pedido.pagosParciales];
+    listaPagos = [...(pedido.pagosParciales as { monto: number; formaPago: string; fecha: string }[])];
   } else if (pedido.montoPagado > 0) {
     // Si no había desglose pero sí un pago anterior, se conserva
     listaPagos = [

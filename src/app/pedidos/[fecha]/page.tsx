@@ -1,3 +1,4 @@
+import { ComponentProps } from "react";
 import Link from "next/link";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
 import { formatearPeso, formatearFecha, formatearHora } from "@/lib/utils";
@@ -128,7 +129,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
               </>
             ) : (
               <TablaEntregas
-                pedidos={entregados as any}
+                pedidos={entregados as unknown as ComponentProps<typeof TablaEntregas>["pedidos"]}
                 fecha={fecha}
                 totalEntregasDia={pedidos.filter((p) => !p.esCobro).length}
               />
@@ -175,7 +176,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                           {formatearPeso(p.montoPagado)}
                         </td>
                         <td className="px-4 py-2.5 text-right w-28">
-                          <AccionesPedido pedido={p as any} fecha={fecha} />
+                          <AccionesPedido pedido={p as unknown as ComponentProps<typeof AccionesPedido>["pedido"]} fecha={fecha} />
                         </td>
                       </tr>
                     ))}
