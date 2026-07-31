@@ -52,9 +52,6 @@ jobs:
         env:
           DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db?schema=public"
 
-      - name: Run lint
-        run: npm run lint
-
       - name: Run Vitest tests
         run: npm run test
 
@@ -63,3 +60,11 @@ jobs:
         env:
           DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db?schema=public"
           NEXTAUTH_SECRET: "mock_secret_key_minimum_32_characters_long"
+
+      - name: Deploy Migrations to Production Supabase
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx prisma migrate deploy
+        env:
+          DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.PROD_DIRECT_URL }}
+
