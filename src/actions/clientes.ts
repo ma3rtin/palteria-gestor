@@ -179,6 +179,13 @@ export async function crearCliente(formData: FormData) {
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
+  if (!nombre || !nombre.trim()) {
+    throw new Error("El nombre del cliente es requerido.");
+  }
+  if (isNaN(idZona) || idZona <= 0) {
+    throw new Error("Debe seleccionar una zona válida para el cliente.");
+  }
+
   const cliente = await prisma.cliente.create({
     data: {
       nombre: nombre.trim().toUpperCase(),
@@ -209,6 +216,16 @@ export async function actualizarCliente(id: number, formData: FormData) {
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
   const observaciones = formData.get("observaciones") as string | null;
+
+  if (isNaN(id) || id <= 0) {
+    throw new Error("ID de cliente inválido.");
+  }
+  if (!nombre || !nombre.trim()) {
+    throw new Error("El nombre del cliente es requerido.");
+  }
+  if (isNaN(idZona) || idZona <= 0) {
+    throw new Error("Debe seleccionar una zona válida para el cliente.");
+  }
 
   await prisma.cliente.update({
     where: { id },

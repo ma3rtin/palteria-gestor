@@ -78,6 +78,29 @@ export async function crearPedido(formData: FormData) {
   const esReposicion = formData.get("esReposicion") === "true";
   const observaciones = formData.get("observaciones") as string | null;
 
+  // Validaciones de seguridad en el backend
+  if (!fecha) {
+    throw new Error("La fecha del pedido es requerida.");
+  }
+  if (isNaN(idCliente) || idCliente <= 0) {
+    throw new Error("Debe seleccionar un cliente válido.");
+  }
+  if (isNaN(idProducto) || idProducto <= 0) {
+    throw new Error("Debe seleccionar un producto válido.");
+  }
+  if (!maduracion || !maduracion.trim()) {
+    throw new Error("La maduración es requerida.");
+  }
+  if (isNaN(cajas) || cajas < 0) {
+    throw new Error("La cantidad de cajas debe ser un número válido mayor o igual a cero.");
+  }
+  if (isNaN(montoTotal) || montoTotal < 0) {
+    throw new Error("El monto total del pedido no puede ser negativo.");
+  }
+  if (isNaN(comisionRevendedor) || comisionRevendedor < 0) {
+    throw new Error("La comisión del revendedor no puede ser negativa.");
+  }
+
   // Si es un cobro de dinero, ya está pagado por definición;
   // si es un CAMBIO sin cargo (reposición), también. Cualquier otro caso empieza PENDIENTE.
   const estadoPago = esCobro || (formaPago === "CAMBIO" && esReposicion) ? "PAGADO" : "PENDIENTE";
@@ -141,6 +164,13 @@ export async function marcarPagado(idPedido: number) {
 export async function registrarCobro(idPedido: number, formData: FormData) {
   const monto = parseFloat(formData.get("monto") as string);
   const formaPago = (formData.get("formaPago") as string) || "EFECTIVO";
+  
+  if (isNaN(idPedido) || idPedido <= 0) {
+    throw new Error("ID de pedido inválido.");
+  }
+  if (isNaN(monto) || monto <= 0) {
+    throw new Error("El monto a cobrar debe ser un número válido mayor a cero.");
+  }
   
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
   const nuevoPagado = Math.min(pedido.montoPagado + monto, pedido.montoTotal);
@@ -222,6 +252,22 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   const esCobro = formData.get("esCobro") === "on";
   const observaciones = formData.get("observaciones") as string | null;
   
+  if (isNaN(idPedido) || idPedido <= 0) {
+    throw new Error("ID de pedido inválido.");
+  }
+  if (!fecha) {
+    throw new Error("La fecha es requerida.");
+  }
+  if (isNaN(montoTotal) || montoTotal < 0) {
+    throw new Error("El monto total del pedido no puede ser negativo.");
+  }
+  if (isNaN(montoPagado) || montoPagado < 0) {
+    throw new Error("El monto pagado no puede ser negativo.");
+  }
+  if (isNaN(comisionRevendedor) || comisionRevendedor < 0) {
+    throw new Error("La comisión del revendedor no puede ser negativa.");
+  }
+
   const pagosParcialesJson = formData.get("pagosParcialesJson") as string | null;
   let pagosParciales = null;
   if (pagosParcialesJson) {
@@ -234,6 +280,10 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
 
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
   const cajas = esCobro ? 0 : parseFloat(formData.get("cajas") as string);
+  
+  if (isNaN(cajas) || cajas < 0) {
+    throw new Error("La cantidad de cajas debe ser un número válido mayor o igual a cero.");
+  }
 
   // Ajuste de stock según la transición
   if (pedido.esCobro && !esCobro) {

@@ -137,6 +137,16 @@ export async function registrarPagoSemanal(formData: FormData) {
   const idRepartidor = formData.get("idRepartidor") ? Number(formData.get("idRepartidor")) : null;
   const observaciones = (formData.get("observaciones") as string)?.trim() || null;
 
+  if (isNaN(idCuenta) || idCuenta <= 0) {
+    throw new Error("ID de cuenta corriente inválido.");
+  }
+  if (!fechaInicio || !fechaFin) {
+    throw new Error("Las fechas de inicio y fin de período son requeridas.");
+  }
+  if (isNaN(montoPagado) || montoPagado <= 0) {
+    throw new Error("El monto cobrado debe ser un número válido mayor a cero.");
+  }
+
   const pedidosPendientes = await prisma.pedido.findMany({
     where: {
       cliente: { idCuentaCorriente: idCuenta },
@@ -212,6 +222,19 @@ export async function registrarPagoLocal(formData: FormData) {
   const observaciones = (formData.get("observaciones") as string)?.trim() || null;
   const fechaInicio = formData.get("fechaInicio") as string;
   const fechaFin = formData.get("fechaFin") as string;
+
+  if (isNaN(idCuenta) || idCuenta <= 0) {
+    throw new Error("ID de cuenta corriente inválido.");
+  }
+  if (isNaN(idCliente) || idCliente <= 0) {
+    throw new Error("ID de cliente inválido.");
+  }
+  if (isNaN(monto) || monto <= 0) {
+    throw new Error("El monto cobrado debe ser un número válido mayor a cero.");
+  }
+  if (!fechaPagoStr) {
+    throw new Error("La fecha de pago es requerida.");
+  }
 
   const fechaInicioDate = parseFechaRuta(fechaInicio);
   const fechaFinDate = parseFechaRuta(fechaFin);
