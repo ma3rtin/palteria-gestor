@@ -212,15 +212,15 @@ export function ClientesListPaginated({
                             ? "bg-red-950/30 border-red-900/40 text-[#ef4444]"
                             : "bg-[#22252e] border-[#2a2d35] text-[#9ca3af]"
                         }`}>
-                          {cliente.tendenciaCajas > 0 ? (
+                           {cliente.tendenciaCajas > 0 ? (
                             <>
                               <TrendingUp className="w-3.5 h-3.5" />
-                              <span className="font-semibold">+{cliente.tendenciaCajas.toFixed(1)} cjs</span>
+                              <span className="font-semibold">+{Math.round(cliente.tendenciaCajas)} cjs</span>
                             </>
                           ) : cliente.tendenciaCajas < 0 ? (
                             <>
                               <TrendingDown className="w-3.5 h-3.5" />
-                              <span className="font-semibold">{cliente.tendenciaCajas.toFixed(1)} cjs</span>
+                              <span className="font-semibold">{Math.round(cliente.tendenciaCajas)} cjs</span>
                             </>
                           ) : (
                             <>
