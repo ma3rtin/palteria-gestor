@@ -147,18 +147,51 @@ export async function crearPedido(formData: FormData) {
   revalidatePath(`/pedidos/${fecha}`);
   revalidatePath("/productos");
   revalidatePath("/");
+  revalidatePath(`/clientes/${idCliente}`);
   redirect(`/pedidos/${fecha}`);
 }
 
 export async function marcarPagado(idPedido: number) {
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+  
+  if (pedido.estadoPago === "PAGADO") return;
+
+  const saldoRestante = pedido.montoTotal - pedido.montoPagado;
+  if (saldoRestante <= 0) return;
+
+  let listaPagos: { monto: number; formaPago: string; fecha: string }[] = [];
+  if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales)) {
+    listaPagos = [...(pedido.pagosParciales as { monto: number; formaPago: string; fecha: string }[])];
+  } else if (pedido.montoPagado > 0) {
+    listaPagos = [
+      {
+        monto: pedido.montoPagado,
+        formaPago: pedido.formaPago,
+        fecha: pedido.fecha.toISOString().split("T")[0],
+      },
+    ];
+  }
+
+  const hoyLocal = new Date().toLocaleDateString("sv-SE");
+  listaPagos.push({
+    monto: saldoRestante,
+    formaPago: pedido.formaPago,
+    fecha: hoyLocal,
+  });
+
   await prisma.pedido.update({
     where: { id: idPedido },
-    data: { estadoPago: "PAGADO", montoPagado: pedido.montoTotal },
+    data: {
+      estadoPago: "PAGADO",
+      montoPagado: pedido.montoTotal,
+      pagosParciales: listaPagos,
+    },
   });
+
   revalidatePath("/pedidos/[fecha]", "page");
   revalidatePath("/");
   revalidatePath("/cobranzas");
+  revalidatePath(`/clientes/${pedido.idCliente}`);
 }
 
 export async function registrarCobro(idPedido: number, formData: FormData) {
@@ -211,6 +244,7 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
   revalidatePath("/pedidos/[fecha]", "page");
   revalidatePath("/cobranzas");
   revalidatePath("/");
+  revalidatePath(`/clientes/${pedido.idCliente}`);
 }
 
 export async function eliminarPedido(idPedido: number, fechaStr: string) {
@@ -225,6 +259,7 @@ export async function eliminarPedido(idPedido: number, fechaStr: string) {
   revalidatePath(`/pedidos/${fechaStr}`);
   revalidatePath("/productos");
   revalidatePath("/");
+  revalidatePath(`/clientes/${pedido.idCliente}`);
 }
 
 export async function getPedido(idPedido: number) {
@@ -330,6 +365,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   revalidatePath(`/pedidos/${fecha}`);
   revalidatePath("/productos");
   revalidatePath("/");
+  revalidatePath(`/clientes/${pedido.idCliente}`);
   redirect(`/pedidos/${fecha}`);
 }
 

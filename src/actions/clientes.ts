@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hoyISO, parseFechaRuta } from "@/lib/utils";
 
 export async function getClientes(busqueda?: string, idZona?: number) {
   return prisma.cliente.findMany({
@@ -27,7 +28,7 @@ export async function getClientesBasicos() {
 }
 
 export async function getCliente(id: number) {
-  return prisma.cliente.findUnique({
+  const cliente = await prisma.cliente.findUnique({
     where: { id },
     include: {
       zona: true,
@@ -47,6 +48,49 @@ export async function getCliente(id: number) {
       }
     },
   });
+
+  if (!cliente) return null;
+
+  const hoy = parseFechaRuta(hoyISO());
+  const limite28Dias = new Date(hoy);
+  limite28Dias.setDate(hoy.getDate() - 28);
+
+  const pedidos28Dias = await prisma.pedido.findMany({
+    where: {
+      idCliente: id,
+      fecha: { gte: limite28Dias },
+      esCobro: false,
+    },
+    select: { cajas: true },
+  });
+
+  const cajas28Dias = pedidos28Dias.reduce((sum, p) => sum + p.cajas, 0);
+
+  const msPorSemana = 1000 * 60 * 60 * 24 * 7;
+  const semanasDesdeCreacion = (hoy.getTime() - cliente.creadoEn.getTime()) / msPorSemana;
+  const divisorSemanas = Math.max(1, Math.min(4, semanasDesdeCreacion));
+  const volumenSemanal = cajas28Dias / divisorSemanas;
+
+  let rangoVolumen = "0-10";
+  if (volumenSemanal >= 70) {
+    rangoVolumen = "70+";
+  } else if (volumenSemanal >= 50) {
+    rangoVolumen = "50-70";
+  } else if (volumenSemanal >= 30) {
+    rangoVolumen = "30-50";
+  } else if (volumenSemanal >= 20) {
+    rangoVolumen = "20-30";
+  } else if (volumenSemanal >= 10) {
+    rangoVolumen = "10-20";
+  } else {
+    rangoVolumen = "0-10";
+  }
+
+  return {
+    ...cliente,
+    volumenSemanal,
+    rangoVolumen,
+  };
 }
 
 export async function getSaldoCliente(idCliente: number) {
@@ -88,8 +132,33 @@ export async function getClientesConSaldo(
   return clientes.map((c) => ({ ...c, saldoPendiente: mapaDeuda.get(c.id) ?? 0 }));
 }
 
+export interface ClienteConIndicadores {
+  id: number;
+  nombre: string;
+  direccion: string | null;
+  telefono: string | null;
+  idZona: number;
+  idRepartidor: number | null;
+  formaPagoPref: string;
+  requiereFactura: boolean;
+  idCuentaCorriente: number | null;
+  idRevendedor: number | null;
+  activo: boolean;
+  observaciones: string | null;
+  creadoEn: Date;
+  actualizadoEn: Date;
+  zona: { id: number; nombre: string };
+  repartidor: { id: number; nombre: string } | null;
+  saldoPendiente: number;
+  ultimoPedido: string | null;
+  diasInactivo: number;
+  volumenSemanal: number;
+  rangoVolumen: string;
+  tendenciaCajas: number | null;
+}
+
 export interface ClientesPagedResponse {
-  clientes: Awaited<ReturnType<typeof getClientesConSaldo>>;
+  clientes: ClienteConIndicadores[];
   total: number;
   page: number;
   pageSize: number;
@@ -101,13 +170,14 @@ export async function getClientesConSaldoPaginado(
   pageSize: number = 20,
   idZona?: number,
   idRepartidor?: number,
-  incluirInactivos: boolean = false,
-  busqueda?: string
+  busqueda?: string,
+  tab: string = "activos",
+  volumen?: string
 ): Promise<ClientesPagedResponse> {
   const skip = page * pageSize;
 
   const where = {
-    ...(incluirInactivos ? {} : { activo: true }),
+    activo: true,
     ...(idZona ? { idZona } : {}),
     ...(idRepartidor ? { idRepartidor } : {}),
     ...(busqueda ? {
@@ -118,18 +188,27 @@ export async function getClientesConSaldoPaginado(
     } : {})
   };
 
-  const clientes = await prisma.cliente.findMany({
+  // 1. Obtener todos los clientes que coinciden con los criterios de búsqueda principales
+  const todosClientes = await prisma.cliente.findMany({
     where,
     include: { zona: true, repartidor: true },
-    orderBy: { nombre: "asc" },
-    skip,
-    take: pageSize,
   });
 
+  if (todosClientes.length === 0) {
+    return {
+      clientes: [],
+      total: 0,
+      page,
+      pageSize,
+      hasMore: false,
+    };
+  }
+
+  // 2. Obtener los saldos pendientes de estos clientes
   const saldos = await prisma.pedido.groupBy({
     by: ["idCliente"],
     where: {
-      idCliente: { in: clientes.map((c) => c.id) },
+      idCliente: { in: todosClientes.map((c) => c.id) },
       estadoPago: { not: "PAGADO" },
       esCobro: false,
     },
@@ -143,15 +222,125 @@ export async function getClientesConSaldoPaginado(
     ])
   );
 
-  const total = await prisma.cliente.count({ where });
+  // 3. Obtener los pedidos y cobranzas de los últimos 28 días
+  const hoy = parseFechaRuta(hoyISO());
+  const limite14Dias = new Date(hoy);
+  limite14Dias.setDate(hoy.getDate() - 14);
+  const limite28Dias = new Date(hoy);
+  limite28Dias.setDate(hoy.getDate() - 28);
 
-  const clientesConSaldo = clientes.map((c) => ({
-    ...c,
-    saldoPendiente: mapaDeuda.get(c.id) ?? 0,
-  }));
+  const pedidosRecientes = await prisma.pedido.findMany({
+    where: {
+      idCliente: { in: todosClientes.map((c) => c.id) },
+      fecha: { gte: limite28Dias },
+    },
+    select: {
+      idCliente: true,
+      fecha: true,
+      cajas: true,
+      esCobro: true,
+    },
+    orderBy: { fecha: "desc" },
+  });
+
+  // Agrupar pedidos recientes por cliente
+  const pedidosPorCliente = new Map<number, typeof pedidosRecientes>();
+  for (const p of pedidosRecientes) {
+    if (!pedidosPorCliente.has(p.idCliente)) {
+      pedidosPorCliente.set(p.idCliente, []);
+    }
+    pedidosPorCliente.get(p.idCliente)!.push(p);
+  }
+
+  // 4. Calcular indicadores para cada cliente en memoria
+  const clientesConIndicadores = todosClientes.map((c) => {
+    const pedidosC = pedidosPorCliente.get(c.id) ?? [];
+
+    // Último pedido o cobro registrado
+    const ultReg = pedidosC[0];
+    const ultimoPedido = ultReg ? ultReg.fecha.toISOString().split("T")[0] : null;
+
+    let diasInactivo = 0;
+    if (ultReg) {
+      const diffMs = hoy.getTime() - ultReg.fecha.getTime();
+      diasInactivo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    } else {
+      const diffMs = hoy.getTime() - c.creadoEn.getTime();
+      diasInactivo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    }
+
+    // Volumen de cajas (excluyendo cobranzas)
+    const pedidosEntrega = pedidosC.filter((p) => !p.esCobro);
+    const cajas28Dias = pedidosEntrega.reduce((sum, p) => sum + p.cajas, 0);
+
+    const msPorSemana = 1000 * 60 * 60 * 24 * 7;
+    const semanasDesdeCreacion = (hoy.getTime() - c.creadoEn.getTime()) / msPorSemana;
+    const divisorSemanas = Math.max(1, Math.min(4, semanasDesdeCreacion));
+    const volumenSemanal = cajas28Dias / divisorSemanas;
+
+    let rangoVolumen = "0-10";
+    if (volumenSemanal >= 70) {
+      rangoVolumen = "70+";
+    } else if (volumenSemanal >= 50) {
+      rangoVolumen = "50-70";
+    } else if (volumenSemanal >= 30) {
+      rangoVolumen = "30-50";
+    } else if (volumenSemanal >= 20) {
+      rangoVolumen = "20-30";
+    } else if (volumenSemanal >= 10) {
+      rangoVolumen = "10-20";
+    } else {
+      rangoVolumen = "0-10";
+    }
+
+    // Tendencia de cajas: últimos 14 días vs los 14 días anteriores
+    const cajasPeriodoA = pedidosEntrega
+      .filter((p) => p.fecha >= limite14Dias)
+      .reduce((sum, p) => sum + p.cajas, 0);
+    const cajasPeriodoB = pedidosEntrega
+      .filter((p) => p.fecha < limite14Dias)
+      .reduce((sum, p) => sum + p.cajas, 0);
+
+    const hasActivity = pedidosEntrega.length > 0;
+    const tendenciaCajas = hasActivity ? cajasPeriodoA - cajasPeriodoB : null;
+
+    const saldoPendiente = mapaDeuda.get(c.id) ?? 0;
+
+    return {
+      ...c,
+      saldoPendiente,
+      ultimoPedido,
+      diasInactivo,
+      volumenSemanal,
+      rangoVolumen,
+      tendenciaCajas,
+    };
+  });
+
+  // 5. Aplicar filtros dinámicos
+  let filtrados = clientesConIndicadores;
+
+  // Filtrado por pestaña de inactividad de pedidos (14 días sin actividad)
+  if (tab === "inactivos") {
+    filtrados = filtrados.filter((c) => c.diasInactivo >= 14);
+  } else {
+    // por defecto "activos"
+    filtrados = filtrados.filter((c) => c.diasInactivo < 14);
+  }
+
+  // Filtrado por rango de volumen semanal
+  if (volumen) {
+    filtrados = filtrados.filter((c) => c.rangoVolumen === volumen);
+  }
+
+  // Ordenación (por nombre ascendente para consistencia)
+  filtrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const total = filtrados.length;
+  const clientesPaginados = filtrados.slice(skip, skip + pageSize);
 
   return {
-    clientes: clientesConSaldo,
+    clientes: clientesPaginados,
     total,
     page,
     pageSize,

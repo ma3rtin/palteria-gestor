@@ -12,10 +12,10 @@ interface Props {
   q?: string;
   zona?: string;
   repartidor?: string;
-  inactivos?: string;
+  volumen?: string;
 }
 
-export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inactivos }: Props) {
+export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, volumen }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [searchValue, setSearchValue] = useState(q ?? "");
@@ -44,7 +44,7 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
         q: searchValue, 
         zona: zona ?? "", 
         repartidor: repartidor ?? "", 
-        inactivos: inactivos ?? "" 
+        volumen: volumen ?? ""
       });
     }, 500); 
 
@@ -58,7 +58,7 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
     }
   }, [q, isPending, isManualUpdate]);
 
-  const hayFiltros = q || zona || repartidor || inactivos;
+  const hayFiltros = q || zona || repartidor || volumen;
 
   return (
     <div className={`flex gap-2 flex-wrap mb-4 transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
@@ -83,7 +83,7 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       <select
         value={zona ?? ""}
         onChange={(e) =>
-          actualizar({ q: searchValue, zona: e.target.value, repartidor: repartidor ?? "", inactivos: inactivos ?? "" })
+          actualizar({ q: searchValue, zona: e.target.value, repartidor: repartidor ?? "", volumen: volumen ?? "" })
         }
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
@@ -94,7 +94,7 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       <select
         value={repartidor ?? ""}
         onChange={(e) =>
-          actualizar({ q: searchValue, zona: zona ?? "", repartidor: e.target.value, inactivos: inactivos ?? "" })
+          actualizar({ q: searchValue, zona: zona ?? "", repartidor: e.target.value, volumen: volumen ?? "" })
         }
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
@@ -103,14 +103,19 @@ export function FiltrosClientes({ zonas, repartidores, q, zona, repartidor, inac
       </select>
 
       <select
-        value={inactivos ?? ""}
+        value={volumen ?? ""}
         onChange={(e) =>
-          actualizar({ q: searchValue, zona: zona ?? "", repartidor: repartidor ?? "", inactivos: e.target.value })
+          actualizar({ q: searchValue, zona: zona ?? "", repartidor: repartidor ?? "", volumen: e.target.value })
         }
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
-        <option value="">Solo activos</option>
-        <option value="1">Incluir inactivos</option>
+        <option value="">Todos los volúmenes</option>
+        <option value="0-10">Volumen: 0-10 cjs</option>
+        <option value="10-20">Volumen: 10-20 cjs</option>
+        <option value="20-30">Volumen: 20-30 cjs</option>
+        <option value="30-50">Volumen: 30-50 cjs</option>
+        <option value="50-70">Volumen: 50-70 cjs</option>
+        <option value="70+">Volumen: 70+ cjs</option>
       </select>
 
       {hayFiltros && (

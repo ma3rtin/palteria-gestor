@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { marcarPagado } from "./pedidos";
 
 export async function getClientesConDeudaPaginado(
   page: number = 0,
@@ -108,11 +109,7 @@ export async function getCatalogosCobranza() {
 }
 
 export async function marcarPedidoPagado(idPedido: number, _?: FormData) {
-  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
-  await prisma.pedido.update({
-    where: { id: idPedido },
-    data: { estadoPago: "PAGADO", montoPagado: pedido.montoTotal },
-  });
+  await marcarPagado(idPedido);
   revalidatePath("/cobranzas");
   revalidatePath("/");
 }
@@ -121,17 +118,13 @@ export async function marcarTodosPagadosCliente(idCliente: number, _?: FormData)
   const pedidosDeudor = await prisma.pedido.findMany({
     where: { idCliente, estadoPago: { not: "PAGADO" }, esCobro: false },
   });
-  await prisma.pedido.updateMany({
-    where: { idCliente, estadoPago: { not: "PAGADO" }, esCobro: false },
-    data: { estadoPago: "PAGADO" },
-  });
-  // Actualizar montoPagado individualmente
+
+  // Ejecutamos marcarPagado secuencialmente para que registre los pagos en pagosParciales con la fecha de hoy
   for (const p of pedidosDeudor) {
-    await prisma.pedido.update({
-      where: { id: p.id },
-      data: { montoPagado: p.montoTotal },
-    });
+    await marcarPagado(p.id);
   }
+
   revalidatePath("/cobranzas");
   revalidatePath("/");
+  revalidatePath(`/clientes/${idCliente}`);
 }

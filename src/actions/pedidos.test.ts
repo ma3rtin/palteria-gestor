@@ -253,7 +253,12 @@ describe("Server Actions - Pedidos", () => {
     it("debería marcar un pedido como PAGADO con su total y revalidar", async () => {
       const pedidoMock = {
         id: 100,
+        idCliente: 10,
         montoTotal: 18000,
+        montoPagado: 0,
+        formaPago: "EFECTIVO",
+        fecha: new Date("2026-07-31T12:00:00"),
+        pagosParciales: null,
       };
       vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue(pedidoMock as never);
 
@@ -261,7 +266,17 @@ describe("Server Actions - Pedidos", () => {
 
       expect(prisma.pedido.update).toHaveBeenCalledWith({
         where: { id: 100 },
-        data: { estadoPago: "PAGADO", montoPagado: 18000 },
+        data: { 
+          estadoPago: "PAGADO", 
+          montoPagado: 18000,
+          pagosParciales: [
+            {
+              monto: 18000,
+              formaPago: "EFECTIVO",
+              fecha: new Date().toLocaleDateString("sv-SE"),
+            },
+          ],
+        },
       });
     });
   });

@@ -20,7 +20,7 @@ export default async function DetalleClientePage({ params }: Props) {
 
   if (!cliente) notFound();
 
-  const pedidosPendientes = cliente.pedidos.filter((p) => p.estadoPago !== "PAGADO");
+  const pedidosPendientes = cliente.pedidos.filter((p: any) => p.estadoPago !== "PAGADO");
 
   // Consolidación de Pagos Históricos
   const listaPagosConsolidados: {
@@ -35,8 +35,8 @@ export default async function DetalleClientePage({ params }: Props) {
 
   // 1. Cobros directos (Pedidos con esCobro = true)
   cliente.pedidos
-    .filter((p) => p.esCobro)
-    .forEach((p) => {
+    .filter((p: any) => p.esCobro)
+    .forEach((p: any) => {
       listaPagosConsolidados.push({
         fecha: new Date(p.fecha),
         monto: p.montoTotal,
@@ -50,8 +50,8 @@ export default async function DetalleClientePage({ params }: Props) {
 
   // 2. Desgloses de pagos parciales en pedidos de entrega (esCobro = false)
   cliente.pedidos
-    .filter((p) => !p.esCobro)
-    .forEach((p) => {
+    .filter((p: any) => !p.esCobro)
+    .forEach((p: any) => {
       if (p.pagosParciales && Array.isArray(p.pagosParciales)) {
         const items = p.pagosParciales as { monto: number; formaPago: string; fecha: string }[];
         items.forEach((item) => {
@@ -80,7 +80,7 @@ export default async function DetalleClientePage({ params }: Props) {
     });
 
   // 3. Pagos de Cuenta Corriente (pagosLocales)
-  cliente.pagosLocales.forEach((p) => {
+  cliente.pagosLocales.forEach((p: any) => {
     listaPagosConsolidados.push({
       fecha: new Date(p.fechaPago),
       monto: p.monto,
@@ -118,7 +118,7 @@ export default async function DetalleClientePage({ params }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {cliente.pedidos.map((p) => (
+                {cliente.pedidos.map((p: any) => (
                   <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
                     <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
                     <td className="px-4 py-2.5 text-[#9ca3af]">
@@ -250,6 +250,15 @@ export default async function DetalleClientePage({ params }: Props) {
               <div className="flex justify-between">
                 <dt className="text-[#9ca3af]">Factura</dt>
                 <dd className="font-medium">{cliente.requiereFactura ? "Sí requiere" : "No"}</dd>
+              </div>
+              <div className="flex justify-between items-center">
+                <dt className="text-[#9ca3af]">Promedio semanal</dt>
+                <dd className="font-medium flex items-center gap-1.5">
+                  <span className="text-[11px] text-[#6b7280] font-normal font-mono select-none">
+                    [{cliente.rangoVolumen}]
+                  </span>
+                  <span>{Math.round(cliente.volumenSemanal)} cjs</span>
+                </dd>
               </div>
             </dl>
             {cliente.observaciones && (

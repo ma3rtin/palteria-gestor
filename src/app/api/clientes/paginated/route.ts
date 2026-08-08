@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     const pageSize = Number(searchParams.get("pageSize") ?? 20);
     const zona = searchParams.get("zona");
     const repartidor = searchParams.get("repartidor");
-    const inactivos = searchParams.get("inactivos");
+    const tab = searchParams.get("tab") ?? "activos";
+    const volumen = searchParams.get("volumen") ?? undefined;
 
     const q = searchParams.get("q") ?? undefined;
 
@@ -20,8 +21,9 @@ export async function GET(request: NextRequest) {
           pageSize,
           zona ? Number(zona) : undefined,
           repartidor ? Number(repartidor) : undefined,
-          inactivos === "true",
-          q
+          q,
+          tab,
+          volumen
         ),
       { maxAttempts: 3, baseDelayMs: 1000 }
     );

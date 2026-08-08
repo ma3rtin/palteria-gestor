@@ -5,11 +5,11 @@ import { FiltrosClientes } from "./buscador";
 import { ClientesListPaginated } from "./clientes-list-paginated";
 
 interface Props {
-  searchParams: Promise<{ q?: string; zona?: string; repartidor?: string; inactivos?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; zona?: string; repartidor?: string; page?: string; tab?: string; volumen?: string }>;
 }
 
 export default async function ClientesPage({ searchParams }: Props) {
-  const { q, zona, repartidor, inactivos, page = "0" } = await searchParams;
+  const { q, zona, repartidor, page = "0", tab = "activos", volumen } = await searchParams;
 
   const initialData = await retryWithExponentialBackoff(
     () =>
@@ -18,8 +18,9 @@ export default async function ClientesPage({ searchParams }: Props) {
         20,
         zona ? Number(zona) : undefined,
         repartidor ? Number(repartidor) : undefined,
-        !!inactivos,
-        q
+        q,
+        tab,
+        volumen
       ),
     { maxAttempts: 3, baseDelayMs: 1000 }
   );
@@ -47,12 +48,12 @@ export default async function ClientesPage({ searchParams }: Props) {
         q={q}
         zona={zona}
         repartidor={repartidor}
-        inactivos={inactivos}
+        volumen={volumen}
       />
 
       <ClientesListPaginated
         initialData={initialData}
-        filters={{ q, zona, repartidor, inactivos }}
+        filters={{ q, zona, repartidor, tab, volumen }}
       />
     </div>
   );
