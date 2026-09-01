@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ export async function getPedidosPorFecha(fechaStr: string) {
       cliente: { include: { zona: true } },
       producto: true,
       repartidor: true,
+      usuario: { select: { id: true, nombre: true } },
     },
     orderBy: [
       { creadoEn: "desc" }
@@ -41,6 +43,7 @@ export async function getCatalogoNuevoPedido() {
     select: {
       id: true,
       nombre: true,
+      cuit: true,
       idZona: true,
       zona: { select: { nombre: true } },
       formaPagoPref: true,
@@ -115,6 +118,9 @@ export async function crearPedido(formData: FormData) {
       ]
     : null;
 
+  const session = await auth();
+  const idUsuario = session?.user?.id ? Number(session.user.id) : null;
+
   await prisma.pedido.create({
     data: {
       fecha: parseFechaRuta(fecha),
@@ -127,6 +133,7 @@ export async function crearPedido(formData: FormData) {
       estadoPago: estadoPago as never,
       montoPagado,
       idRepartidor,
+      idUsuario,
       requiereFactura,
       estadoFactura: requiereFactura ? "PENDIENTE" : "NO_REQUIERE",
       esCobro,
@@ -235,7 +242,8 @@ export async function getPedido(idPedido: number) {
         include: { revendedor: true }
       },
       producto: true,
-      repartidor: true
+      repartidor: true,
+      usuario: { select: { id: true, nombre: true } },
     },
   });
 }

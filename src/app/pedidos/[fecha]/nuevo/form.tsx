@@ -7,6 +7,7 @@ import { formatearFechaCorta } from "@/lib/utils";
 interface Cliente {
   id: number;
   nombre: string;
+  cuit?: string | null;
   zona: { nombre: string };
   formaPagoPref: string;
   idRepartidor: number | null;
@@ -150,8 +151,11 @@ export function FormNuevoPedido({
           <p className="text-xs text-red-400 mt-1">Seleccioná un cliente de la lista</p>
         )}
         {clienteSelec && (
-          <p className="text-xs text-[#16a34a] mt-1">
-            Pago habitual: <span className="font-medium">{pagoHabitual}</span>
+          <p className="text-xs text-[#16a34a] mt-1 flex flex-wrap items-center gap-x-2">
+            <span>Pago habitual: <strong className="font-medium">{pagoHabitual}</strong></span>
+            {clienteSelec.cuit && (
+              <span className="text-[#9ca3af]">· CUIT/CUIL: <strong className="font-mono text-[#f9fafb] font-normal">{clienteSelec.cuit}</strong></span>
+            )}
           </p>
         )}
       </div>
