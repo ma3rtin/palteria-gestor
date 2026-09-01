@@ -33,6 +33,7 @@ interface Pedido {
   cliente: {
     id: number;
     nombre: string;
+    cuit?: string | null;
     direccion: string | null;
     zona: { id: number; nombre: string };
   };
@@ -138,11 +139,21 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                     </button>
                   </td>
 
-                  {/* Dirección */}
+                  {/* Dirección / Cliente */}
                   <td className="px-4 py-2.5 text-left">
-                    <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
-                      <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                    </Link>
+                    <div className="flex flex-col">
+                      <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
+                        {p.cliente.nombre}
+                      </Link>
+                      {p.cliente.cuit && (
+                        <span
+                          className="text-[11px] font-mono text-[#9ca3af] hover:text-[#a3e635] select-all cursor-pointer w-fit mt-0.5"
+                          title="Click para seleccionar CUIT"
+                        >
+                          {p.cliente.cuit}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Zona */}
