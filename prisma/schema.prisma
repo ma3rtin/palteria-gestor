@@ -34,22 +34,30 @@ enum EstadoFactura {
   @@map("estado_factura")
 }
 
+enum RolUsuario {
+  ADMIN
+  EMPLEADO
+
+  @@map("rol_usuario")
+}
+
 // ==================== USUARIOS ====================
 
 model Usuario {
-  id           Int      @id @default(autoincrement()) @map("id_usuario")
-  email        String   @unique
-  passwordHash String   @map("password_hash")
+  id           Int        @id @default(autoincrement()) @map("id_usuario")
+  email        String     @unique
+  passwordHash String     @map("password_hash")
   nombre       String
-  activo       Boolean  @default(true)
-  creadoEn     DateTime @default(now()) @map("creado_en")
+  rol          RolUsuario @default(ADMIN) @map("rol")
+  activo       Boolean    @default(true)
+  creadoEn     DateTime   @default(now()) @map("creado_en")
 
   @@map("usuarios")
 }
 
 enum TipoRevendedor {
-  COMISION  // Oscar: paltería paga X/caja al revendedor
-  MARGEN    // Pato: paltería paga diferencia precio cobrado - precio lista
+  COMISION // Oscar: paltería paga X/caja al revendedor
+  MARGEN // Pato: paltería paga diferencia precio cobrado - precio lista
   DESCUENTO // Puesto: revendedor paga neto con descuento por caja
 
   @@map("tipo_revendedor")
@@ -80,12 +88,12 @@ model LiquidacionRevendedor {
   id               Int        @id @default(autoincrement()) @map("id_liquidacion")
   revendedor       Revendedor @relation(fields: [idRevendedor], references: [id])
   idRevendedor     Int        @map("id_revendedor")
-  fechaInicio      DateTime   @db.Date @map("fecha_inicio")
-  fechaFin         DateTime   @db.Date @map("fecha_fin")
+  fechaInicio      DateTime   @map("fecha_inicio") @db.Date
+  fechaFin         DateTime   @map("fecha_fin") @db.Date
   descuentoPorCaja Float?     @map("descuento_por_caja")
   montoCalculado   Float      @default(0) @map("monto_calculado")
   montoPagado      Float      @default(0) @map("monto_pagado")
-  fechaPago        DateTime?  @db.Date @map("fecha_pago")
+  fechaPago        DateTime?  @map("fecha_pago") @db.Date
   formaPago        FormaPago? @map("forma_pago")
   observaciones    String?
   creadoEn         DateTime   @default(now()) @map("creado_en")
@@ -112,7 +120,7 @@ model Producto {
   stockCajas       Float     @default(0) @map("stock_cajas")
   costo            Float     @default(0)
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
-  fechaIngreso     DateTime? @db.Date @map("fecha_ingreso")
+  fechaIngreso     DateTime? @map("fecha_ingreso") @db.Date
   activo           Boolean   @default(true)
   pedidos          Pedido[]
 
@@ -141,11 +149,11 @@ model PeriodoSemanal {
   id            Int             @id @default(autoincrement()) @map("id_periodo")
   cuenta        CuentaCorriente @relation(fields: [idCuenta], references: [id])
   idCuenta      Int             @map("id_cuenta")
-  fechaInicio   DateTime        @db.Date @map("fecha_inicio")
-  fechaFin      DateTime        @db.Date @map("fecha_fin")
+  fechaInicio   DateTime        @map("fecha_inicio") @db.Date
+  fechaFin      DateTime        @map("fecha_fin") @db.Date
   montoTotal    Float           @default(0) @map("monto_total")
   montoPagado   Float           @default(0) @map("monto_pagado")
-  fechaPago     DateTime?       @db.Date @map("fecha_pago")
+  fechaPago     DateTime?       @map("fecha_pago") @db.Date
   formaPago     FormaPago?      @map("forma_pago")
   observaciones String?
   creadoEn      DateTime        @default(now()) @map("creado_en")
@@ -163,7 +171,7 @@ model PagoLocal {
   cliente       Cliente?       @relation(fields: [idCliente], references: [id])
   idCliente     Int?           @map("id_cliente")
   monto         Float
-  fechaPago     DateTime       @db.Date @map("fecha_pago")
+  fechaPago     DateTime       @map("fecha_pago") @db.Date
   // Repartidor que cobró (nullable: puede cobrarlo alguien de la oficina)
   repartidor    Repartidor?    @relation(fields: [idRepartidor], references: [id])
   idRepartidor  Int?           @map("id_repartidor")
@@ -203,32 +211,32 @@ model Cliente {
 // ==================== PEDIDOS ====================
 
 model Pedido {
-  id              Int           @id @default(autoincrement()) @map("id_pedido")
-  fecha           DateTime      @db.Date
-  cliente         Cliente       @relation(fields: [idCliente], references: [id])
-  idCliente       Int           @map("id_cliente")
-  producto        Producto      @relation(fields: [idProducto], references: [id])
-  idProducto      Int           @map("id_producto")
+  id                 Int           @id @default(autoincrement()) @map("id_pedido")
+  fecha              DateTime      @db.Date
+  cliente            Cliente       @relation(fields: [idCliente], references: [id])
+  idCliente          Int           @map("id_cliente")
+  producto           Producto      @relation(fields: [idProducto], references: [id])
+  idProducto         Int           @map("id_producto")
   // Texto libre: PF, SEMI, VERDE, PF-SEMI, 1PF-1SEMI, etc.
-  maduracion      String
-  cajas           Float
-  montoTotal      Float         @map("monto_total")
-  formaPago       FormaPago     @map("forma_pago")
-  estadoPago      EstadoPago    @default(PENDIENTE) @map("estado_pago")
-  montoPagado     Float         @default(0) @map("monto_pagado")
-  repartidor      Repartidor?   @relation(fields: [idRepartidor], references: [id])
-  idRepartidor    Int?          @map("id_repartidor")
-  requiereFactura Boolean       @default(false) @map("requiere_factura")
-  estadoFactura   EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
+  maduracion         String
+  cajas              Float
+  montoTotal         Float         @map("monto_total")
+  formaPago          FormaPago     @map("forma_pago")
+  estadoPago         EstadoPago    @default(PENDIENTE) @map("estado_pago")
+  montoPagado        Float         @default(0) @map("monto_pagado")
+  repartidor         Repartidor?   @relation(fields: [idRepartidor], references: [id])
+  idRepartidor       Int?          @map("id_repartidor")
+  requiereFactura    Boolean       @default(false) @map("requiere_factura")
+  estadoFactura      EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
   // true para filas de COBRANZA (cobro de deuda, no entrega)
-  esCobro           Boolean       @default(false) @map("es_cobro")
+  esCobro            Boolean       @default(false) @map("es_cobro")
   // true cuando el cambio no tiene cargo (fruta descartada); false = se cobra diferencia de kg
-  esReposicion      Boolean       @default(false) @map("es_reposicion")
-  comisionRevendedor Float        @default(0) @map("comision_revendedor")
-  observaciones     String?
-  pagosParciales    Json?         @map("pagos_parciales")
-  creadoEn          DateTime      @default(now()) @map("creado_en")
-  actualizadoEn     DateTime      @updatedAt @map("actualizado_en")
+  esReposicion       Boolean       @default(false) @map("es_reposicion")
+  comisionRevendedor Float         @default(0) @map("comision_revendedor")
+  observaciones      String?
+  pagosParciales     Json?         @map("pagos_parciales")
+  creadoEn           DateTime      @default(now()) @map("creado_en")
+  actualizadoEn      DateTime      @updatedAt @map("actualizado_en")
 
   @@map("pedidos")
 }

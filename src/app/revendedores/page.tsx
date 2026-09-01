@@ -1,3 +1,6 @@
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getRevendedores } from "@/actions/revendedores";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +18,11 @@ async function getResumenSemana() {
 }
 
 export default async function RevendedoresPage() {
+  const session = await auth();
+  if (!tienePermiso(session?.user?.rol, "verRevendedores")) {
+    redirect("/");
+  }
+
   const revendedores = await getRevendedores();
   const { desde, hasta } = await getResumenSemana();
 

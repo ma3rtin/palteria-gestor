@@ -12,10 +12,12 @@ export async function actualizarPerfil(
   const session = await auth();
   if (!session?.user?.email) return { error: "No autenticado" };
 
-  const { id: idUsuario } = await prisma.usuario.findUniqueOrThrow({
+  const usuario = await prisma.usuario.findUnique({
     where: { email: session.user.email },
-    select: { id: true },
   });
+  if (!usuario) return { error: "Usuario no encontrado" };
+
+  const idUsuario = usuario.id;
   const nombre = (formData.get("nombre") as string).trim();
   const contraseniaActual = (formData.get("contraseniaActual") as string) ?? "";
   const nuevaContrasenia = (formData.get("nuevaContrasenia") as string) ?? "";
@@ -31,7 +33,6 @@ export async function actualizarPerfil(
     if (nuevaContrasenia.length < 6)
       return { error: "La contraseña nueva debe tener al menos 6 caracteres" };
 
-    const usuario = await prisma.usuario.findUniqueOrThrow({ where: { id: idUsuario } });
     const ok = await bcrypt.compare(contraseniaActual, usuario.passwordHash);
     if (!ok) return { error: "Contraseña actual incorrecta" };
 

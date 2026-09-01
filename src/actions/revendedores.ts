@@ -1,10 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta } from "@/lib/utils";
 
+async function asegurarPermisoRevendedores(permiso: "verRevendedores" | "gestionarRevendedores" = "verRevendedores") {
+  const session = await auth();
+  if (!tienePermiso(session?.user?.rol, permiso)) {
+    throw new Error("No tienes permisos para realizar esta acción sobre revendedores");
+  }
+}
+
 export async function getRevendedores() {
+  await asegurarPermisoRevendedores("verRevendedores");
   return prisma.revendedor.findMany({
     include: { _count: { select: { clientes: true } } },
     orderBy: { nombre: "asc" },
@@ -12,6 +22,7 @@ export async function getRevendedores() {
 }
 
 export async function getRevendedor(id: number) {
+  await asegurarPermisoRevendedores("verRevendedores");
   const aggPedidos = await prisma.pedido.aggregate({
     where: {
       cliente: { idRevendedor: id },
@@ -51,6 +62,7 @@ export async function getRevendedor(id: number) {
 }
 
 export async function getPedidosPeriodo(idRevendedor: number, desde: string, hasta: string) {
+  await asegurarPermisoRevendedores("verRevendedores");
   const revendedor = await prisma.revendedor.findUniqueOrThrow({
     where: { id: idRevendedor },
     include: {
@@ -82,6 +94,7 @@ export async function getPedidosPeriodo(idRevendedor: number, desde: string, has
 }
 
 export async function getLiquidacionesPaginadas(idRevendedor: number, page: number = 0, pageSize: number = 10) {
+  await asegurarPermisoRevendedores("verRevendedores");
   const skip = page * pageSize;
   const [liquidaciones, total] = await Promise.all([
     prisma.liquidacionRevendedor.findMany({
@@ -109,6 +122,7 @@ export async function getPedidosPeriodoPaginados(
   page: number = 0,
   pageSize: number = 20
 ) {
+  await asegurarPermisoRevendedores("verRevendedores");
   const revendedor = await prisma.revendedor.findUniqueOrThrow({
     where: { id: idRevendedor },
     include: {
@@ -160,6 +174,7 @@ export async function getPedidosPeriodoPaginados(
 }
 
 export async function registrarLiquidacion(formData: FormData) {
+  await asegurarPermisoRevendedores("gestionarRevendedores");
   const idRevendedor = Number(formData.get("idRevendedor"));
   const fechaInicio = formData.get("fechaInicio") as string;
   const fechaFin = formData.get("fechaFin") as string;
@@ -186,6 +201,7 @@ export async function registrarLiquidacion(formData: FormData) {
 }
 
 export async function crearRevendedor(formData: FormData) {
+  await asegurarPermisoRevendedores("gestionarRevendedores");
   const nombre = (formData.get("nombre") as string).trim().toUpperCase();
   await prisma.revendedor.create({ data: { nombre } });
   revalidatePath("/config/revendedores");
@@ -193,6 +209,7 @@ export async function crearRevendedor(formData: FormData) {
 }
 
 export async function toggleRevendedor(formData: FormData) {
+  await asegurarPermisoRevendedores("gestionarRevendedores");
   const id = Number(formData.get("id"));
   const activo = formData.get("activo") === "true";
   await prisma.revendedor.update({ where: { id }, data: { activo: !activo } });
@@ -201,6 +218,7 @@ export async function toggleRevendedor(formData: FormData) {
 }
 
 export async function renombrarRevendedor(formData: FormData) {
+  await asegurarPermisoRevendedores("gestionarRevendedores");
   const id = Number(formData.get("id"));
   const nombre = (formData.get("nombre") as string).trim().toUpperCase();
   if (!id || !nombre) {

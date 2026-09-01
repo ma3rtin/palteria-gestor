@@ -1,5 +1,7 @@
 "use server";
 
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta } from "../lib/utils";
@@ -10,7 +12,8 @@ export async function crearProducto(formData: FormData) {
   const precio = parseFloat(formData.get("precioReferencia") as string);
   const kg = parseFloat(formData.get("kgPorCaja") as string);
   const stock = parseFloat(formData.get("stockCajas") as string);
-  const costo = parseFloat(formData.get("costo") as string);
+  const costoRaw = formData.get("costo");
+  const costo = costoRaw ? parseFloat(costoRaw as string) : 0;
   const fechaIngresoStr = formData.get("fechaIngreso") as string;
   const fechaIngreso = fechaIngresoStr ? parseFechaRuta(fechaIngresoStr) : null;
 
@@ -21,7 +24,7 @@ export async function crearProducto(formData: FormData) {
     throw new Error("El precio de referencia es requerido y debe ser un número");
   }
   if (isNaN(costo)) {
-    throw new Error("El costo es requerido y debe ser un número");
+    throw new Error("El costo debe ser un número válido");
   }
 
   await prisma.producto.create({
@@ -60,6 +63,11 @@ export async function actualizarPrecio(formData: FormData) {
 
 // Actualizar costo de referencia
 export async function actualizarCosto(formData: FormData) {
+  const session = await auth();
+  if (!tienePermiso(session?.user?.rol, "editarCostos")) {
+    throw new Error("No tienes permisos para modificar costos");
+  }
+
   const id = Number(formData.get("id"));
   const costo = parseFloat(formData.get("costo") as string);
 

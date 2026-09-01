@@ -1,6 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { getPedidosPeriodoPaginados, getLiquidacionesPaginadas, getRevendedor, registrarLiquidacion } from "@/actions/revendedores";
 import { formatearPeso, formatearFechaCorta, hoyISO, parseFechaRuta } from "@/lib/utils";
 import { BotonSubmit } from "@/components/boton-submit";
@@ -40,6 +42,11 @@ interface Props {
 }
 
 export default async function RevendedorDetallePage({ params, searchParams }: Props) {
+  const session = await auth();
+  if (!tienePermiso(session?.user?.rol, "verRevendedores")) {
+    redirect("/");
+  }
+
   const { id } = await params;
   const sp = await searchParams;
   const desde = sp.desde ?? semanaActualDesde();

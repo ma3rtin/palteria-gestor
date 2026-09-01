@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { prisma } from "@/lib/prisma";
 import { ProductosUI } from "./productos-ui";
 import {
@@ -14,7 +16,10 @@ async function getProductos() {
 }
 
 export default async function ProductosPage() {
+  const session = await auth();
   const productos = await getProductos();
+  const puedeVerCostos = tienePermiso(session?.user?.rol, "verCostos");
+  const puedeEditarCostos = tienePermiso(session?.user?.rol, "editarCostos");
 
   return (
     <div className="p-8">
@@ -24,6 +29,8 @@ export default async function ProductosPage() {
       </p>
       <ProductosUI
         productos={productos}
+        puedeVerCostos={puedeVerCostos}
+        puedeEditarCostos={puedeEditarCostos}
         crearProducto={crearProducto}
         actualizarPrecio={actualizarPrecio}
         actualizarCosto={actualizarCosto}

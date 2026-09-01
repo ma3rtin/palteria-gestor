@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LogOut, ChevronDown } from "lucide-react";
+import { RolUsuario } from "@/generated/prisma/enums";
+import { tienePermiso } from "@/lib/permisos";
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -27,12 +29,25 @@ const configLinks = [
 
 interface Props {
   usuario: string;
+  rol?: RolUsuario;
 }
 
-export default function Nav({ usuario }: Props) {
+export default function Nav({ usuario, rol }: Props) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(() => {
     return pathname.startsWith("/config");
+  });
+
+  const puedeVerRevendedores = tienePermiso(rol, "verRevendedores");
+
+  const linksVisibles = links.filter((link) => {
+    if (link.href === "/revendedores" && !puedeVerRevendedores) return false;
+    return true;
+  });
+
+  const configLinksVisibles = configLinks.filter((link) => {
+    if (link.href === "/config/revendedores" && !puedeVerRevendedores) return false;
+    return true;
   });
 
   return (
@@ -43,7 +58,7 @@ export default function Nav({ usuario }: Props) {
       </div>
 
       <nav className="flex-1 px-3 py-2.5 flex flex-col gap-0.5">
-        {links.map((link) => {
+        {linksVisibles.map((link) => {
           const active =
             link.href === "/"
               ? pathname === "/"
@@ -77,7 +92,7 @@ export default function Nav({ usuario }: Props) {
             isOpen ? "max-h-60 opacity-100" : "max-h-0 opacity-0 pointer-events-none"
           }`}
         >
-          {configLinks.map((link) => {
+          {configLinksVisibles.map((link) => {
             const active = pathname.startsWith(link.href);
             return (
               <Link

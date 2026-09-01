@@ -1,3 +1,5 @@
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { getCatalogoFormulario, crearCliente } from "@/actions/clientes";
 import { BotonSubmit } from "@/components/boton-submit";
 import RevendedorSelector from "../revendedor-selector";
@@ -10,6 +12,8 @@ const FORMAS_PAGO = [
 ];
 
 export default async function NuevoClientePage() {
+  const session = await auth();
+  const puedeGestionarRevendedores = tienePermiso(session?.user?.rol, "gestionarRevendedores");
   const { zonas, repartidores, cuentas, revendedores } = await getCatalogoFormulario();
 
   return (
@@ -112,7 +116,9 @@ export default async function NuevoClientePage() {
           />
         </div>
 
-        <RevendedorSelector revendedores={revendedores} />
+        {puedeGestionarRevendedores && (
+          <RevendedorSelector revendedores={revendedores} />
+        )}
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="requiereFactura" className="rounded" />

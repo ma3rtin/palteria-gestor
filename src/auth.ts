@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { RolUsuario } from "@/generated/prisma/enums";
 import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -27,8 +28,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!ok) return null;
 
-        return { id: String(usuario.id), email: usuario.email, name: usuario.nombre };
+        return {
+          id: String(usuario.id),
+          email: usuario.email,
+          name: usuario.nombre,
+          rol: usuario.rol,
+        };
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.rol = user.rol;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.rol = token.rol as RolUsuario;
+      }
+      return session;
+    },
+  },
 });

@@ -19,6 +19,8 @@ interface Producto {
 
 interface Props {
   productos: Producto[];
+  puedeVerCostos?: boolean;
+  puedeEditarCostos?: boolean;
   crearProducto: (formData: FormData) => Promise<void>;
   actualizarPrecio: (formData: FormData) => Promise<void>;
   actualizarCosto: (formData: FormData) => Promise<void>;
@@ -29,6 +31,8 @@ interface Props {
 
 function FilaProducto({
   p,
+  puedeVerCostos = true,
+  puedeEditarCostos = true,
   actualizarPrecio,
   actualizarCosto,
   actualizarKg,
@@ -36,6 +40,8 @@ function FilaProducto({
   toggleProducto,
 }: {
   p: Producto;
+  puedeVerCostos?: boolean;
+  puedeEditarCostos?: boolean;
   actualizarPrecio: Props["actualizarPrecio"];
   actualizarCosto: Props["actualizarCosto"];
   actualizarKg: Props["actualizarKg"];
@@ -192,34 +198,41 @@ function FilaProducto({
         </form>
       </td>
 
-      <td className="px-4 py-3">
-        <form onSubmit={handleSubmitCosto} className="flex items-center justify-end gap-1">
-          <input type="hidden" name="id" value={p.id} />
-          <input
-            name="costo"
-            type="number"
-            step={1000}
-            required
-            placeholder="0"
-            value={costo}
-            onChange={(e) => {
-              const val = e.target.value;
-              setCosto(val === "" ? "" : parseFloat(val));
-            }}
-            className="w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-          />
-          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-            <BotonSubmit
-              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
-                costoDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+      {puedeVerCostos && (
+        <td className="px-4 py-3">
+          <form onSubmit={handleSubmitCosto} className="flex items-center justify-end gap-1">
+            <input type="hidden" name="id" value={p.id} />
+            <input
+              name="costo"
+              type="number"
+              step={1000}
+              required
+              placeholder="0"
+              value={costo}
+              disabled={!puedeEditarCostos}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCosto(val === "" ? "" : parseFloat(val));
+              }}
+              className={`w-28 border border-[#2a2d35] rounded px-2 py-1 text-sm text-right focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white ${
+                !puedeEditarCostos ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              title="Guardar cambios"
-            >
-              <Save size={15} />
-            </BotonSubmit>
-          </div>
-        </form>
-      </td>
+            />
+            {puedeEditarCostos && (
+              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                <BotonSubmit
+                  className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                    costoDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+                  }`}
+                  title="Guardar cambios"
+                >
+                  <Save size={15} />
+                </BotonSubmit>
+              </div>
+            )}
+          </form>
+        </td>
+      )}
 
       <td className="px-4 py-3">
         <form onSubmit={handleSubmitPrecio} className="flex items-center justify-end gap-1">
@@ -265,6 +278,8 @@ function FilaProducto({
 
 export function ProductosUI({
   productos,
+  puedeVerCostos = true,
+  puedeEditarCostos = true,
   crearProducto,
   actualizarPrecio,
   actualizarCosto,
@@ -327,18 +342,20 @@ export function ProductosUI({
               className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
             />
           </div>
-          <div className="flex flex-col gap-1 w-28">
-            <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Costo/caja</label>
-            <input
-              form="form-crear"
-              name="costo"
-              type="number"
-              required
-              step={1000}
-              placeholder="0"
-              className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
-            />
-          </div>
+          {puedeVerCostos && (
+            <div className="flex flex-col gap-1 w-28">
+              <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Costo/caja</label>
+              <input
+                form="form-crear"
+                name="costo"
+                type="number"
+                required
+                step={1000}
+                placeholder="0"
+                className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+              />
+            </div>
+          )}
           <div className="flex flex-col gap-1 w-28">
             <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Precio/caja *</label>
             <input
@@ -377,7 +394,9 @@ export function ProductosUI({
               <th className="text-left px-4 py-3 font-medium">Producto</th>
               <th className="text-right pl-4 pr-[52px] py-3 font-medium">Kg/caja</th>
               <th className="text-right pl-4 pr-[52px] py-3 font-medium">Stock (cajas)</th>
-              <th className="text-right pl-4 pr-[52px] py-3 font-medium">Costo ref.</th>
+              {puedeVerCostos && (
+                <th className="text-right pl-4 pr-[52px] py-3 font-medium">Costo ref.</th>
+              )}
               <th className="text-right pl-4 pr-[52px] py-3 font-medium">Precio ref.</th>
               <th className="text-right px-4 py-3 font-medium">Acciones</th>
             </tr>
@@ -385,7 +404,7 @@ export function ProductosUI({
           <tbody>
             {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[#6b7280] text-sm">
+                <td colSpan={puedeVerCostos ? 6 : 5} className="px-4 py-6 text-center text-[#6b7280] text-sm">
                   {busqueda ? `Sin resultados para "${busqueda}"` : "Sin productos cargados."}
                 </td>
               </tr>
@@ -394,6 +413,8 @@ export function ProductosUI({
                 <FilaProducto
                   key={p.id}
                   p={p}
+                  puedeVerCostos={puedeVerCostos}
+                  puedeEditarCostos={puedeEditarCostos}
                   actualizarPrecio={actualizarPrecio}
                   actualizarCosto={actualizarCosto}
                   actualizarKg={actualizarKg}
