@@ -1,0 +1,54 @@
+name: Crear o Actualizar Usuario en Producción
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email del usuario"
+        required: true
+        type: string
+      nombre:
+        description: "Nombre completo (ej: Juan Pérez)"
+        required: true
+        type: string
+      password:
+        description: "Contraseña provisoria"
+        required: true
+        type: string
+      rol:
+        description: "Rol del usuario"
+        required: true
+        type: choice
+        options:
+          - EMPLEADO
+          - ADMIN
+        default: EMPLEADO
+
+jobs:
+  crear-usuario-prod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Ocultar contraseña en los logs
+        run: echo "::add-mask::${{ inputs.password }}"
+
+      - name: Ejecutar creación de usuario en producción
+        run: npx tsx prisma/crear-usuario.ts "${{ inputs.email }}" "${{ inputs.nombre }}" "${{ inputs.password }}" "${{ inputs.rol }}"
+        env:
+          DIRECT_URL: ${{ secrets.PROD_DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.PROD_DIRECT_URL }}

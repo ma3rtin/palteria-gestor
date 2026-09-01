@@ -7,10 +7,14 @@ export default async function PerfilPage() {
   const session = await auth();
   if (!session?.user?.email) redirect("/login");
 
-  const usuario = await prisma.usuario.findUniqueOrThrow({
+  const usuario = await prisma.usuario.findUnique({
     where: { email: session.user.email },
     select: { id: true, nombre: true, email: true },
   });
+
+  if (!usuario) {
+    redirect("/login");
+  }
 
   return (
     <div className="p-8">

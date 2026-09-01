@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { auth } from "@/auth";
+import { tienePermiso } from "@/lib/permisos";
 import { getCliente, getCatalogoFormulario, actualizarCliente } from "@/actions/clientes";
 import { BotonSubmit } from "@/components/boton-submit";
 import RevendedorSelector from "../../revendedor-selector";
@@ -16,6 +18,8 @@ interface Props {
 }
 
 export default async function EditarClientePage({ params }: Props) {
+  const session = await auth();
+  const puedeGestionarRevendedores = tienePermiso(session?.user?.rol, "gestionarRevendedores");
   const { id } = await params;
   const cliente = await getCliente(Number(id));
   const { zonas, repartidores, cuentas, revendedores } = await getCatalogoFormulario();
@@ -132,10 +136,14 @@ export default async function EditarClientePage({ params }: Props) {
           />
         </div>
 
-        <RevendedorSelector
-          revendedores={revendedores}
-          defaultIdRevendedor={cliente.idRevendedor}
-        />
+        {puedeGestionarRevendedores ? (
+          <RevendedorSelector
+            revendedores={revendedores}
+            defaultIdRevendedor={cliente.idRevendedor}
+          />
+        ) : cliente.idRevendedor ? (
+          <input type="hidden" name="idRevendedor" value={cliente.idRevendedor} />
+        ) : null}
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="requiereFactura" defaultChecked={cliente.requiereFactura} />

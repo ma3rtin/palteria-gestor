@@ -9,6 +9,21 @@ import {
 } from "./productos";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { RolUsuario } from "@/generated/prisma/enums";
+
+// Mock de auth
+vi.mock("@/auth", () => {
+  return {
+    auth: vi.fn().mockResolvedValue({
+      user: {
+        id: "1",
+        name: "Admin",
+        email: "admin@palteria.com",
+        rol: "ADMIN",
+      },
+    }),
+  };
+});
 
 // Mock de prisma
 vi.mock("@/lib/prisma", () => {
@@ -117,7 +132,7 @@ describe("Server Actions - Productos", () => {
   });
 
   describe("actualizarCosto", () => {
-    it("debería actualizar el costo de referencia de un producto existente", async () => {
+    it("debería actualizar el costo de referencia de un producto existente para ADMIN", async () => {
       const formData = new FormData();
       formData.append("id", "5");
       formData.append("costo", "9500");
@@ -129,6 +144,25 @@ describe("Server Actions - Productos", () => {
         data: { costo: 9500 },
       });
       expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería lanzar un error si un EMPLEADO intenta actualizar el costo", async () => {
+      const { auth } = await import("@/auth");
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: {
+          id: "2",
+          name: "Empleado",
+          email: "empleado@palteria.com",
+          rol: RolUsuario.EMPLEADO,
+        },
+      } as never);
+
+      const formData = new FormData();
+      formData.append("id", "5");
+      formData.append("costo", "9500");
+
+      await expect(actualizarCosto(formData)).rejects.toThrow("No tienes permisos para modificar costos");
+      expect(prisma.producto.update).not.toHaveBeenCalled();
     });
   });
 
