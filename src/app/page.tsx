@@ -103,8 +103,20 @@ export default async function Inicio() {
                   {stats.pedidosHoy.slice(0, 10).map((p) => (
                     <tr key={p.id} className="border-b border-[#22252e] hover:bg-[#22252e]">
                       <td className="px-4 py-2.5">
-                        <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                        <span className="text-[#6b7280] ml-1 text-xs">{p.cliente.zona.nombre}</span>
+                        <div className="flex flex-col">
+                          <div>
+                            <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
+                            <span className="text-[#6b7280] ml-1.5 text-xs">{p.cliente.zona.nombre}</span>
+                          </div>
+                          {p.cliente.cuit && (
+                            <span
+                              className="text-[11px] font-mono text-[#9ca3af] hover:text-[#a3e635] select-all cursor-pointer w-fit mt-0.5"
+                              title="Click para seleccionar CUIT"
+                            >
+                              {p.cliente.cuit}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2.5 text-[#9ca3af]">
                         {p.producto.nombre}
