@@ -11,6 +11,7 @@ interface ClientesListPaginatedProps {
     clientes: Array<{
       id: number;
       nombre: string;
+      cuit?: string | null;
       zona: { id: number; nombre: string };
       saldoPendiente: number;
     }>;
@@ -114,6 +115,17 @@ export function ClientesListPaginated({
                   <span className="text-[10px] text-[#6b7280] bg-[#22252e] px-1.5 py-0.5 rounded uppercase tracking-wide">
                     {cliente.zona.nombre}
                   </span>
+                  {cliente.cuit && (
+                    <span
+                      className="text-[11px] font-mono text-[#9ca3af] bg-[#16181f] border border-[#2a2d35] px-1.5 py-0.5 rounded select-all hover:text-[#a3e635]"
+                      title="Click para seleccionar CUIT"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      {cliente.cuit}
+                    </span>
+                  )}
                 </div>
                 {cliente.saldoPendiente > 0 && (
                   <span className="text-[#ef4444] text-sm font-semibold font-mono">

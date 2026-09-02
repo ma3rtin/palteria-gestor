@@ -21,7 +21,7 @@ export async function getClientes(busqueda?: string, idZona?: number) {
 export async function getClientesBasicos() {
   return prisma.cliente.findMany({
     where: { activo: true },
-    select: { id: true, nombre: true, idZona: true, zona: { select: { nombre: true } }, formaPagoPref: true, idRepartidor: true, requiereFactura: true },
+    select: { id: true, nombre: true, cuit: true, idZona: true, zona: { select: { nombre: true } }, formaPagoPref: true, idRepartidor: true, requiereFactura: true },
     orderBy: { nombre: "asc" },
   });
 }
@@ -169,6 +169,7 @@ export async function getCatalogoFormulario() {
 
 export async function crearCliente(formData: FormData) {
   const nombre = formData.get("nombre") as string;
+  const cuit = formData.get("cuit") as string | null;
   const direccion = formData.get("direccion") as string | null;
   const telefono = formData.get("telefono") as string | null;
   const idZona = Number(formData.get("idZona"));
@@ -189,6 +190,7 @@ export async function crearCliente(formData: FormData) {
   const cliente = await prisma.cliente.create({
     data: {
       nombre: nombre.trim().toUpperCase(),
+      cuit: cuit?.trim() || null,
       direccion: direccion?.trim() || null,
       telefono: telefono?.trim() || null,
       idZona,
@@ -207,6 +209,7 @@ export async function crearCliente(formData: FormData) {
 
 export async function actualizarCliente(id: number, formData: FormData) {
   const nombre = formData.get("nombre") as string;
+  const cuit = formData.get("cuit") as string | null;
   const direccion = formData.get("direccion") as string | null;
   const telefono = formData.get("telefono") as string | null;
   const idZona = Number(formData.get("idZona"));
@@ -231,6 +234,7 @@ export async function actualizarCliente(id: number, formData: FormData) {
     where: { id },
     data: {
       nombre: nombre.trim().toUpperCase(),
+      cuit: cuit?.trim() || null,
       direccion: direccion?.trim() || null,
       telefono: telefono?.trim() || null,
       idZona,

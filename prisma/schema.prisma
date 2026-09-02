@@ -50,6 +50,7 @@ model Usuario {
   nombre       String
   rol          RolUsuario @default(ADMIN) @map("rol")
   activo       Boolean    @default(true)
+  pedidos      Pedido[]
   creadoEn     DateTime   @default(now()) @map("creado_en")
 
   @@map("usuarios")
@@ -186,6 +187,7 @@ model PagoLocal {
 model Cliente {
   id                Int              @id @default(autoincrement()) @map("id_cliente")
   nombre            String
+  cuit              String?          @map("cuit")
   direccion         String?
   telefono          String?
   zona              Zona             @relation(fields: [idZona], references: [id])
@@ -226,6 +228,8 @@ model Pedido {
   montoPagado        Float         @default(0) @map("monto_pagado")
   repartidor         Repartidor?   @relation(fields: [idRepartidor], references: [id])
   idRepartidor       Int?          @map("id_repartidor")
+  usuario            Usuario?      @relation(fields: [idUsuario], references: [id])
+  idUsuario          Int?          @map("id_usuario")
   requiereFactura    Boolean       @default(false) @map("requiere_factura")
   estadoFactura      EstadoFactura @default(NO_REQUIERE) @map("estado_factura")
   // true para filas de COBRANZA (cobro de deuda, no entrega)

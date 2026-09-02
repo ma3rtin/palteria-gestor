@@ -9,6 +9,20 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+// Mock de auth
+vi.mock("@/auth", () => {
+  return {
+    auth: vi.fn().mockResolvedValue({
+      user: {
+        id: "1",
+        name: "Admin",
+        email: "admin@palteria.com",
+        rol: "ADMIN",
+      },
+    }),
+  };
+});
+
 // Mock de prisma
 vi.mock("@/lib/prisma", () => {
   return {
@@ -72,6 +86,7 @@ describe("Server Actions - Pedidos", () => {
           estadoPago: "PENDIENTE",
           montoPagado: 0,
           idRepartidor: 1,
+          idUsuario: 1,
           requiereFactura: false,
           estadoFactura: "NO_REQUIERE",
           esCobro: false,
@@ -117,6 +132,7 @@ describe("Server Actions - Pedidos", () => {
           estadoPago: "PAGADO",
           montoPagado: 30000,
           idRepartidor: null,
+          idUsuario: 1,
           requiereFactura: false,
           estadoFactura: "NO_REQUIERE",
           esCobro: true,

@@ -248,6 +248,12 @@ export default async function DetalleClientePage({ params }: Props) {
                 </div>
               )}
               <div className="flex justify-between">
+                <dt className="text-[#9ca3af]">CUIT / CUIL</dt>
+                <dd className={`font-medium text-xs ${cliente.cuit ? "font-mono text-[#f9fafb]" : "text-[#6b7280]"}`}>
+                  {cliente.cuit || "—"}
+                </dd>
+              </div>
+              <div className="flex justify-between">
                 <dt className="text-[#9ca3af]">Factura</dt>
                 <dd className="font-medium">{cliente.requiereFactura ? "Sí requiere" : "No"}</dd>
               </div>

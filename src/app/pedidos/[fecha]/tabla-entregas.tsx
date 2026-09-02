@@ -33,6 +33,7 @@ interface Pedido {
   cliente: {
     id: number;
     nombre: string;
+    cuit?: string | null;
     direccion: string | null;
     zona: { id: number; nombre: string };
   };
@@ -43,6 +44,10 @@ interface Pedido {
     precioReferencia: number;
   };
   repartidor: {
+    id: number;
+    nombre: string;
+  } | null;
+  usuario?: {
     id: number;
     nombre: string;
   } | null;
@@ -134,11 +139,21 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                     </button>
                   </td>
 
-                  {/* Dirección */}
+                  {/* Dirección / Cliente */}
                   <td className="px-4 py-2.5 text-left">
-                    <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
-                      <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                    </Link>
+                    <div className="flex flex-col">
+                      <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
+                        {p.cliente.nombre}
+                      </Link>
+                      {p.cliente.cuit && (
+                        <span
+                          className="text-[11px] font-mono text-[#9ca3af] hover:text-[#a3e635] select-all cursor-pointer w-fit mt-0.5"
+                          title="Click para seleccionar CUIT"
+                        >
+                          {p.cliente.cuit}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Zona */}
@@ -188,7 +203,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                 {isExpanded && (
                   <tr key={`${p.id}-details`} className="bg-[#13151c]/90 border-b border-[#22252e]">
                     <td colSpan={9} className="px-10 py-4 text-left">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-6 gap-6 text-sm">
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
                           <span className="text-[#f9fafb]">
@@ -206,6 +221,12 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Forma de Pago</span>
                           <span className="text-[#f9fafb]">{ETIQUETAS_FORMA_PAGO[p.formaPago] || p.formaPago}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Creado por</span>
+                          <span className="text-[#f9fafb]">
+                            {p.usuario?.nombre ? p.usuario.nombre.trim().split(" ")[0] : "—"}
+                          </span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Hora de Carga</span>
