@@ -342,9 +342,16 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
 }
 
 export async function actualizarEstadoFactura(idPedido: number, estadoFactura: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA") {
-  await prisma.pedido.update({
+  const pedido = await prisma.pedido.update({
     where: { id: idPedido },
-    data: { estadoFactura: estadoFactura as never },
+    data: {
+      estadoFactura: estadoFactura as never,
+      requiereFactura: estadoFactura !== "NO_REQUIERE",
+    },
+    select: { fecha: true },
   });
-  revalidatePath("/pedidos/[fecha]", "page");
+  const fechaStr = pedido.fecha.toISOString().split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/pedidos");
+  revalidatePath("/clientes");
 }

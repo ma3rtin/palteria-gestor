@@ -44,16 +44,24 @@ Este archivo registra el historial de desarrollo por sesiones y las tareas pendi
 | **34 — Revisión y Blindaje de Backend** | ✅ | Explicación de pagos semanales. Auditoría de buscadores y blindaje de Server Actions clave (`pedidos`, `pagos-semanales` y `clientes`) con validaciones defensivas en el servidor para evitar `NaN`, montos negativos o datos corruptos en base de datos. Compilación exitosa en producción. |
 | **35 — Roles de Usuario y RBAC** | ✅ | Rama `feature/roles-usuarios`. Enum `RolUsuario` (`ADMIN`/`EMPLEADO`) en Prisma con migración segura (`20260831205500_add_roles_usuario`). Módulo de permisos centralizado y extensible en `src/lib/permisos.ts`. Inyección de `rol` en sesión/JWT de NextAuth. Restricciones operativas para rol `EMPLEADO`: ocultamiento de columna e input de costo en `/productos`, ocultamiento de links y páginas de `/revendedores` y `/config/revendedores` con redirección a `/`, ocultamiento de selector de revendedor en formularios de clientes preservando datos, blindaje en Server Actions (`actualizarCosto` y acciones de revendedores). Actualización de script CLI `prisma/crear-usuario.ts` con argumento de rol. Rediseño resiliente de `error.tsx` con navegación al inicio, reintento y cierre de sesión. Creación de GitHub Action manual (`.github/workflows/crear-usuario.yml`) para creación de usuarios en producción vía `workflow_dispatch`. Suite de 33 tests pasando y build de producción verificado. |
 | **36 — CUIT de Clientes y Autor de Pedidos** | ✅ | Rama `feature/cuit-y-autor-pedido`. Campo `cuit` en `Cliente` e `idUsuario` (relación a `Usuario`) en `Pedido` con migración segura (`20260901190000_add_cuit_and_pedido_autor`). Asignación automática del usuario creador en `crearPedido` desde la sesión activa de NextAuth. Inclusión de `cuit` en alta/edición de clientes (`/clientes/nuevo`, `/clientes/[id]/editar`) y visualización en la ficha de datos del cliente (`/clientes/[id]`). Visualización de "Creado por" en el panel desplegable de pedidos (`/pedidos/[fecha]`) y en el encabezado de edición de pedidos. Suite de 33 tests pasando y build de producción verificado. |
+| **37 — Fase 1 (Quick Wins: Pedidos, Filtros y Repartidores)** | ✅ | Rama `feature/fase-1-quick-wins`. Pedidos sin repartidor asignado resaltados en rojo con badge visual (`tabla-entregas.tsx`). Botón de copiado exclusivo del nombre de cliente para búsqueda directa en WhatsApp con toast. Filtro interactivo de facturación en barra de pedidos diarios (Factura pendiente, Requiere factura, Emitida, No requiere). Visualización del repartidor en pedidos de clientes en cobranzas pendientes, pagos semanales por sub-local y detalle de cliente (pestañas de pedidos y pagos). Suite de 33 tests pasando y build de producción limpio. |
 
 ---
 
 ## 2. Backlog Activo
 
-### Prioritario / Próximos Pasos
-- **Etiquetas para impresión**: Generar texto formateado por pedido para que el cliente copie y pegue en una hoja e imprima.
-  - *Pendiente*: Que el cliente confirme qué datos exactos necesita en la etiqueta.
-- **Exportar Excel de Pedidos**: Botón en `/pedidos` para exportar rango de fechas (default: mes anterior). Columnas: fecha, cliente, zona, producto, cajas, maduración, monto, forma de pago, estado, repartidor. Librería recomendada: `xlsx`.
-- **Exportar Excel de Cobranzas/Cuentas Corrientes**: Exportar saldos pendientes por cliente o historial de pagos por cuenta. Útil para auditoría y contador.
+### Prioritario / Próximos Pasos (Requests de Juani)
+- **Fase 2: Lógica de Pedidos y Cobranzas**:
+  - **2. Cobranzas sin necesidad de cargar cajas**: En alta/edición de pedidos con `esCobro = true`, hacer opcionales el producto y las cajas para que no bloqueen ni validen stock.
+  - **3. Editar producto de pedido realizado**: Permitir cambiar producto y variedad en `/pedidos/[fecha]/[id]/editar`, reintegrando stock al producto saliente y descontando del nuevo.
+  - **10. Pago en efectivo con descuento automático**: Checkbox manual en cobros/desgloses para aplicar -$6.000 por caja sobre el pedido.
+- **Fase 3: Inventario y Sucursales Propias**:
+  - **4. Sector Palterías**: Módulo para registrar y sumar stock enviado a Paltería Haedo y Paltería Castelar.
+  - **8. Stock diario**: Dashboard de balance diario de cajas (Stock inicial + Ingresos − Salidas = Stock final).
+- **Fase 4: Estructural / Heavy DB**:
+  - **1. Múltiples marcas por pedido**: Migración a maestro-detalle (`Pedido` -> `ItemsPedido`).
+- **Etiquetas para impresión**: Formatear etiquetas para pegar en hoja e imprimir.
+- **Exportar Excel de Pedidos y Cobranzas**: Exportar pedidos y cuentas corrientes a `.xlsx`.
 
 ### Backlog Secundario / Mejoras
 - **Componetización y Desduplicación Gradual**: Refactorizar y modularizar código repetido de manera progresiva a través de toda la aplicación, chequeando consistencia en cada cambio.

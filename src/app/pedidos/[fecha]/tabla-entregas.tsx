@@ -11,7 +11,7 @@ import { BotonSubmit } from "@/components/boton-submit";
 import { BotonCopiarEtiqueta } from "@/components/boton-copiar-etiqueta";
 import { useToast } from "@/hooks/use-toast";
 import { formatearPeso, ETIQUETAS_FORMA_PAGO, obtenerFilaExcel, formatearHora } from "@/lib/utils";
-import { ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
+import { ChevronDown, ChevronUp, FileSpreadsheet, Copy } from "lucide-react";
 
 interface Pedido {
   id: number;
@@ -119,12 +119,19 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
         <tbody>
           {pedidos.map((p) => {
             const isExpanded = expandedId === p.id;
+            const sinRepartidor = !p.idRepartidor;
             return (
               <Fragment key={p.id}>
                 {/* Fila Principal */}
                 <tr
-                  className={`border-b border-[#22252e] hover:bg-[#22252e] whitespace-nowrap transition-colors ${
-                    isExpanded ? "bg-[#22252e]/40 border-b-0" : "last:border-0"
+                  className={`border-b whitespace-nowrap transition-colors ${
+                    sinRepartidor
+                      ? isExpanded
+                        ? "bg-red-950/40 border-red-900/50"
+                        : "bg-red-950/20 hover:bg-red-950/35 border-red-900/30"
+                      : isExpanded
+                      ? "bg-[#22252e]/40 border-[#22252e] border-b-0"
+                      : "border-[#22252e] hover:bg-[#22252e] last:border-0"
                   }`}
                 >
                   {/* Flecha Toggle */}
@@ -142,15 +149,35 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                   {/* Dirección / Cliente */}
                   <td className="px-4 py-2.5 text-left">
                     <div className="flex flex-col">
-                      <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
-                        {p.cliente.nombre}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
+                          {p.cliente.nombre}
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(p.cliente.nombre).then(() => {
+                              showToast(`Copiado: ${p.cliente.nombre}`);
+                            });
+                          }}
+                          title="Copiar solo el nombre (para WhatsApp)"
+                          className="text-[#6b7280] hover:text-[#a3e635] transition-colors p-0.5 rounded hover:bg-[#2a2d35]"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                       {p.cliente.cuit && (
                         <span
                           className="text-[11px] font-mono text-[#9ca3af] hover:text-[#a3e635] select-all cursor-pointer w-fit mt-0.5"
                           title="Click para seleccionar CUIT"
                         >
                           {p.cliente.cuit}
+                        </span>
+                      )}
+                      {sinRepartidor && (
+                        <span className="inline-flex items-center text-[10px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 rounded w-fit mt-0.5 tracking-wide">
+                          Sin repartidor
                         </span>
                       )}
                     </div>
@@ -216,7 +243,9 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Repartidor</span>
-                          <span className="text-[#f9fafb]">{p.repartidor?.nombre || "Sin asignar"}</span>
+                          <span className={p.repartidor?.nombre ? "text-[#f9fafb]" : "text-red-400 font-semibold"}>
+                            {p.repartidor?.nombre || "Sin asignar"}
+                          </span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Forma de Pago</span>

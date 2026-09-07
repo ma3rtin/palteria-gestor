@@ -38,6 +38,7 @@ export async function getCliente(id: number) {
         take: 50,
         include: {
           producto: true,
+          repartidor: true,
           cliente: { include: { zona: true } }
         },
       },
