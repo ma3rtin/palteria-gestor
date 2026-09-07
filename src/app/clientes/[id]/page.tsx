@@ -28,6 +28,7 @@ export default async function DetalleClientePage({ params }: Props) {
     monto: number;
     formaPago: string;
     origen: "COBRANZA" | "PARCIAL" | "CUENTA_CORRIENTE";
+    repartidor: string | null;
     pedidoId: number | null;
     fechaPedido: string | null;
     observaciones: string | null;
@@ -42,6 +43,7 @@ export default async function DetalleClientePage({ params }: Props) {
         monto: p.montoTotal,
         formaPago: p.formaPago,
         origen: "COBRANZA",
+        repartidor: p.repartidor?.nombre ?? null,
         pedidoId: p.id,
         fechaPedido: p.fecha.toISOString().split("T")[0],
         observaciones: p.observaciones,
@@ -60,6 +62,7 @@ export default async function DetalleClientePage({ params }: Props) {
             monto: item.monto,
             formaPago: item.formaPago,
             origen: "PARCIAL",
+            repartidor: p.repartidor?.nombre ?? null,
             pedidoId: p.id,
             fechaPedido: p.fecha.toISOString().split("T")[0],
             observaciones: `Pago parcial de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
@@ -72,6 +75,7 @@ export default async function DetalleClientePage({ params }: Props) {
           monto: p.montoPagado,
           formaPago: p.formaPago,
           origen: "PARCIAL",
+          repartidor: p.repartidor?.nombre ?? null,
           pedidoId: p.id,
           fechaPedido: p.fecha.toISOString().split("T")[0],
           observaciones: `Pago de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
@@ -86,6 +90,7 @@ export default async function DetalleClientePage({ params }: Props) {
       monto: p.monto,
       formaPago: "TRANSFERENCIA",
       origen: "CUENTA_CORRIENTE",
+      repartidor: p.repartidor?.nombre ?? null,
       pedidoId: null,
       fechaPedido: null,
       observaciones: p.observaciones || (p.repartidor ? `Cobrado por ${p.repartidor.nombre}` : "Pago de Cuenta Corriente"),
@@ -110,6 +115,7 @@ export default async function DetalleClientePage({ params }: Props) {
                 <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
                   <th className="text-left px-4 py-3 font-medium">Fecha</th>
                   <th className="text-left px-4 py-3 font-medium">Producto</th>
+                  <th className="text-left px-4 py-3 font-medium">Repartidor</th>
                   <th className="text-right px-4 py-3 font-medium">Cajas</th>
                   <th className="text-right px-4 py-3 font-medium">Monto</th>
                   <th className="text-left px-4 py-3 font-medium">Estado</th>
@@ -123,6 +129,13 @@ export default async function DetalleClientePage({ params }: Props) {
                     <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
                     <td className="px-4 py-2.5 text-[#9ca3af]">
                       {p.esCobro ? <span className="text-[#a3e635] font-semibold italic">Cobranza</span> : p.producto.nombre}
+                    </td>
+                    <td className="px-4 py-2.5 text-[#9ca3af]">
+                      {p.repartidor?.nombre ? (
+                        <span className="text-[#d1d5db] font-medium">{p.repartidor.nombre}</span>
+                      ) : (
+                        <span className="text-[#6b7280]">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.esCobro ? "—" : p.cajas}</td>
                     <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
@@ -164,6 +177,7 @@ export default async function DetalleClientePage({ params }: Props) {
                 <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
                   <th className="text-left px-4 py-3 font-medium">Fecha</th>
                   <th className="text-left px-4 py-3 font-medium">Forma de Pago</th>
+                  <th className="text-left px-4 py-3 font-medium">Repartidor</th>
                   <th className="text-right px-4 py-3 font-medium">Monto</th>
                   <th className="text-left px-4 py-3 font-medium">Tipo / Concepto</th>
                   <th className="text-left px-4 py-3 font-medium">Observaciones</th>
@@ -174,6 +188,13 @@ export default async function DetalleClientePage({ params }: Props) {
                   <tr key={index} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
                     <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(pago.fecha)}</td>
                     <td className="px-4 py-2.5 text-[#9ca3af] font-semibold text-xs">{pago.formaPago}</td>
+                    <td className="px-4 py-2.5 text-[#9ca3af] text-xs">
+                      {pago.repartidor ? (
+                        <span className="text-[#d1d5db] font-medium">{pago.repartidor}</span>
+                      ) : (
+                        <span className="text-[#6b7280]">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80] font-mono">{formatearPeso(pago.monto)}</td>
                     <td className="px-4 py-2.5 text-[#9ca3af] text-xs">
                       {pago.origen === "COBRANZA" && <span className="text-[#a3e635] font-semibold">Cobro de deuda</span>}

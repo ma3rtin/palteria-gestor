@@ -4,6 +4,7 @@ import {
   actualizarPedido,
   eliminarPedido,
   marcarPagado,
+  actualizarEstadoFactura,
 } from "./pedidos";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -278,6 +279,45 @@ describe("Server Actions - Pedidos", () => {
       expect(prisma.pedido.update).toHaveBeenCalledWith({
         where: { id: 100 },
         data: { estadoPago: "PAGADO", montoPagado: 18000 },
+      });
+    });
+  });
+
+  describe("actualizarEstadoFactura", () => {
+    it("debería actualizar estadoFactura a PENDIENTE y sincronizar requiereFactura a true", async () => {
+      vi.mocked(prisma.pedido.update).mockResolvedValue({
+        id: 100,
+        fecha: new Date("2026-07-31T12:00:00Z"),
+      } as never);
+
+      await actualizarEstadoFactura(100, "PENDIENTE");
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: {
+          estadoFactura: "PENDIENTE",
+          requiereFactura: true,
+        },
+        select: { fecha: true },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/pedidos/2026-07-31");
+    });
+
+    it("debería actualizar estadoFactura a NO_REQUIERE y sincronizar requiereFactura a false", async () => {
+      vi.mocked(prisma.pedido.update).mockResolvedValue({
+        id: 100,
+        fecha: new Date("2026-07-31T12:00:00Z"),
+      } as never);
+
+      await actualizarEstadoFactura(100, "NO_REQUIERE");
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: {
+          estadoFactura: "NO_REQUIERE",
+          requiereFactura: false,
+        },
+        select: { fecha: true },
       });
     });
   });

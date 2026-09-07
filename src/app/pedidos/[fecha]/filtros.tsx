@@ -14,6 +14,7 @@ interface Props {
   repartidorActual?: string;
   estadoActual?: string;
   busquedaActual?: string;
+  facturaActual?: string;
 }
 
 const ESTADOS = [
@@ -22,18 +23,26 @@ const ESTADOS = [
   { value: "PAGADO",    label: "Pagado" },
 ];
 
-export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, repartidorActual, estadoActual, busquedaActual }: Props) {
+const OPCIONES_FACTURA = [
+  { value: "PENDIENTE",   label: "Factura pendiente" },
+  { value: "REQUIERE",    label: "Requiere factura" },
+  { value: "EMITIDA",     label: "Factura emitida" },
+  { value: "NO_REQUIERE", label: "No requiere factura" },
+];
+
+export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, repartidorActual, estadoActual, busquedaActual, facturaActual }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busqueda, setBusqueda] = useState(busquedaActual ?? "");
   const [isManualUpdate, setIsManualUpdate] = useState(false);
 
-  function actualizar(zona: string, rep: string, estado: string, q: string) {
+  function actualizar(zona: string, rep: string, estado: string, q: string, factura: string) {
     const sp = new URLSearchParams();
-    if (zona)   sp.set("zona", zona);
-    if (rep)    sp.set("repartidor", rep);
-    if (estado) sp.set("estado", estado);
-    if (q)      sp.set("q", q);
+    if (zona)    sp.set("zona", zona);
+    if (rep)     sp.set("repartidor", rep);
+    if (estado)  sp.set("estado", estado);
+    if (q)       sp.set("q", q);
+    if (factura) sp.set("factura", factura);
     
     startTransition(() => {
       router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
@@ -49,7 +58,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     }
 
     const timer = setTimeout(() => {
-      actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda);
+      actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "");
     }, 500);
 
     return () => clearTimeout(timer);
@@ -62,7 +71,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     }
   }, [busquedaActual, isPending, isManualUpdate]);
 
-  const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual;
+  const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual || facturaActual;
 
   return (
     <div className={`flex gap-2 mb-4 flex-wrap transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
@@ -86,7 +95,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={zonaActual ?? ""}
-        onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda)}
+        onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todas las zonas</option>
@@ -95,7 +104,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={repartidorActual ?? ""}
-        onChange={(e) => actualizar(zonaActual ?? "", e.target.value, estadoActual ?? "", busqueda)}
+        onChange={(e) => actualizar(zonaActual ?? "", e.target.value, estadoActual ?? "", busqueda, facturaActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los repartidores</option>
@@ -104,16 +113,25 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={estadoActual ?? ""}
-        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", e.target.value, busqueda)}
+        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", e.target.value, busqueda, facturaActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los estados</option>
         {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
       </select>
 
+      <select
+        value={facturaActual ?? ""}
+        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, e.target.value)}
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
+      >
+        <option value="">Todas las facturas</option>
+        {OPCIONES_FACTURA.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+      </select>
+
       {hayFiltros && (
         <button
-          onClick={() => { setBusqueda(""); actualizar("", "", "", ""); }}
+          onClick={() => { setBusqueda(""); actualizar("", "", "", "", ""); }}
           className="px-3 py-2 text-sm text-[#9ca3af] hover:text-[#a3e635] border border-[#2a2d35] rounded-lg transition-colors"
         >
           Limpiar

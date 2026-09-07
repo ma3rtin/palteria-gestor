@@ -1,10 +1,17 @@
 "use client";
 
 import { actualizarEstadoFactura } from "@/actions/pedidos";
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: number; estadoActual: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA" }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [estado, setEstado] = useState(estadoActual);
+
+  useEffect(() => {
+    setEstado(estadoActual);
+  }, [estadoActual]);
 
   const getStyle = (est: string) => {
     switch (est) {
@@ -18,12 +25,16 @@ export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: nu
     <div className="relative inline-block group">
       <select
         value={estado}
-        onChange={async (e) => {
-          const nuevoEstado = e.target.value as any;
+        disabled={isPending}
+        onChange={(e) => {
+          const nuevoEstado = e.target.value as "NO_REQUIERE" | "PENDIENTE" | "EMITIDA";
           setEstado(nuevoEstado);
-          await actualizarEstadoFactura(idPedido, nuevoEstado);
+          startTransition(async () => {
+            await actualizarEstadoFactura(idPedido, nuevoEstado);
+            router.refresh();
+          });
         }}
-        className={`appearance-none text-[11px] rounded px-1.5 py-0.5 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] ${getStyle(estado)} pr-[18px]`}
+        className={`appearance-none text-[11px] rounded px-1.5 py-0.5 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] ${getStyle(estado)} pr-[18px] ${isPending ? "opacity-60" : ""}`}
       >
         <option value="NO_REQUIERE">Sin facturar</option>
         <option value="PENDIENTE">Pendiente</option>

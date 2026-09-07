@@ -9,7 +9,7 @@ import { AccionesPedido } from "./acciones";
 
 interface Props {
   params: Promise<{ fecha: string }>;
-  searchParams: Promise<{ zona?: string; repartidor?: string; estado?: string; q?: string }>;
+  searchParams: Promise<{ zona?: string; repartidor?: string; estado?: string; q?: string; factura?: string }>;
 }
 
 function fechaAnterior(fecha: string) {
@@ -26,7 +26,7 @@ function fechaSiguiente(fecha: string) {
 
 export default async function PedidosFechaPage({ params, searchParams }: Props) {
   const { fecha } = await params;
-  const { zona, repartidor, estado, q } = await searchParams;
+  const { zona, repartidor, estado, q, factura } = await searchParams;
 
   const pedidos = await getPedidosPorFecha(fecha);
   const totales = await getTotalesDia(fecha);
@@ -47,7 +47,10 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
   if (zona)       entregados = entregados.filter((p) => p.cliente.idZona === Number(zona));
   if (repartidor) entregados = entregados.filter((p) => p.idRepartidor === Number(repartidor));
   if (estado)     entregados = entregados.filter((p) => p.estadoPago === estado);
-  if (q)          entregados = entregados.filter((p) => p.cliente.nombre.toLowerCase().includes(q.toLowerCase()));
+  if (factura === "PENDIENTE")        entregados = entregados.filter((p) => p.estadoFactura === "PENDIENTE" || (p.requiereFactura && p.estadoFactura !== "EMITIDA"));
+  else if (factura === "REQUIERE")    entregados = entregados.filter((p) => p.requiereFactura || p.estadoFactura !== "NO_REQUIERE");
+  else if (factura === "EMITIDA")     entregados = entregados.filter((p) => p.estadoFactura === "EMITIDA");
+  else if (factura === "NO_REQUIERE") entregados = entregados.filter((p) => !p.requiereFactura && p.estadoFactura === "NO_REQUIERE");
 
   const cobros = pedidos.filter((p) => p.esCobro);
 
@@ -114,6 +117,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
             repartidorActual={repartidor}
             estadoActual={estado}
             busquedaActual={q}
+            facturaActual={factura}
           />
 
           {/* Tabla de entregas */}

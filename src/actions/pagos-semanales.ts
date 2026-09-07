@@ -94,7 +94,7 @@ export async function getDetalleCuenta(idCuenta: number) {
           zona: true,
           pedidos: {
             where: { estadoPago: { not: "PAGADO" }, esCobro: false },
-            include: { producto: true },
+            include: { producto: true, repartidor: true },
             orderBy: { fecha: "asc" },
           },
         },

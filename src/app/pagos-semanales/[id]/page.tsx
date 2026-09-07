@@ -222,6 +222,13 @@ export default async function DetalleCuentaPage({ params }: Props) {
                               <td className="px-4 py-2">
                                 {p.producto.nombre} {p.maduracion}
                               </td>
+                              <td className="px-4 py-2 text-[#9ca3af]">
+                                {p.repartidor?.nombre ? (
+                                  <span className="text-[#d1d5db] font-medium">{p.repartidor.nombre}</span>
+                                ) : (
+                                  <span className="text-red-400/80 italic text-[11px]">Sin repartidor</span>
+                                )}
+                              </td>
                               <td className="px-4 py-2 text-right">{p.cajas} caj.</td>
                               <td className="px-4 py-2 text-right font-medium">
                                 {formatearPeso(p.montoTotal)}

@@ -36,7 +36,7 @@ export async function getClientesConDeudaPaginado(
             estadoPago: { not: "PAGADO" as const },
             esCobro: false,
           },
-          include: { producto: true },
+          include: { producto: true, repartidor: true },
           orderBy: { fecha: "asc" },
         }
       },
