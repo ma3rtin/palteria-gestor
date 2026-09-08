@@ -16,13 +16,13 @@ import { ChevronDown, ChevronUp, FileSpreadsheet, Copy } from "lucide-react";
 interface Pedido {
   id: number;
   idCliente: number;
-  idProducto: number;
+  idProducto: number | null;
   cajas: number;
   montoTotal: number;
   formaPago: string;
   estadoPago: string;
   montoPagado: number;
-  maduracion: string;
+  maduracion: string | null;
   estadoFactura: "PENDIENTE" | "NO_REQUIERE" | "EMITIDA";
   esReposicion: boolean;
   esCobro: boolean;
@@ -42,7 +42,7 @@ interface Pedido {
     nombre: string;
     kgPorCaja: number | null;
     precioReferencia: number;
-  };
+  } | null;
   repartidor: {
     id: number;
     nombre: string;
@@ -195,7 +195,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
 
                   {/* Marca (Variedad) */}
                   <td className="px-4 py-2.5 text-left text-[#9ca3af]">
-                    {p.producto.nombre}
+                    {p.producto?.nombre ?? "—"}
                   </td>
 
                   {/* Total */}
@@ -234,7 +234,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
                           <span className="text-[#f9fafb]">
-                            {p.producto.kgPorCaja ? `${p.producto.kgPorCaja} kg / caja` : "Sin especificar"}
+                            {p.producto?.kgPorCaja ? `${p.producto.kgPorCaja} kg / caja` : "Sin especificar"}
                           </span>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -267,42 +267,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                       <div className="mt-4 pt-3 border-t border-[#22252e]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         {/* Izquierda: Cobro Parcial (si no está pagado) */}
                         {p.estadoPago !== "PAGADO" ? (
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Registrar cobro parcial</span>
-                              <span className="text-xs text-[#9ca3af]">
-                                Deuda restante: <span className="font-semibold text-[#f87171]">{formatearPeso(p.montoTotal - p.montoPagado)}</span>
-                              </span>
-                            </div>
-                             <form action={registrarCobro.bind(null, p.id)} className="flex items-center gap-2">
-                               <select
-                                 name="formaPago"
-                                 defaultValue={p.formaPago}
-                                 className="text-xs border border-[#2a2d35] rounded-md px-2 py-1 bg-[#1c1f26] text-[#f9fafb] focus:outline-none focus:border-[#a3e635] cursor-pointer"
-                               >
-                                 <option value="EFECTIVO">Efectivo</option>
-                                 <option value="TRANSFERENCIA">Transferencia</option>
-                                 <option value="PAGO_SEMANAL">Pago Semanal</option>
-                                 <option value="CAMBIO">Cambio</option>
-                               </select>
-                               <div className="relative">
-                                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
-                                 <input
-                                   name="monto"
-                                   type="number"
-                                   defaultValue={p.montoTotal - p.montoPagado}
-                                   required
-                                   placeholder="0"
-                                   min={1}
-                                   max={p.montoTotal - p.montoPagado}
-                                   className="w-24 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
-                                 />
-                               </div>
-                               <BotonSubmit className="bg-[#16a34a] hover:bg-[#15803d] text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">
-                                 Cobrar Parcial
-                               </BotonSubmit>
-                             </form>
-                          </div>
+                          <FormCobroParcial pedido={p} />
                         ) : (
                           <div className="text-xs text-[#6b7280]">
                             Pedido pagado en su totalidad.
@@ -343,6 +308,110 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
       </table>
     </div>
       {ToastComponent}
+    </div>
+  );
+}
+
+function FormCobroParcial({ pedido }: { pedido: Pedido }) {
+  const [formaPago, setFormaPago] = useState(pedido.formaPago);
+  const [aplicarDescuento, setAplicarDescuento] = useState(false);
+  const [descuentoPorCaja, setDescuentoPorCaja] = useState<number | "">(6000);
+
+  const valorDescCaja = descuentoPorCaja === "" ? 0 : Number(descuentoPorCaja);
+  const descuento = aplicarDescuento && formaPago === "EFECTIVO" && pedido.cajas > 0
+    ? pedido.cajas * valorDescCaja
+    : 0;
+
+  const totalConDescuento = Math.max(0, pedido.montoTotal - descuento);
+  const deudaRestante = Math.max(0, totalConDescuento - pedido.montoPagado);
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Registrar cobro parcial</span>
+        <span className="text-xs text-[#9ca3af]">
+          Deuda restante: <span className="font-semibold text-[#f87171]">{formatearPeso(deudaRestante)}</span>
+          {descuento > 0 && (
+            <span className="text-xs text-[#a3e635] ml-1.5 font-medium">(desc. -{formatearPeso(descuento)})</span>
+          )}
+        </span>
+      </div>
+      <form action={registrarCobro.bind(null, pedido.id)} className="flex flex-wrap items-center gap-2">
+        <select
+          name="formaPago"
+          value={formaPago}
+          onChange={(e) => {
+            const val = e.target.value;
+            setFormaPago(val);
+            if (val !== "EFECTIVO") {
+              setAplicarDescuento(false);
+            }
+          }}
+          className="text-xs border border-[#2a2d35] rounded-md px-2 py-1 bg-[#1c1f26] text-[#f9fafb] focus:outline-none focus:border-[#a3e635] cursor-pointer"
+        >
+          <option value="EFECTIVO">Efectivo</option>
+          <option value="TRANSFERENCIA">Transferencia</option>
+          <option value="PAGO_SEMANAL">Pago Semanal</option>
+          <option value="CAMBIO">Cambio</option>
+        </select>
+        <div className="relative">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
+          <input
+            name="monto"
+            type="number"
+            key={`${deudaRestante}-${aplicarDescuento}-${valorDescCaja}`}
+            defaultValue={deudaRestante}
+            required
+            placeholder="0"
+            min={1}
+            max={deudaRestante}
+            className="w-24 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
+          />
+        </div>
+
+        {pedido.cajas > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-[#a3e635] select-none">
+              <input
+                type="checkbox"
+                name="aplicarDescuentoEfectivo"
+                checked={aplicarDescuento}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setAplicarDescuento(checked);
+                  if (checked) {
+                    setFormaPago("EFECTIVO");
+                  }
+                }}
+                className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
+              />
+              <span>Desc. efec.</span>
+            </label>
+            {aplicarDescuento && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-[#9ca3af]">$/caja:</span>
+                <input
+                  type="number"
+                  name="descuentoPorCaja"
+                  min={0}
+                  step={500}
+                  value={descuentoPorCaja}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
+                  }}
+                  className="w-20 px-1.5 py-0.5 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
+                  placeholder="6000"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        <BotonSubmit className="bg-[#16a34a] hover:bg-[#15803d] text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">
+          Cobrar Parcial
+        </BotonSubmit>
+      </form>
     </div>
   );
 }

@@ -83,7 +83,8 @@ export default async function CobranzasPage({ searchParams }: Props) {
                         <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e] transition-colors whitespace-nowrap">
                           <td className="px-4 py-2 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
                           <td className="px-4 py-2 text-[#f9fafb]">
-                            {p.producto.nombre} <span className="text-[#6b7280]">{p.maduracion}</span>
+                            {p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")}{" "}
+                            <span className="text-[#6b7280]">{p.maduracion ?? ""}</span>
                           </td>
                           <td className="px-4 py-2 text-[#9ca3af]">
                             {p.repartidor ? (

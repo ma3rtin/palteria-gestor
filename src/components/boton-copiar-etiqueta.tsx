@@ -15,15 +15,15 @@ interface Pedido {
     direccion: string | null;
     zona: { nombre: string };
   };
-  producto: {
+  producto?: {
     nombre: string;
     kgPorCaja: number | null;
-  };
+  } | null;
   cajas: number;
   montoTotal: number;
   formaPago: string;
   montoPagado: number;
-  maduracion: string;
+  maduracion?: string | null;
   pagosParciales?: any;
 }
 
@@ -53,8 +53,8 @@ export function BotonCopiarEtiqueta({ pedido, onCopied }: { pedido: Pedido; onCo
 ${clienteInfo}
 ZONA: ${pedido.cliente.zona.nombre.toUpperCase()}
 CAJAS: ${pedido.cajas}
-MARCA: ${pedido.producto.nombre.toUpperCase()}
-MADURACIÓN: ${pedido.maduracion.toUpperCase()}
+MARCA: ${(pedido.producto?.nombre ?? "—").toUpperCase()}
+MADURACIÓN: ${(pedido.maduracion ?? "—").toUpperCase()}
 ${pagosStr}`;
 
     navigator.clipboard.writeText(texto).then(() => {
