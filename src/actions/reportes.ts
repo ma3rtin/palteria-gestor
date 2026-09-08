@@ -33,7 +33,7 @@ export async function getResumenPeriodo(desde: string, hasta: string) {
   });
 
   const productos = await prisma.producto.findMany({
-    where: { id: { in: porProducto.map((p) => p.idProducto) } },
+    where: { id: { in: porProducto.map((p) => p.idProducto).filter((id): id is number => id !== null) } },
     select: { id: true, nombre: true },
   });
   const repartidores = await prisma.repartidor.findMany({

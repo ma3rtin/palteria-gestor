@@ -3,6 +3,7 @@
 import { BotonSubmit } from "@/components/boton-submit";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { formatearFechaCorta } from "@/lib/utils";
 
 interface Cliente {
   id: number;
@@ -21,6 +22,7 @@ interface Producto {
   precioReferencia: number;
   kgPorCaja: number | null;
   stockCajas: number;
+  fechaIngreso?: Date | string | null;
 }
 
 interface Repartidor {
@@ -37,9 +39,9 @@ interface PagoParcialItem {
 interface Pedido {
   id: number;
   idCliente: number;
-  idProducto: number;
+  idProducto: number | null;
   fecha: Date;
-  maduracion: string;
+  maduracion: string | null;
   cajas: number;
   montoTotal: number;
   formaPago: string;
@@ -56,6 +58,7 @@ interface Pedido {
     idRevendedor?: number | null;
     revendedor?: { nombre: string } | null;
   };
+  producto: Producto | null;
 }
 
 interface Props {
@@ -80,14 +83,32 @@ export function FormEditarPedido({
   pedido,
   productos,
   repartidores,
+  maduracionesSugeridas,
   actualizarPedido,
 }: Props) {
+  const [idProductoSelec, setIdProductoSelec] = useState<number | null>(pedido.idProducto);
+  const [maduracion, setMaduracion] = useState<string>(pedido.maduracion ?? "");
   const [cajas, setCajas] = useState<number | "">(pedido.cajas);
   const [montoManual, setMontoManual] = useState<number | "" | null>(pedido.montoTotal);
   const [formaPago, setFormaPago] = useState(pedido.formaPago);
   const [estadoPago, setEstadoPago] = useState(pedido.estadoPago);
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(pedido.comisionRevendedor);
   const [esCobro, setEsCobro] = useState(pedido.esCobro);
+  const [descuentoEfectivo, setDescuentoEfectivo] = useState(
+    Boolean(pedido.observaciones?.includes("[Desc. efectivo"))
+  );
+  const [descuentoPorCaja, setDescuentoPorCaja] = useState<number | "">(() => {
+    if (pedido.observaciones) {
+      const match = pedido.observaciones.match(/\[Desc\. efectivo:\s*-\$([0-9.]+)(?:\s*\/\s*caja)?\]/);
+      if (match && pedido.cajas > 0) {
+        const montoTotalDesc = Number(match[1].replace(/\./g, ""));
+        if (!isNaN(montoTotalDesc) && montoTotalDesc > 0) {
+          return Math.round(montoTotalDesc / pedido.cajas);
+        }
+      }
+    }
+    return 6000;
+  });
 
   // Inicializar pagosList
   const [pagosList, setPagosList] = useState<PagoParcialItem[]>(() => {
@@ -106,9 +127,11 @@ export function FormEditarPedido({
     return [];
   });
 
-  const productoSelec = productos.find((p) => p.id === pedido.idProducto);
-
-  const montoCalculado = productoSelec ? Math.round(productoSelec.precioReferencia * (cajas === "" ? 0 : cajas)) : "";
+  const valorDescCaja = descuentoPorCaja === "" ? 0 : Number(descuentoPorCaja);
+  const productoSelec = productos.find((p) => p.id === idProductoSelec);
+  const descuentoMonto = (descuentoEfectivo && formaPago === "EFECTIVO" && !esCobro && cajas !== "") ? (Number(cajas) * valorDescCaja) : 0;
+  const precioBase = productoSelec ? Math.round(productoSelec.precioReferencia * (cajas === "" ? 0 : cajas)) : 0;
+  const montoCalculado = productoSelec ? Math.max(0, precioBase - descuentoMonto) : "";
   const montoFinal = montoManual ?? montoCalculado;
   const totalReq = montoFinal === "" ? 0 : Number(montoFinal);
 
@@ -202,10 +225,60 @@ export function FormEditarPedido({
       <input type="hidden" name="fecha" value={fecha} />
       <input type="hidden" name="pagosParcialesJson" value={JSON.stringify(pagosList)} />
 
-      <div className="text-sm text-[#9ca3af] mb-2">
+      <div className="text-sm text-[#9ca3af] mb-1">
         <p>Cliente: <span className="font-medium text-[#f9fafb]">{pedido.cliente.nombre}</span></p>
-        <p>Producto: <span className="font-medium text-[#f9fafb]">{productoSelec?.nombre}</span></p>
       </div>
+
+      {!esCobro && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Producto / Lote *</label>
+            <select
+              name="idProducto"
+              required
+              value={idProductoSelec ?? ""}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setIdProductoSelec(val);
+                setMontoManual(null);
+              }}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            >
+              <option value="">Seleccionar...</option>
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre} {p.fechaIngreso ? `(${formatearFechaCorta(p.fechaIngreso)})` : ""}
+                </option>
+              ))}
+            </select>
+            {productoSelec && (
+              <p className="text-xs text-[#6b7280] mt-1">
+                Stock actual: <span className="font-medium text-[#f9fafb]">{productoSelec.stockCajas} cajas</span>
+                {productoSelec.id === pedido.idProducto && (
+                  <span className="text-[#a3e635] ml-1.5 font-medium">(producto original)</span>
+                )}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Maduración *</label>
+            <input
+              name="maduracion"
+              required
+              list="maduraciones"
+              value={maduracion}
+              onChange={(e) => setMaduracion(e.target.value)}
+              placeholder="PF-SEMI, VERDE..."
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            />
+            <datalist id="maduraciones">
+              {maduracionesSugeridas.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </div>
+        </div>
+      )}
 
       {esCobro ? (
         <div className="flex flex-col gap-4">
@@ -228,42 +301,107 @@ export function FormEditarPedido({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
-            <input
-              name="cajas"
-              type="number"
-              required
-              min={0.5}
-              step={0.5}
-              placeholder="0"
-              value={cajas}
-              onChange={(e) => {
-                const val = e.target.value;
-                setCajas(val === "" ? "" : parseFloat(val));
-                setMontoManual(null); // Resetear a calculado si cambia cantidad
-              }}
-              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-            />
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
+              <input
+                name="cajas"
+                type="number"
+                required
+                min={0.5}
+                step={0.5}
+                placeholder="0"
+                value={cajas}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCajas(val === "" ? "" : parseFloat(val));
+                  setMontoManual(null); // Resetear a calculado si cambia cantidad
+                }}
+                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+                Monto total *
+                {productoSelec && montoManual === null && (
+                  <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+                )}
+              </label>
+              <input
+                name="montoTotal"
+                type="number"
+                required
+                min={0}
+                placeholder="0"
+                value={montoFinal}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setMontoManual(val === "" ? "" : parseInt(val));
+                }}
+                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto total *</label>
-            <input
-              name="montoTotal"
-              type="number"
-              required
-              min={0}
-              placeholder="0"
-              value={montoFinal}
-              onChange={(e) => {
-                const val = e.target.value;
-                setMontoManual(val === "" ? "" : parseInt(val));
-              }}
-              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
-            />
+
+          {/* Descuento por pago en efectivo */}
+          <div className="bg-[#17191e]/60 border border-[#2a2d35] rounded-lg p-3 flex flex-col gap-3">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-[#a3e635] select-none">
+              <input
+                type="checkbox"
+                name="descuentoEfectivo"
+                checked={descuentoEfectivo}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setDescuentoEfectivo(checked);
+                  if (checked) {
+                    setFormaPago("EFECTIVO");
+                  }
+                  setMontoManual(null);
+                }}
+                className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
+              />
+              <span className="font-medium">
+                Descuento por pago en efectivo
+              </span>
+            </label>
+
+            {descuentoEfectivo && (
+              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[#2a2d35]/60 pl-6">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-[#9ca3af] whitespace-nowrap">Descuento por caja:</label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
+                    <input
+                      type="number"
+                      name="descuentoPorCaja"
+                      min={0}
+                      step={500}
+                      value={descuentoPorCaja}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
+                        setMontoManual(null);
+                      }}
+                      className="w-28 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
+                      placeholder="6000"
+                    />
+                  </div>
+                </div>
+                {cajas !== "" && Number(cajas) > 0 && (
+                  <span className="text-xs font-semibold text-[#a3e635] font-mono">
+                    Total descuento: -{formatearPeso(Number(cajas) * valorDescCaja)}
+                    {Number(cajas) > 1 && (
+                      <span className="text-[#6b7280] font-normal font-sans ml-1">
+                        ({cajas} cajas × {formatearPeso(valorDescCaja)})
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+        </>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -273,8 +411,14 @@ export function FormEditarPedido({
             name="formaPago"
             required
             value={formaPago}
-            disabled={pedido.formaPago === "PAGO_SEMANAL"}
-            onChange={(e) => setFormaPago(e.target.value)}
+            disabled={pedido.formaPago === "PAGO_SEMANAL" && !descuentoEfectivo}
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormaPago(val);
+              if (val !== "EFECTIVO") {
+                setDescuentoEfectivo(false);
+              }
+            }}
             className={`w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white ${
               pedido.formaPago === "PAGO_SEMANAL" ? "opacity-50 cursor-not-allowed" : ""
             }`}

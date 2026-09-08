@@ -217,11 +217,11 @@ model Pedido {
   fecha              DateTime      @db.Date
   cliente            Cliente       @relation(fields: [idCliente], references: [id])
   idCliente          Int           @map("id_cliente")
-  producto           Producto      @relation(fields: [idProducto], references: [id])
-  idProducto         Int           @map("id_producto")
-  // Texto libre: PF, SEMI, VERDE, PF-SEMI, 1PF-1SEMI, etc.
-  maduracion         String
-  cajas              Float
+  producto           Producto?     @relation(fields: [idProducto], references: [id])
+  idProducto         Int?          @map("id_producto")
+  // Texto libre: PF, SEMI, VERDE, PF-SEMI, 1PF-1SEMI, etc. (null para cobranzas)
+  maduracion         String?
+  cajas              Float         @default(0)
   montoTotal         Float         @map("monto_total")
   formaPago          FormaPago     @map("forma_pago")
   estadoPago         EstadoPago    @default(PENDIENTE) @map("estado_pago")

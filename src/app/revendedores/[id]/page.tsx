@@ -101,8 +101,8 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-[#f9fafb] font-medium">{p.cliente.nombre}</td>
-                    <td className="px-4 py-3 text-[#9ca3af]">{p.producto.nombre}</td>
-                    <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{p.cajas}</td>
+                    <td className="px-4 py-3 text-[#9ca3af]">{p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")}</td>
+                    <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{p.esCobro ? "—" : p.cajas}</td>
                     <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{formatearPeso(p.montoTotal)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-[#4ade80] font-mono">{formatearPeso(p.comisionRevendedor)}</td>
                     <td className="px-4 py-3 text-right">

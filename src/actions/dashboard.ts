@@ -25,8 +25,12 @@ export async function getStatsSemana() {
     take: 6,
   });
 
+  const idsProductos = porProducto
+    .map((p) => p.idProducto)
+    .filter((id): id is number => id !== null);
+
   const productos = await prisma.producto.findMany({
-    where: { id: { in: porProducto.map((p) => p.idProducto) } },
+    where: { id: { in: idsProductos } },
     select: { id: true, nombre: true },
   });
 

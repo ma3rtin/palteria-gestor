@@ -7,19 +7,36 @@ export function formatearPeso(monto: number) {
   }).format(monto);
 }
 
-export function formatearFecha(fecha: Date | string) {
-  const d = typeof fecha === "string" ? new Date(fecha + "T12:00:00") : fecha;
-  return d.toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+export function formatearFecha(fecha: Date | string | null | undefined) {
+  if (!fecha) return "—";
+  try {
+    const fechaStr = typeof fecha === "string" ? fecha.split("T")[0] : fecha.toISOString().split("T")[0];
+    const d = new Date(fechaStr + "T12:00:00");
+    return d.toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
 }
 
-export function formatearFechaCorta(fecha: Date | string) {
-  const d = typeof fecha === "string" ? new Date(fecha + "T12:00:00") : fecha;
-  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+export function formatearFechaCorta(fecha: Date | string | null | undefined) {
+  if (!fecha) return "—";
+  try {
+    const fechaStr = typeof fecha === "string" ? fecha.split("T")[0] : fecha.toISOString().split("T")[0];
+    const partes = fechaStr.split("-");
+    if (partes.length === 3) {
+      const [year, month, day] = partes;
+      return `${day}/${month}/${year.slice(-2)}`;
+    }
+    const d = new Date(fechaStr + "T12:00:00");
+    return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  } catch {
+    return "—";
+  }
 }
 
 export function formatearHora(fecha: Date | string) {

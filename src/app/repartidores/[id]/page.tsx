@@ -78,9 +78,9 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                     <span className="text-xs text-[#6b7280] ml-1">{p.cliente.zona.nombre}</span>
                   </td>
                   <td className="px-4 py-2.5 text-[#9ca3af]">
-                    {p.producto.nombre} <span className="text-[#6b7280] text-xs">{p.maduracion}</span>
+                    {p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")} <span className="text-[#6b7280] text-xs">{p.maduracion ?? ""}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.cajas}</td>
+                  <td className="px-4 py-2.5 text-right text-[#9ca3af]">{p.esCobro ? "—" : p.cajas}</td>
                   <td className="px-4 py-2.5 text-right font-medium">{formatearPeso(p.montoTotal)}</td>
                   <td className="px-4 py-2.5 text-xs text-[#9ca3af]">{ETIQUETAS_FORMA_PAGO[p.formaPago]}</td>
                   <td className="px-4 py-2.5">

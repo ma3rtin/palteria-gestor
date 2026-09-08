@@ -65,7 +65,9 @@ export default async function DetalleClientePage({ params }: Props) {
             repartidor: p.repartidor?.nombre ?? null,
             pedidoId: p.id,
             fechaPedido: p.fecha.toISOString().split("T")[0],
-            observaciones: `Pago parcial de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
+            observaciones: p.esCobro
+              ? "Pago de cobranza"
+              : `Pago parcial de pedido (${p.cajas} cajas de ${p.producto?.nombre ?? "—"})`,
           });
         });
       } else if (p.montoPagado > 0) {
@@ -78,7 +80,9 @@ export default async function DetalleClientePage({ params }: Props) {
           repartidor: p.repartidor?.nombre ?? null,
           pedidoId: p.id,
           fechaPedido: p.fecha.toISOString().split("T")[0],
-          observaciones: `Pago de pedido (${p.cajas} cajas de ${p.producto.nombre})`,
+          observaciones: p.esCobro
+            ? "Pago de cobranza"
+            : `Pago de pedido (${p.cajas} cajas de ${p.producto?.nombre ?? "—"})`,
         });
       }
     });
@@ -128,7 +132,7 @@ export default async function DetalleClientePage({ params }: Props) {
                   <tr key={p.id} className="border-b border-[#22252e] last:border-0 hover:bg-[#22252e]/40">
                     <td className="px-4 py-2.5 text-[#9ca3af]">{formatearFechaCorta(p.fecha)}</td>
                     <td className="px-4 py-2.5 text-[#9ca3af]">
-                      {p.esCobro ? <span className="text-[#a3e635] font-semibold italic">Cobranza</span> : p.producto.nombre}
+                      {p.esCobro ? <span className="text-[#a3e635] font-semibold italic">Cobranza</span> : (p.producto?.nombre ?? "—")}
                     </td>
                     <td className="px-4 py-2.5 text-[#9ca3af]">
                       {p.repartidor?.nombre ? (

@@ -220,7 +220,7 @@ export default async function DetalleCuentaPage({ params }: Props) {
                                 {formatearFechaCorta(p.fecha)}
                               </td>
                               <td className="px-4 py-2">
-                                {p.producto.nombre} {p.maduracion}
+                                {p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")} {p.maduracion ?? ""}
                               </td>
                               <td className="px-4 py-2 text-[#9ca3af]">
                                 {p.repartidor?.nombre ? (

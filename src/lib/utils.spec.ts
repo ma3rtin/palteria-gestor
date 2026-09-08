@@ -34,10 +34,22 @@ describe("Utility Functions tests", () => {
   });
 
   describe("formatearFechaCorta", () => {
-    it("should format string date or Date object to DD/MM/YY", () => {
+    it("should format string date to DD/MM/YY", () => {
       const dateStr = "2026-05-15";
       const formatted = formatearFechaCorta(dateStr);
       expect(formatted).toBe("15/05/26");
+    });
+
+    it("should format UTC midnight Date object correctly without shifting a day backwards", () => {
+      // Prisma returns @db.Date as UTC midnight Date
+      const dateUtc = new Date("2026-09-07T00:00:00.000Z");
+      const formatted = formatearFechaCorta(dateUtc);
+      expect(formatted).toBe("07/09/26");
+    });
+
+    it("should handle null or undefined safely", () => {
+      expect(formatearFechaCorta(null)).toBe("—");
+      expect(formatearFechaCorta(undefined)).toBe("—");
     });
   });
 
