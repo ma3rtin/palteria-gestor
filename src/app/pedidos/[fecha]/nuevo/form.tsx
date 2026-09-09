@@ -389,7 +389,6 @@ export function FormNuevoPedido({
             name="formaPago"
             required
             value={formaPago}
-            disabled={formaPago === "PAGO_SEMANAL" && !descuentoEfectivo}
             onChange={(e) => {
               const val = e.target.value;
               setFormaPago(val);
@@ -399,17 +398,12 @@ export function FormNuevoPedido({
               if (val === "CAMBIO") setEsReposicion(true);
               setMontoManual(null);
             }}
-            className={`w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] ${
-              formaPago === "PAGO_SEMANAL" ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
             {FORMAS_PAGO.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
           </select>
-          {formaPago === "PAGO_SEMANAL" && (
-            <input type="hidden" name="formaPago" value="PAGO_SEMANAL" />
-          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-[#f9fafb] mb-1">Repartidor</label>

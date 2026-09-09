@@ -392,6 +392,44 @@ describe("Server Actions - Pedidos", () => {
         }),
       });
     });
+
+    it("debería actualizar un pedido con PAGO_SEMANAL asignándole repartidor aunque formaPago no esté en formData", async () => {
+      const pedidoMock = {
+        id: 100,
+        idCliente: 10,
+        idProducto: 5,
+        maduracion: "PF",
+        cajas: 2,
+        formaPago: "PAGO_SEMANAL",
+        estadoPago: "PENDIENTE",
+        montoTotal: 60000,
+        montoPagado: 0,
+        idRepartidor: null,
+        esCobro: false,
+        estadoFactura: "NO_REQUIERE",
+        observaciones: null,
+      };
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue(pedidoMock as never);
+
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "2");
+      formData.append("montoTotal", "60000");
+      // formaPago omitido a propósito
+      formData.append("idRepartidor", "1");
+
+      await actualizarPedido(100, formData);
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: expect.objectContaining({
+          idRepartidor: 1,
+          formaPago: "PAGO_SEMANAL",
+        }),
+      });
+    });
   });
 
   describe("eliminarPedido", () => {

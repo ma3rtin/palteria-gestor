@@ -58,7 +58,7 @@ export default function ErrorBoundary({
           </button>
         </div>
 
-        {/* Botón Cerrar Sesión de Emergencia */}
+        {/* Botón Cerrar Sesión y Referencia */}
         <div className="pt-4 border-t border-[#22252e] flex items-center justify-between">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
@@ -68,20 +68,28 @@ export default function ErrorBoundary({
             Cerrar sesión
           </button>
 
-          {/* Detalles técnicos colapsables */}
-          <button
-            onClick={() => setMostrarDetalles(!mostrarDetalles)}
-            className="flex items-center gap-1 text-xs text-[#6b7280] hover:text-[#9ca3af] transition-colors cursor-pointer"
-          >
-            <span>Detalles técnicos</span>
-            <ChevronDown
-              size={12}
-              className={`transition-transform duration-200 ${mostrarDetalles ? "rotate-180" : ""}`}
-            />
-          </button>
+          {/* En dev mostramos detalles técnicos colapsables; en prod solo una referencia sutil */}
+          {process.env.NODE_ENV !== "production" ? (
+            <button
+              onClick={() => setMostrarDetalles(!mostrarDetalles)}
+              className="flex items-center gap-1 text-xs text-[#6b7280] hover:text-[#9ca3af] transition-colors cursor-pointer"
+            >
+              <span>Detalles técnicos</span>
+              <ChevronDown
+                size={12}
+                className={`transition-transform duration-200 ${mostrarDetalles ? "rotate-180" : ""}`}
+              />
+            </button>
+          ) : (
+            error.digest && (
+              <span className="text-[11px] font-mono text-[#4b5563]">
+                Ref: #{error.digest}
+              </span>
+            )
+          )}
         </div>
 
-        {mostrarDetalles && (
+        {mostrarDetalles && process.env.NODE_ENV !== "production" && (
           <div className="mt-4 p-3 bg-[#13161e] border border-[#22252e] rounded-lg text-left text-xs font-mono text-[#9ca3af] break-all max-h-40 overflow-y-auto">
             {error.message && (
               <p className="text-red-400 mb-1">
