@@ -291,7 +291,6 @@ export async function getPedido(idPedido: number) {
 export async function actualizarPedido(idPedido: number, formData: FormData) {
   const fecha = formData.get("fecha") as string;
   const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
-  const formaPago = formData.get("formaPago") as string;
   const estadoPago = formData.get("estadoPago") as string;
   const montoPagado = parseFloat(formData.get("montoPagado") as string) || 0;
   const comisionRevendedor = parseFloat(formData.get("comisionRevendedor") as string) || 0;
@@ -318,6 +317,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   }
 
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+  const formaPago = (formData.get("formaPago") as string) || pedido.formaPago;
 
   const idProductoRaw = formData.get("idProducto");
   const nuevoIdProducto = idProductoRaw ? Number(idProductoRaw) : (!esCobro ? pedido.idProducto : null);
