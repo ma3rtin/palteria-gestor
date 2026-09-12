@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/nav";
 import { auth } from "@/auth";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: "La Paltería · Gestor",
@@ -22,6 +23,7 @@ export default async function RootLayout({
         <main className="flex-1 min-h-screen bg-[#0f1117] overflow-auto">
           {children}
         </main>
+        <SpeedInsights />
       </body>
     </html>
   );
