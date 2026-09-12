@@ -15,12 +15,20 @@ interface Props {
   estadoActual?: string;
   busquedaActual?: string;
   facturaActual?: string;
+  formaPagoActual?: string;
 }
 
 const ESTADOS = [
   { value: "PENDIENTE", label: "Pendiente" },
   { value: "PARCIAL",   label: "Parcial" },
   { value: "PAGADO",    label: "Pagado" },
+];
+
+const OPCIONES_FORMA_PAGO = [
+  { value: "EFECTIVO",      label: "Efectivo" },
+  { value: "TRANSFERENCIA", label: "Transferencia" },
+  { value: "PAGO_SEMANAL",  label: "Pago Semanal" },
+  { value: "CAMBIO",        label: "Cambio" },
 ];
 
 const OPCIONES_FACTURA = [
@@ -30,19 +38,20 @@ const OPCIONES_FACTURA = [
   { value: "NO_REQUIERE", label: "No requiere factura" },
 ];
 
-export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, repartidorActual, estadoActual, busquedaActual, facturaActual }: Props) {
+export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, repartidorActual, estadoActual, busquedaActual, facturaActual, formaPagoActual }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busqueda, setBusqueda] = useState(busquedaActual ?? "");
   const [isManualUpdate, setIsManualUpdate] = useState(false);
 
-  function actualizar(zona: string, rep: string, estado: string, q: string, factura: string) {
+  function actualizar(zona: string, rep: string, estado: string, q: string, factura: string, fp: string) {
     const sp = new URLSearchParams();
     if (zona)    sp.set("zona", zona);
     if (rep)     sp.set("repartidor", rep);
     if (estado)  sp.set("estado", estado);
     if (q)       sp.set("q", q);
     if (factura) sp.set("factura", factura);
+    if (fp)      sp.set("formaPago", fp);
     
     startTransition(() => {
       router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
@@ -58,7 +67,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     }
 
     const timer = setTimeout(() => {
-      actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "");
+      actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "", formaPagoActual ?? "");
     }, 500);
 
     return () => clearTimeout(timer);
@@ -71,7 +80,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
     }
   }, [busquedaActual, isPending, isManualUpdate]);
 
-  const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual || facturaActual;
+  const hayFiltros = zonaActual || repartidorActual || estadoActual || busquedaActual || facturaActual || formaPagoActual;
 
   return (
     <div className={`flex gap-2 mb-4 flex-wrap transition-opacity duration-200 ${isPending ? "opacity-60" : "opacity-100"}`}>
@@ -95,7 +104,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={zonaActual ?? ""}
-        onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "")}
+        onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "", formaPagoActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todas las zonas</option>
@@ -104,7 +113,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={repartidorActual ?? ""}
-        onChange={(e) => actualizar(zonaActual ?? "", e.target.value, estadoActual ?? "", busqueda, facturaActual ?? "")}
+        onChange={(e) => actualizar(zonaActual ?? "", e.target.value, estadoActual ?? "", busqueda, facturaActual ?? "", formaPagoActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los repartidores</option>
@@ -112,8 +121,17 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
       </select>
 
       <select
+        value={formaPagoActual ?? ""}
+        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "", e.target.value)}
+        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
+      >
+        <option value="">Todas las formas de pago</option>
+        {OPCIONES_FORMA_PAGO.map((fp) => <option key={fp.value} value={fp.value}>{fp.label}</option>)}
+      </select>
+
+      <select
         value={estadoActual ?? ""}
-        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", e.target.value, busqueda, facturaActual ?? "")}
+        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", e.target.value, busqueda, facturaActual ?? "", formaPagoActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los estados</option>
@@ -122,7 +140,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       <select
         value={facturaActual ?? ""}
-        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, e.target.value)}
+        onChange={(e) => actualizar(zonaActual ?? "", repartidorActual ?? "", estadoActual ?? "", busqueda, e.target.value, formaPagoActual ?? "")}
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todas las facturas</option>
@@ -131,8 +149,8 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
 
       {hayFiltros && (
         <button
-          onClick={() => { setBusqueda(""); actualizar("", "", "", "", ""); }}
-          className="px-3 py-2 text-sm text-[#9ca3af] hover:text-[#a3e635] border border-[#2a2d35] rounded-lg transition-colors"
+          onClick={() => { setBusqueda(""); actualizar("", "", "", "", "", ""); }}
+          className="px-3 py-2 text-sm text-[#9ca3af] hover:text-[#a3e635] border border-[#2a2d35] rounded-lg transition-colors cursor-pointer"
         >
           Limpiar
         </button>

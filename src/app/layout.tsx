@@ -17,9 +17,9 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className="h-full">
-      <body className="min-h-full flex">
+      <body className="h-full flex overflow-hidden bg-[#0f1117]">
         {session && <Nav usuario={session.user?.name ?? ""} rol={session.user?.rol} />}
-        <main className="flex-1 min-h-screen bg-[#0f1117] overflow-auto">
+        <main className="flex-1 h-full overflow-y-auto bg-[#0f1117] overscroll-y-contain">
           {children}
         </main>
       </body>

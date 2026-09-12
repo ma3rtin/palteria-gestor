@@ -71,6 +71,7 @@ export function FormNuevoPedido({
   const [esReposicion, setEsReposicion] = useState(true);
   const [descuentoEfectivo, setDescuentoEfectivo] = useState(false);
   const [descuentoPorCaja, setDescuentoPorCaja] = useState<number | "">(6000);
+  const [estadoCobro, setEstadoCobro] = useState<"PAGADO" | "PENDIENTE">("PAGADO");
 
   const clienteSelec = clientes.find((c) => c.id === idClienteSelec);
   const productoSelec = productos.find((p) => p.id === idProductoSelec);
@@ -203,7 +204,7 @@ export function FormNuevoPedido({
         <div className="flex flex-col gap-4">
           <input type="hidden" name="cajas" value="0" />
           <div>
-            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto cobrado *</label>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Monto a cobrar *</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#6b7280]">$</span>
               <input
@@ -220,6 +221,35 @@ export function FormNuevoPedido({
                 className="w-full pl-8 pr-3 py-2 border border-[#2a2d35] rounded-lg text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] font-mono text-white"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1.5">Estado del cobro *</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEstadoCobro("PAGADO")}
+                className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors cursor-pointer text-center ${
+                  estadoCobro === "PAGADO"
+                    ? "bg-[#16a34a]/20 border-[#16a34a] text-[#4ade80]"
+                    : "bg-[#1c1f26] border-[#2a2d35] text-[#9ca3af] hover:text-[#f9fafb]"
+                }`}
+              >
+                Cobrado (dinero ya recibido)
+              </button>
+              <button
+                type="button"
+                onClick={() => setEstadoCobro("PENDIENTE")}
+                className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors cursor-pointer text-center ${
+                  estadoCobro === "PENDIENTE"
+                    ? "bg-yellow-950/40 border-yellow-700 text-yellow-400"
+                    : "bg-[#1c1f26] border-[#2a2d35] text-[#9ca3af] hover:text-[#f9fafb]"
+                }`}
+              >
+                Pendiente de cobro (a cobrar)
+              </button>
+            </div>
+            <input type="hidden" name="estadoCobro" value={estadoCobro} />
           </div>
         </div>
       ) : (
@@ -396,7 +426,6 @@ export function FormNuevoPedido({
                 setDescuentoEfectivo(false);
               }
               if (val === "CAMBIO") setEsReposicion(true);
-              setMontoManual(null);
             }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           >
@@ -423,7 +452,7 @@ export function FormNuevoPedido({
       {clienteSelec?.idRevendedor && (
         <div className="w-full md:w-1/2">
           <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-            Ganancia Revendedor * 
+            Ganancia Revendedor
             <span className="text-xs font-medium text-[#16a34a] ml-1.5 uppercase">
               {clienteSelec.revendedor?.nombre || "Revendedor"}
             </span>
@@ -431,9 +460,8 @@ export function FormNuevoPedido({
           <input
             name="comisionRevendedor"
             type="number"
-            required
             min={0}
-            placeholder="Monto a pagar al revendedor..."
+            placeholder="0"
             value={comisionRevendedor}
             onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"

@@ -1,7 +1,8 @@
 import { ComponentProps } from "react";
 import Link from "next/link";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
-import { formatearPeso, formatearFecha, formatearHora } from "@/lib/utils";
+import { formatearPeso, formatearFecha, formatearHora, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
+import { BadgeEstadoPago } from "@/components/badge-estado";
 import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
 import { NavegacionFecha } from "./navegacion-fecha";
@@ -9,7 +10,7 @@ import { AccionesPedido } from "./acciones";
 
 interface Props {
   params: Promise<{ fecha: string }>;
-  searchParams: Promise<{ zona?: string; repartidor?: string; estado?: string; q?: string; factura?: string }>;
+  searchParams: Promise<{ zona?: string; repartidor?: string; estado?: string; q?: string; factura?: string; formaPago?: string }>;
 }
 
 function fechaAnterior(fecha: string) {
@@ -26,7 +27,7 @@ function fechaSiguiente(fecha: string) {
 
 export default async function PedidosFechaPage({ params, searchParams }: Props) {
   const { fecha } = await params;
-  const { zona, repartidor, estado, q, factura } = await searchParams;
+  const { zona, repartidor, estado, q, factura, formaPago } = await searchParams;
 
   const pedidos = await getPedidosPorFecha(fecha);
   const totales = await getTotalesDia(fecha);
@@ -44,15 +45,46 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
 
   // Filtrar entregas
   let entregados = pedidos.filter((p) => !p.esCobro);
+  if (q) {
+    const busq = q.trim().toLowerCase();
+    entregados = entregados.filter((p) =>
+      p.cliente.nombre.toLowerCase().includes(busq) ||
+      (p.cliente.direccion && p.cliente.direccion.toLowerCase().includes(busq)) ||
+      (p.producto?.nombre && p.producto.nombre.toLowerCase().includes(busq))
+    );
+  }
   if (zona)       entregados = entregados.filter((p) => p.cliente.idZona === Number(zona));
   if (repartidor) entregados = entregados.filter((p) => p.idRepartidor === Number(repartidor));
   if (estado)     entregados = entregados.filter((p) => p.estadoPago === estado);
+  if (formaPago) {
+    entregados = entregados.filter((p) =>
+      p.formaPago === formaPago ||
+      (Array.isArray(p.pagosParciales) && (p.pagosParciales as any[]).some((item) => item.formaPago === formaPago))
+    );
+  }
   if (factura === "PENDIENTE")        entregados = entregados.filter((p) => p.estadoFactura === "PENDIENTE" || (p.requiereFactura && p.estadoFactura !== "EMITIDA"));
   else if (factura === "REQUIERE")    entregados = entregados.filter((p) => p.requiereFactura || p.estadoFactura !== "NO_REQUIERE");
   else if (factura === "EMITIDA")     entregados = entregados.filter((p) => p.estadoFactura === "EMITIDA");
   else if (factura === "NO_REQUIERE") entregados = entregados.filter((p) => !p.requiereFactura && p.estadoFactura === "NO_REQUIERE");
 
-  const cobros = pedidos.filter((p) => p.esCobro);
+  // Filtrar cobros
+  let cobros = pedidos.filter((p) => p.esCobro);
+  if (q) {
+    const busq = q.trim().toLowerCase();
+    cobros = cobros.filter((p) =>
+      p.cliente.nombre.toLowerCase().includes(busq) ||
+      (p.observaciones && p.observaciones.toLowerCase().includes(busq))
+    );
+  }
+  if (zona)       cobros = cobros.filter((p) => p.cliente.idZona === Number(zona));
+  if (repartidor) cobros = cobros.filter((p) => p.idRepartidor === Number(repartidor));
+  if (estado)     cobros = cobros.filter((p) => p.estadoPago === estado);
+  if (formaPago) {
+    cobros = cobros.filter((p) =>
+      p.formaPago === formaPago ||
+      (Array.isArray(p.pagosParciales) && (p.pagosParciales as any[]).some((item) => item.formaPago === formaPago))
+    );
+  }
 
   return (
     <div className="p-8 mx-auto">
@@ -118,6 +150,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
             estadoActual={estado}
             busquedaActual={q}
             facturaActual={factura}
+            formaPagoActual={formaPago}
           />
 
           {/* Tabla de entregas */}
@@ -154,8 +187,11 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                     <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs whitespace-nowrap">
                       <th className="text-left px-4 py-3 font-medium">Cliente</th>
                       <th className="text-left px-4 py-3 font-medium">Concepto / Observaciones</th>
-                      <th className="text-center px-4 py-3 font-medium w-28">Hora</th>
-                      <th className="text-right px-4 py-3 font-medium w-36">Total Cobrado</th>
+                      <th className="text-left px-4 py-3 font-medium">Repartidor</th>
+                      <th className="text-left px-4 py-3 font-medium">Forma de Pago</th>
+                      <th className="text-left px-4 py-3 font-medium">Estado</th>
+                      <th className="text-center px-4 py-3 font-medium w-24">Hora</th>
+                      <th className="text-right px-4 py-3 font-medium w-32">Monto</th>
                       <th className="px-4 py-3 w-28"></th>
                     </tr>
                   </thead>
@@ -173,11 +209,28 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                         <td className="px-4 py-2.5 text-[#9ca3af] text-left">
                           {p.observaciones ?? "Cobranza"}
                         </td>
+                        <td className="px-4 py-2.5 text-[#9ca3af] text-left">
+                          {p.repartidor ? (
+                            <span className="text-[#d1d5db] font-medium">{p.repartidor.nombre}</span>
+                          ) : (
+                            <span className="text-red-400/80 italic text-xs">Sin asignar</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-[#9ca3af] text-left">
+                          {ETIQUETAS_FORMA_PAGO[p.formaPago] ?? p.formaPago}
+                        </td>
+                        <td className="px-4 py-2.5 text-left">
+                          <BadgeEstadoPago estado={p.estadoPago} />
+                        </td>
                         <td className="px-4 py-2.5 text-[#9ca3af] text-center font-mono text-xs">
                           {formatearHora(p.creadoEn)} hs
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-[#4ade80] font-mono">
-                          {formatearPeso(p.montoPagado)}
+                        <td className="px-4 py-2.5 text-right font-semibold font-mono">
+                          {p.estadoPago === "PAGADO" ? (
+                            <span className="text-[#4ade80]">{formatearPeso(p.montoPagado)}</span>
+                          ) : (
+                            <span className="text-yellow-400">{formatearPeso(p.montoTotal)}</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5 text-right w-28">
                           <AccionesPedido pedido={p as unknown as ComponentProps<typeof AccionesPedido>["pedido"]} fecha={fecha} />

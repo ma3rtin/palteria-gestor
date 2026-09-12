@@ -136,7 +136,7 @@ export function FormEditarPedido({
   const totalReq = montoFinal === "" ? 0 : Number(montoFinal);
 
   const totalPagosList = pagosList.reduce((acc, curr) => acc + curr.monto, 0);
-  const montoPagado = esCobro ? totalReq : totalPagosList;
+  const montoPagado = esCobro ? (estadoPago === "PAGADO" ? totalReq : 0) : totalPagosList;
 
   // Recalcular estado de pago según la lista de pagos
   const actualizarEstadoSegunSuma = (nuevaLista: PagoParcialItem[]) => {
@@ -441,10 +441,50 @@ export function FormEditarPedido({
       </div>
 
       {esCobro ? (
-        <>
-          <input type="hidden" name="estadoPago" value="PAGADO" />
-          <input type="hidden" name="montoPagado" value={montoFinal} />
-        </>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Estado del cobro *</label>
+            <select
+              name="estadoPago"
+              required
+              value={estadoPago}
+              onChange={(e) => setEstadoPago(e.target.value)}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
+            >
+              <option value="PAGADO">Cobrado (dinero ya recibido)</option>
+              <option value="PENDIENTE">Pendiente de cobro</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+              Monto cobrado
+            </label>
+            <input
+              name="montoPagado"
+              type="number"
+              required
+              min={0}
+              readOnly
+              value={estadoPago === "PAGADO" ? totalReq : 0}
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] opacity-60 cursor-not-allowed text-white font-mono"
+            />
+          </div>
+          <input
+            type="hidden"
+            name="pagosParcialesJson"
+            value={
+              estadoPago === "PAGADO"
+                ? JSON.stringify([
+                    {
+                      monto: Number(montoFinal) || 0,
+                      formaPago: formaPago,
+                      fecha: fecha,
+                    },
+                  ])
+                : "[]"
+            }
+          />
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -481,20 +521,8 @@ export function FormEditarPedido({
         </div>
       )}
 
-      {/* Desglose de pagos parciales - Siempre visible */}
-      {esCobro ? (
-        <input
-          type="hidden"
-          name="pagosParcialesJson"
-          value={JSON.stringify([
-            {
-              monto: Number(montoFinal) || 0,
-              formaPago: formaPago,
-              fecha: fecha,
-            },
-          ])}
-        />
-      ) : (
+      {/* Desglose de pagos parciales - Solo para pedidos normales */}
+      {!esCobro && (
         <div className="border border-[#2a2d35] bg-[#17191e]/50 rounded-lg p-4 flex flex-col gap-3">
           <div className="flex justify-between items-center pb-2 border-b border-[#2a2d35]">
             <div>

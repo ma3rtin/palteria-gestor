@@ -123,11 +123,14 @@ export async function crearPedido(formData: FormData) {
     observaciones = observaciones ? `${observaciones} ${notaDesc}` : notaDesc;
   }
 
-  // Si es un cobro de dinero, ya está pagado por definición;
-  // si es un CAMBIO sin cargo (reposición), también. Cualquier otro caso empieza PENDIENTE.
-  const estadoPago = esCobro || (formaPago === "CAMBIO" && esReposicion) ? "PAGADO" : "PENDIENTE";
-  const montoPagado = esCobro ? montoTotal : 0;
-  const pagosParciales = esCobro
+  // Si es un cobro de dinero, puede empezar PAGADO o PENDIENTE (según estadoCobro);
+  // si es un CAMBIO sin cargo (reposición), empieza PAGADO. Cualquier otro caso empieza PENDIENTE.
+  const estadoCobro = (formData.get("estadoCobro") as string) || "PAGADO";
+  const estadoPago = esCobro
+    ? (estadoCobro === "PENDIENTE" ? "PENDIENTE" : "PAGADO")
+    : (formaPago === "CAMBIO" && esReposicion ? "PAGADO" : "PENDIENTE");
+  const montoPagado = (esCobro && estadoPago === "PAGADO") ? montoTotal : 0;
+  const pagosParciales = (esCobro && estadoPago === "PAGADO")
     ? [
         {
           monto: montoTotal,
@@ -178,9 +181,24 @@ export async function crearPedido(formData: FormData) {
 
 export async function marcarPagado(idPedido: number) {
   const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+  const fechaStr = pedido.fecha
+    ? (pedido.fecha instanceof Date ? pedido.fecha.toISOString().split("T")[0] : String(pedido.fecha).split("T")[0])
+    : new Date().toISOString().split("T")[0];
+  const formaPago = pedido.formaPago ?? "EFECTIVO";
+
   await prisma.pedido.update({
     where: { id: idPedido },
-    data: { estadoPago: "PAGADO", montoPagado: pedido.montoTotal },
+    data: {
+      estadoPago: "PAGADO",
+      montoPagado: pedido.montoTotal,
+      pagosParciales: [
+        {
+          monto: pedido.montoTotal,
+          formaPago: formaPago,
+          fecha: fechaStr,
+        },
+      ],
+    },
   });
   revalidatePath("/pedidos/[fecha]", "page");
   revalidatePath("/");

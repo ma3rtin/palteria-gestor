@@ -47,17 +47,25 @@ Este archivo registra el historial de desarrollo por sesiones y las tareas pendi
 | **37 — Fase 1 (Quick Wins: Pedidos, Filtros y Repartidores)** | ✅ | Rama `feature/fase-1-quick-wins`. Pedidos sin repartidor asignado resaltados en rojo con badge visual (`tabla-entregas.tsx`). Botón de copiado exclusivo del nombre de cliente para búsqueda directa en WhatsApp con toast. Filtro interactivo de facturación en barra de pedidos diarios (Factura pendiente, Requiere factura, Emitida, No requiere). Visualización del repartidor en pedidos de clientes en cobranzas pendientes, pagos semanales por sub-local y detalle de cliente (pestañas de pedidos y pagos). Suite de 33 tests pasando y build de producción limpio. |
 | **38 — Fase 2 (Pedidos, Cobranzas y Descuentos)** | ✅ | Rama `feature/fase-2-pedidos-y-cobranzas`. Cobranzas puras de dinero (#2) sin exigir producto, maduración ni cajas (campos opcionales en DB y sin afectación de stock). Selector de modo en nuevo pedido simplificado a "Entrega" y "Cobranzas". Edición interactiva de producto y maduración en pedidos realizados (#3) con ajuste inteligente de stock (reintegro al anterior y descuento al nuevo). Opción de descuento por pago en efectivo (#10) con input personalizable por caja (oculto por defecto, visible al marcar checkbox, valor por defecto de $6.000) en carga de pedidos, edición y cobro parcial con nota automática en observaciones. Columna de repartidor en tabla de pedidos de hoy en Inicio (`/`). Fix de desfase de zona horaria en formateo de fechas de DB (evitando que `2026-09-07` se muestre como `06/09/26` en historiales). Suite de 43 tests pasando y build de producción verificado. |
 | **39 — Fix Forma de Pago Semanal y Edición** | ✅ | Rama `fix/forma-pago-semanal-edicion`. Corrección de error `PrismaClientValidationError` al editar pedidos con pago semanal. Remoción de atributo `disabled` en selectores de forma de pago en alta y edición, permitiendo cambiar libremente de método y asegurando que `formaPago` se envíe en FormData con fallback seguro en `actualizarPedido`. Suite de 44 tests pasando y build verificado. |
+| **40 — Grupo 1 (Quick Wins: Buscador, Filtro Forma de Pago y Cobranzas)** | ✅ | Rama `feature/grupo-1-quick-wins`. Corrección del buscador de clientes en pedidos diarios (#2) aplicando el parámetro `q` sobre entregas y cobros por nombre, dirección y producto. Selector de forma de pago (#3) en la barra de filtros (Efectivo, Transferencia, Pago Semanal, Cambio). Borrado y confirmación de cobranzas (#1): selector entre cobro ya recibido y pendiente de cobro en alta y edición, botón verde "Cobrado" en lista diaria para confirmar cuando ingrese el dinero, habilitación del botón `✕` para eliminar cobranzas y pedidos con confirmación nativa, y enriquecimiento de la tabla de cobros con Repartidor, Forma de pago y Badge de estado. Suite de 45 tests pasando y build de producción verificado. |
+| **41 — Modal de Confirmación, Fix de Monto y Sidebar Scrolleable** | ✅ | Rama `feature/grupo-1-quick-wins`. Creación de componente reusable `ModalConfirmacion` y hook `useModalConfirmacion` con diseño Tailwind v4 oscuro y accesibilidad (Escape, backdrop blur, scroll lock, loading state, variantes peligro/advertencia/info), reemplazando el `window.confirm` del navegador al eliminar cobranzas y pedidos con advertencia asertiva. Corrección de reseteo no deseado del monto ingresado (`montoManual`) al cambiar la forma de pago en el formulario de pedidos/cobranzas. Aislamiento e independización de scroll (`layout.tsx` con `h-full overflow-hidden` en body, `overflow-y-auto` en main y `overflow-y-auto` en aside con `overscroll-y-contain`), evitando que se desborde al body o se oculten botones tras el usuario/logout. Suite de 45 tests pasando y build limpio. |
 
 ---
 
 ## 2. Backlog Activo
 
-### Prioritario / Próximos Pasos (Requests de Juani)
-- **Fase 3: Inventario y Sucursales Propias**:
-  - **4. Sector Palterías**: Módulo para registrar y sumar stock enviado a Paltería Haedo y Paltería Castelar.
-  - **8. Stock diario**: Dashboard de balance diario de cajas (Stock inicial + Ingresos − Salidas = Stock final).
-- **Fase 4: Estructural / Heavy DB**:
-  - **1. Múltiples marcas por pedido**: Migración a maestro-detalle (`Pedido` -> `ItemsPedido`).
+### Prioritario / Próximos Pasos (Requerimientos de Juani)
+- **GRUPO 1 — PRIORIDAD**:
+  - **4. Dos marcas en un pedido**: Permitir cargar dos marcas/productos diferentes dentro del mismo pedido.
+- **GRUPO 2 — MENOR PRIORIDAD**:
+  - **5. Cantidad de cajas por repartidor**: Mostrar el total de cajas que tiene cargadas cada repartidor.
+  - **6. Mail del cliente**: Que junto al CUIT/CUIL también aparezca el mail para facilitar el envío de facturas.
+  - **7. Opción de factura**: Check para indicar si el cliente necesita factura en ese pedido.
+  - **8. Identificar reventas**: Resaltar con algún color o indicador los clientes que sean reventa.
+  - **9. Stock diario**: Mostrar claramente la cantidad de stock disponible del día y control de jornada.
+  - **10. Filtro por zona**: Filtrar usando las iniciales de cada zona (ZO, CB, etc.).
+  - **11. Repartidor en planilla principal**: Columna repartidor visible en tabla de pedidos.
+  - **12. Sector Palterías**: Módulo para registrar y controlar la mercadería enviada a las sucursales propias.
 - **Etiquetas para impresión**: Formatear etiquetas para pegar en hoja e imprimir.
 - **Exportar Excel de Pedidos y Cobranzas**: Exportar pedidos y cuentas corrientes a `.xlsx`.
 

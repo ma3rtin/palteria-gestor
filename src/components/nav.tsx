@@ -51,8 +51,8 @@ export default function Nav({ usuario, rol }: Props) {
   });
 
   return (
-    <aside className="w-52 h-screen sticky top-0 flex flex-col shrink-0 bg-[#13161e]">
-      <div className="px-5 py-4 border-b border-[#1f2330]">
+    <aside className="w-52 h-full flex flex-col shrink-0 bg-[#13161e] border-r border-[#1f2330] overflow-y-auto overflow-x-hidden overscroll-y-contain select-none">
+      <div className="px-5 py-4 border-b border-[#1f2330] shrink-0 sticky top-0 bg-[#13161e] z-10">
         <div className="text-white font-bold text-sm tracking-wide">La Paltería</div>
         <div className="text-[#a3e635] text-[10px] tracking-widest uppercase mt-0.5">Gestor</div>
       </div>
@@ -79,7 +79,7 @@ export default function Nav({ usuario, rol }: Props) {
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="mt-2 mb-1 px-3 py-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-[#a3e635] w-full text-left font-semibold hover:bg-[#22252e] rounded transition-colors group"
+          className="mt-2 mb-1 px-3 py-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-[#a3e635] w-full text-left font-semibold hover:bg-[#22252e] rounded transition-colors group cursor-pointer"
         >
           <span>Configuración</span>
           <ChevronDown
@@ -112,7 +112,7 @@ export default function Nav({ usuario, rol }: Props) {
       </nav>
 
       {/* Usuario + cerrar sesión */}
-      <div className="px-4 py-3 border-t border-[#1f2330]">
+      <div className="px-4 py-3 border-t border-[#1f2330] shrink-0 mt-auto bg-[#13161e]">
         {usuario && (
           <Link
             href="/perfil"
@@ -124,7 +124,7 @@ export default function Nav({ usuario, rol }: Props) {
         )}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex items-center gap-2 text-xs text-[#6b7280] hover:text-[#f9fafb] transition-colors w-full"
+          className="flex items-center gap-2 text-xs text-[#6b7280] hover:text-[#f9fafb] transition-colors w-full cursor-pointer"
         >
           <LogOut size={13} />
           Cerrar sesión
