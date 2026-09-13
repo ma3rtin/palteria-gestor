@@ -13,6 +13,9 @@ export async function getPedidosPorFecha(fechaStr: string) {
     include: {
       cliente: { include: { zona: true } },
       producto: true,
+      items: {
+        include: { producto: true },
+      },
       repartidor: true,
       usuario: { select: { id: true, nombre: true } },
     },
@@ -66,17 +69,64 @@ export async function getCatalogoNuevoPedido() {
   return { clientes, productos, repartidores };
 }
 
+export interface ItemPedidoInput {
+  idProducto: number;
+  cajas: number;
+  maduracion: string;
+  precioUnitario?: number;
+  subtotal?: number;
+}
+
 export async function crearPedido(formData: FormData) {
   const fecha = formData.get("fecha") as string;
   const idCliente = Number(formData.get("idCliente"));
   const esCobro = formData.get("esCobro") === "on" || formData.get("tipoOperacion") === "COBRANZA";
 
   const idProductoRaw = formData.get("idProducto");
-  const idProducto = idProductoRaw && !isNaN(Number(idProductoRaw)) && Number(idProductoRaw) > 0 ? Number(idProductoRaw) : null;
+  const idProductoLegacy = idProductoRaw && !isNaN(Number(idProductoRaw)) && Number(idProductoRaw) > 0 ? Number(idProductoRaw) : null;
   const maduracionRaw = formData.get("maduracion") as string | null;
-  const maduracion = maduracionRaw?.trim() ? maduracionRaw.trim().toUpperCase() : null;
+  const maduracionLegacy = maduracionRaw?.trim() ? maduracionRaw.trim().toUpperCase() : null;
   const cajasRaw = formData.get("cajas") as string | null;
-  const cajas = esCobro ? 0 : (cajasRaw ? parseFloat(cajasRaw) : 0);
+  const cajasLegacy = esCobro ? 0 : (cajasRaw ? parseFloat(cajasRaw) : 0);
+
+  // Parsear itemsJson si viene del formulario dinámico
+  const itemsJsonRaw = formData.get("itemsJson") as string | null;
+  let itemsParsed: ItemPedidoInput[] = [];
+  if (itemsJsonRaw) {
+    try {
+      const parsed = JSON.parse(itemsJsonRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        itemsParsed = parsed
+          .filter((it: any) => it && it.idProducto && !isNaN(Number(it.idProducto)) && Number(it.idProducto) > 0)
+          .map((it: any) => ({
+            idProducto: Number(it.idProducto),
+            cajas: parseFloat(it.cajas) || 0,
+            maduracion: String(it.maduracion ?? "").trim().toUpperCase(),
+            precioUnitario: it.precioUnitario ? parseFloat(it.precioUnitario) : undefined,
+            subtotal: it.subtotal ? parseFloat(it.subtotal) : 0,
+          }));
+      }
+    } catch (e) {
+      console.error("Error al parsear itemsJson en crearPedido:", e);
+    }
+  }
+
+  // Fallback si no vino itemsJson pero sí idProducto tradicional (compatibilidad tests/legacy)
+  if (!esCobro && itemsParsed.length === 0 && idProductoLegacy && cajasLegacy > 0) {
+    itemsParsed = [{
+      idProducto: idProductoLegacy,
+      cajas: cajasLegacy,
+      maduracion: maduracionLegacy || "",
+      subtotal: parseFloat(formData.get("montoTotal") as string) || 0,
+    }];
+  }
+
+  const totalCajas = esCobro
+    ? 0
+    : (itemsParsed.length > 0
+        ? itemsParsed.reduce((sum, it) => sum + it.cajas, 0)
+        : cajasLegacy);
+
   const montoTotal = parseFloat(formData.get("montoTotal") as string) || 0;
   const formaPago = formData.get("formaPago") as string;
   const comisionRevendedor = parseFloat(formData.get("comisionRevendedor") as string) || 0;
@@ -94,14 +144,19 @@ export async function crearPedido(formData: FormData) {
     throw new Error("Debe seleccionar un cliente válido.");
   }
   if (!esCobro) {
-    if (!idProducto || idProducto <= 0) {
-      throw new Error("Debe seleccionar un producto válido.");
+    if (itemsParsed.length === 0) {
+      throw new Error("Debe agregar al menos un producto al pedido.");
     }
-    if (!maduracion) {
-      throw new Error("La maduración es requerida.");
-    }
-    if (isNaN(cajas) || cajas <= 0) {
-      throw new Error("La cantidad de cajas debe ser un número válido mayor a cero.");
+    for (const item of itemsParsed) {
+      if (!item.idProducto || item.idProducto <= 0) {
+        throw new Error("Debe seleccionar un producto válido.");
+      }
+      if (isNaN(item.cajas) || item.cajas <= 0) {
+        throw new Error("La cantidad de cajas de cada producto debe ser mayor a cero.");
+      }
+      if (!item.maduracion) {
+        throw new Error("La maduración es requerida para cada producto.");
+      }
     }
   }
   if (isNaN(montoTotal) || montoTotal < 0) {
@@ -115,10 +170,10 @@ export async function crearPedido(formData: FormData) {
   }
 
   // Si se aplicó descuento por pago en efectivo
-  if (descuentoEfectivo && formaPago === "EFECTIVO" && cajas > 0 && !esCobro) {
+  if (descuentoEfectivo && formaPago === "EFECTIVO" && totalCajas > 0 && !esCobro) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
     const descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
-    const desc = cajas * descuentoPorCaja;
+    const desc = totalCajas * descuentoPorCaja;
     const notaDesc = `[Desc. efectivo: -$${desc.toLocaleString("es-AR")}]`;
     observaciones = observaciones ? `${observaciones} ${notaDesc}` : notaDesc;
   }
@@ -140,6 +195,13 @@ export async function crearPedido(formData: FormData) {
       ]
     : null;
 
+  const primerProducto = esCobro ? null : (itemsParsed[0]?.idProducto ?? null);
+  const maduracionResumen = esCobro
+    ? null
+    : (itemsParsed.length === 1
+        ? itemsParsed[0].maduracion
+        : itemsParsed.map((i) => `${i.cajas} ${i.maduracion}`).join(" + "));
+
   const session = await auth();
   const idUsuario = session?.user?.id ? Number(session.user.id) : null;
 
@@ -147,9 +209,9 @@ export async function crearPedido(formData: FormData) {
     data: {
       fecha: parseFechaRuta(fecha),
       idCliente,
-      idProducto,
-      maduracion,
-      cajas,
+      idProducto: primerProducto,
+      maduracion: maduracionResumen,
+      cajas: totalCajas,
       montoTotal,
       formaPago: formaPago as never,
       estadoPago: estadoPago as never,
@@ -163,14 +225,29 @@ export async function crearPedido(formData: FormData) {
       comisionRevendedor,
       observaciones,
       pagosParciales: pagosParciales ? (pagosParciales as never) : undefined,
+      items: (!esCobro && itemsParsed.length > 0)
+        ? {
+            create: itemsParsed.map((i) => ({
+              idProducto: i.idProducto,
+              cajas: i.cajas,
+              maduracion: i.maduracion,
+              precioUnitario: i.precioUnitario,
+              subtotal: i.subtotal ?? 0,
+            })),
+          }
+        : undefined,
     },
   });
 
-  if (!esCobro && idProducto && cajas > 0) {
-    await prisma.producto.update({
-      where: { id: idProducto },
-      data: { stockCajas: { decrement: cajas } },
-    });
+  if (!esCobro && itemsParsed.length > 0) {
+    for (const it of itemsParsed) {
+      if (it.idProducto && it.cajas > 0) {
+        await prisma.producto.update({
+          where: { id: it.idProducto },
+          data: { stockCajas: { decrement: it.cajas } },
+        });
+      }
+    }
   }
 
   revalidatePath(`/pedidos/${fecha}`);
@@ -279,14 +356,28 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
 }
 
 export async function eliminarPedido(idPedido: number, fechaStr: string) {
-  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
-  await prisma.pedido.delete({ where: { id: idPedido } });
-  if (!pedido.esCobro && pedido.idProducto && pedido.cajas > 0) {
-    await prisma.producto.update({
-      where: { id: pedido.idProducto },
-      data: { stockCajas: { increment: pedido.cajas } },
-    });
+  const pedido = await prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    include: { items: true },
+  });
+  if (!pedido.esCobro) {
+    if (pedido.items && pedido.items.length > 0) {
+      for (const item of pedido.items) {
+        if (item.idProducto && item.cajas > 0) {
+          await prisma.producto.update({
+            where: { id: item.idProducto },
+            data: { stockCajas: { increment: item.cajas } },
+          });
+        }
+      }
+    } else if (pedido.idProducto && pedido.cajas > 0) {
+      await prisma.producto.update({
+        where: { id: pedido.idProducto },
+        data: { stockCajas: { increment: pedido.cajas } },
+      });
+    }
   }
+  await prisma.pedido.delete({ where: { id: idPedido } });
   revalidatePath(`/pedidos/${fechaStr}`);
   revalidatePath("/productos");
   revalidatePath("/");
@@ -300,6 +391,9 @@ export async function getPedido(idPedido: number) {
         include: { revendedor: true }
       },
       producto: true,
+      items: {
+        include: { producto: true }
+      },
       repartidor: true,
       usuario: { select: { id: true, nombre: true } },
     },
@@ -334,34 +428,77 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
     throw new Error("La comisión del revendedor no puede ser negativa.");
   }
 
-  const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: idPedido } });
+  const pedido = await prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    include: { items: true },
+  });
   const formaPago = (formData.get("formaPago") as string) || pedido.formaPago;
 
+  // Parsear itemsJson si viene del formulario dinámico
+  const itemsJsonRaw = formData.get("itemsJson") as string | null;
+  let itemsParsed: ItemPedidoInput[] = [];
+  if (itemsJsonRaw) {
+    try {
+      const parsed = JSON.parse(itemsJsonRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        itemsParsed = parsed
+          .filter((it: any) => it && it.idProducto && !isNaN(Number(it.idProducto)) && Number(it.idProducto) > 0)
+          .map((it: any) => ({
+            idProducto: Number(it.idProducto),
+            cajas: parseFloat(it.cajas) || 0,
+            maduracion: String(it.maduracion ?? "").trim().toUpperCase(),
+            precioUnitario: it.precioUnitario ? parseFloat(it.precioUnitario) : undefined,
+            subtotal: it.subtotal ? parseFloat(it.subtotal) : 0,
+          }));
+      }
+    } catch (e) {
+      console.error("Error al parsear itemsJson en actualizarPedido:", e);
+    }
+  }
+
+  // Fallback para pedidos legacy / tests sin itemsJson
   const idProductoRaw = formData.get("idProducto");
-  const nuevoIdProducto = idProductoRaw ? Number(idProductoRaw) : (!esCobro ? pedido.idProducto : null);
-  const nuevaMaduracion = formData.has("maduracion")
+  const nuevoIdProductoLegacy = idProductoRaw ? Number(idProductoRaw) : (!esCobro ? pedido.idProducto : null);
+  const nuevaMaduracionLegacy = formData.has("maduracion")
     ? ((formData.get("maduracion") as string)?.trim().toUpperCase() || null)
     : (!esCobro ? pedido.maduracion : null);
+  const cajasLegacy = esCobro ? 0 : (formData.has("cajas") ? parseFloat(formData.get("cajas") as string) : pedido.cajas);
 
-  const cajas = esCobro ? 0 : parseFloat(formData.get("cajas") as string);
+  if (!esCobro && itemsParsed.length === 0 && nuevoIdProductoLegacy && cajasLegacy > 0) {
+    itemsParsed = [{
+      idProducto: nuevoIdProductoLegacy,
+      cajas: cajasLegacy,
+      maduracion: nuevaMaduracionLegacy || "",
+      subtotal: montoTotal,
+    }];
+  }
+
+  const totalCajas = esCobro
+    ? 0
+    : (itemsParsed.length > 0 ? itemsParsed.reduce((s, it) => s + it.cajas, 0) : cajasLegacy);
 
   if (!esCobro) {
-    if (!nuevoIdProducto || nuevoIdProducto <= 0) {
-      throw new Error("Debe seleccionar un producto válido.");
+    if (itemsParsed.length === 0) {
+      throw new Error("Debe agregar al menos un producto al pedido.");
     }
-    if (!nuevaMaduracion) {
-      throw new Error("La maduración es requerida.");
-    }
-    if (isNaN(cajas) || cajas < 0) {
-      throw new Error("La cantidad de cajas debe ser un número válido mayor o igual a cero.");
+    for (const item of itemsParsed) {
+      if (!item.idProducto || item.idProducto <= 0) {
+        throw new Error("Debe seleccionar un producto válido.");
+      }
+      if (!item.maduracion) {
+        throw new Error("La maduración es requerida.");
+      }
+      if (isNaN(item.cajas) || item.cajas < 0) {
+        throw new Error("La cantidad de cajas debe ser un número válido mayor o igual a cero.");
+      }
     }
   }
 
   // Si aplica descuento por efectivo al editar
-  if (descuentoEfectivo && formaPago === "EFECTIVO" && cajas > 0 && !esCobro) {
+  if (descuentoEfectivo && formaPago === "EFECTIVO" && totalCajas > 0 && !esCobro) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
     const descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
-    const desc = cajas * descuentoPorCaja;
+    const desc = totalCajas * descuentoPorCaja;
     const notaDesc = `[Desc. efectivo: -$${desc.toLocaleString("es-AR")}]`;
     if (observaciones && observaciones.includes("[Desc. efectivo")) {
       observaciones = observaciones.replace(/\[Desc\. efectivo:[^\]]*\]/, notaDesc);
@@ -382,58 +519,64 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
     }
   }
 
-  // Ajuste de stock según la transición
-  if (pedido.esCobro && !esCobro) {
-    // Transición A: Era cobro (stock no afectado) y ahora es pedido (descontar stock de cajas del nuevo producto)
-    if (nuevoIdProducto && cajas > 0) {
-      await prisma.producto.update({
-        where: { id: nuevoIdProducto },
-        data: { stockCajas: { decrement: cajas } },
-      });
-    }
-  } else if (!pedido.esCobro && esCobro) {
-    // Transición B: Era pedido (descontó stock) y ahora es cobro (devolver stock original al producto anterior)
-    if (pedido.idProducto && pedido.cajas > 0) {
+  // Reversión de stock de los ítems o producto anterior
+  if (!pedido.esCobro) {
+    if (pedido.items && pedido.items.length > 0) {
+      for (const oldItem of pedido.items) {
+        if (oldItem.idProducto && oldItem.cajas > 0) {
+          await prisma.producto.update({
+            where: { id: oldItem.idProducto },
+            data: { stockCajas: { increment: oldItem.cajas } },
+          });
+        }
+      }
+    } else if (pedido.idProducto && pedido.cajas > 0) {
       await prisma.producto.update({
         where: { id: pedido.idProducto },
         data: { stockCajas: { increment: pedido.cajas } },
       });
     }
-  } else if (!pedido.esCobro && !esCobro) {
-    // Transición C: Sigue siendo pedido
-    if (nuevoIdProducto !== pedido.idProducto) {
-      // Devolver stock al producto anterior
-      if (pedido.idProducto && pedido.cajas > 0) {
+  }
+
+  // Recreación de ítems y descuento de stock
+  await prisma.itemPedido.deleteMany({
+    where: { idPedido },
+  });
+
+  if (!esCobro && itemsParsed.length > 0) {
+    for (const it of itemsParsed) {
+      await prisma.itemPedido.create({
+        data: {
+          idPedido,
+          idProducto: it.idProducto,
+          cajas: it.cajas,
+          maduracion: it.maduracion,
+          precioUnitario: it.precioUnitario,
+          subtotal: it.subtotal ?? 0,
+        },
+      });
+      if (it.idProducto && it.cajas > 0) {
         await prisma.producto.update({
-          where: { id: pedido.idProducto },
-          data: { stockCajas: { increment: pedido.cajas } },
-        });
-      }
-      // Descontar stock del nuevo producto
-      if (nuevoIdProducto && cajas > 0) {
-        await prisma.producto.update({
-          where: { id: nuevoIdProducto },
-          data: { stockCajas: { decrement: cajas } },
-        });
-      }
-    } else {
-      // Mismo producto, ajustar diferencia habitual
-      const diferencia = pedido.cajas - cajas;
-      if (diferencia !== 0 && pedido.idProducto) {
-        await prisma.producto.update({
-          where: { id: pedido.idProducto },
-          data: { stockCajas: { increment: diferencia } },
+          where: { id: it.idProducto },
+          data: { stockCajas: { decrement: it.cajas } },
         });
       }
     }
   }
 
+  const primerProducto = esCobro ? null : (itemsParsed[0]?.idProducto ?? null);
+  const maduracionResumen = esCobro
+    ? null
+    : (itemsParsed.length === 1
+        ? itemsParsed[0].maduracion
+        : itemsParsed.map((i) => `${i.cajas} ${i.maduracion}`).join(" + "));
+
   await prisma.pedido.update({
     where: { id: idPedido },
     data: {
-      idProducto: nuevoIdProducto,
-      maduracion: nuevaMaduracion,
-      cajas,
+      idProducto: primerProducto,
+      maduracion: maduracionResumen,
+      cajas: totalCajas,
       montoTotal,
       formaPago: formaPago as never,
       estadoPago: estadoPago as never,

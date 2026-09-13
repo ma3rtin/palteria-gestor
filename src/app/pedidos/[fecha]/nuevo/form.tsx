@@ -2,7 +2,9 @@
 
 import { BotonSubmit } from "@/components/boton-submit";
 import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { formatearFechaCorta, formatearPeso } from "@/lib/utils";
+import { SelectorProductoBuscador } from "@/components/selector-producto-buscador";
 
 interface Cliente {
   id: number;
@@ -40,6 +42,13 @@ interface Props {
   clienteInicialId?: number;
 }
 
+interface ItemFormRow {
+  key: string;
+  idProducto: number | "";
+  cajas: number | "";
+  maduracion: string;
+}
+
 const FORMAS_PAGO = [
   { value: "EFECTIVO",      label: "Efectivo" },
   { value: "TRANSFERENCIA", label: "Transferencia" },
@@ -60,13 +69,15 @@ export function FormNuevoPedido({
 
   const [esCobro, setEsCobro] = useState(false);
   const [idClienteSelec, setIdClienteSelec] = useState<number | null>(clienteInicialId ?? null);
-  const [idProductoSelec, setIdProductoSelec] = useState<number | null>(null);
-  const [cajas, setCajas] = useState<number | "">(1);
+  const [items, setItems] = useState<ItemFormRow[]>([
+    { key: "item-1", idProducto: "", cajas: 1, maduracion: "" },
+  ]);
   const [montoManual, setMontoManual] = useState<number | "" | null>(null);
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">("");
   const [busqueda, setBusqueda] = useState(initialCliente ? `${initialCliente.nombre} · ${initialCliente.zona.nombre}` : "");
   const [mostrarLista, setMostrarLista] = useState(false);
   const [errorCliente, setErrorCliente] = useState(false);
+  const [errorItems, setErrorItems] = useState<string | null>(null);
   const [formaPago, setFormaPago] = useState(initialCliente?.formaPagoPref ?? "EFECTIVO");
   const [esReposicion, setEsReposicion] = useState(true);
   const [descuentoEfectivo, setDescuentoEfectivo] = useState(false);
@@ -74,13 +85,49 @@ export function FormNuevoPedido({
   const [estadoCobro, setEstadoCobro] = useState<"PAGADO" | "PENDIENTE">("PAGADO");
 
   const clienteSelec = clientes.find((c) => c.id === idClienteSelec);
-  const productoSelec = productos.find((p) => p.id === idProductoSelec);
+
+  function agregarItem() {
+    setItems((prev) => [
+      ...prev,
+      { key: `item-${Date.now()}-${Math.random()}`, idProducto: "", cajas: 1, maduracion: "" },
+    ]);
+    setErrorItems(null);
+  }
+
+  function eliminarItem(index: number) {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((_, i) => i !== index));
+    setMontoManual(null);
+    setErrorItems(null);
+  }
+
+  function actualizarItem(index: number, campo: keyof ItemFormRow, valor: any) {
+    setItems((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [campo]: valor };
+      return copy;
+    });
+    setMontoManual(null);
+    setErrorItems(null);
+  }
+
+  const totalCajas = esCobro
+    ? 0
+    : items.reduce((sum, it) => sum + (typeof it.cajas === "number" ? it.cajas : 0), 0);
 
   const esCambio = formaPago === "CAMBIO";
   const valorDescCaja = typeof descuentoPorCaja === "number" ? descuentoPorCaja : 0;
-  const descuentoMonto = (!esCobro && descuentoEfectivo && formaPago === "EFECTIVO" && cajas !== "") ? (Number(cajas) * valorDescCaja) : 0;
-  const precioBase = productoSelec ? Math.round(productoSelec.precioReferencia * (cajas === "" ? 0 : cajas)) : 0;
-  const montoCalculado = esCobro ? "" : (productoSelec ? Math.max(0, precioBase - descuentoMonto) : "");
+  const descuentoMonto = (!esCobro && descuentoEfectivo && formaPago === "EFECTIVO" && totalCajas > 0)
+    ? (totalCajas * valorDescCaja)
+    : 0;
+
+  const precioBase = items.reduce((sum, it) => {
+    if (!it.idProducto || typeof it.cajas !== "number") return sum;
+    const prod = productos.find((p) => p.id === it.idProducto);
+    return sum + (prod ? Math.round(prod.precioReferencia * it.cajas) : 0);
+  }, 0);
+
+  const montoCalculado = esCobro ? "" : (precioBase > 0 ? Math.max(0, precioBase - descuentoMonto) : "");
   const montoFinal = esCobro ? (montoManual ?? "") : (esCambio && esReposicion ? 0 : (montoManual ?? montoCalculado));
   const pagoHabitual = clienteSelec ? FORMAS_PAGO.find((f) => f.value === clienteSelec.formaPagoPref)?.label : null;
 
@@ -92,10 +139,36 @@ export function FormNuevoPedido({
       )
     : clientes;
 
+  const itemsParaEnvio = items
+    .filter((it) => it.idProducto !== "" && typeof it.cajas === "number" && it.cajas > 0)
+    .map((it) => {
+      const prod = productos.find((p) => p.id === it.idProducto);
+      const precioUnit = prod?.precioReferencia ?? 0;
+      const sub = Math.round(precioUnit * (it.cajas as number));
+      return {
+        idProducto: Number(it.idProducto),
+        cajas: Number(it.cajas),
+        maduracion: it.maduracion.trim().toUpperCase(),
+        precioUnitario: precioUnit,
+        subtotal: sub,
+      };
+    });
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (!idClienteSelec) {
       e.preventDefault();
       setErrorCliente(true);
+      return;
+    }
+    if (!esCobro) {
+      if (
+        items.length === 0 ||
+        items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0 || !it.maduracion.trim())
+      ) {
+        e.preventDefault();
+        setErrorItems("Por favor completá los datos de todos los productos (producto, maduración y cantidad mayor a cero).");
+        return;
+      }
     }
   }
 
@@ -115,6 +188,18 @@ export function FormNuevoPedido({
     >
       <input type="hidden" name="fecha" value={fecha} />
       <input type="hidden" name="esCobro" value={esCobro ? "on" : ""} />
+      {!esCobro && (
+        <>
+          <input type="hidden" name="itemsJson" value={JSON.stringify(itemsParaEnvio)} />
+          <input type="hidden" name="cajas" value={totalCajas} />
+          {items.length > 0 && (
+            <>
+              <input type="hidden" name="idProducto" value={items[0].idProducto} />
+              <input type="hidden" name="maduracion" value={items[0].maduracion} />
+            </>
+          )}
+        </>
+      )}
 
       {/* Selector de Modo: Entrega vs Cobranza */}
       <div className="flex rounded-lg bg-[#17191e] p-1 border border-[#2a2d35]">
@@ -254,100 +339,154 @@ export function FormNuevoPedido({
         </div>
       ) : (
         <>
-          {/* Producto + Maduración */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#f9fafb] mb-1">Producto *</label>
-              <select
-                name="idProducto"
-                required
-                value={idProductoSelec ?? ""}
-                onChange={(e) => {
-                  setIdProductoSelec(Number(e.target.value));
-                  setMontoManual(null);
-                }}
-                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
-              >
-                <option value="">Seleccionar...</option>
-                {productos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} {p.fechaIngreso ? `(${formatearFechaCorta(p.fechaIngreso)})` : ""}
-                  </option>
-                ))}
-              </select>
-              {productoSelec && (
-                <p className={`text-xs mt-1 ${productoSelec.stockCajas < (cajas === "" ? 0 : cajas) ? "text-red-400" : "text-[#6b7280]"}`}>
-                  Stock: <span className="font-medium">{productoSelec.stockCajas} cajas</span>
-                  {productoSelec.kgPorCaja && (
-                    <span className="ml-2">· {productoSelec.kgPorCaja} kg/caja</span>
-                  )}
-                  {productoSelec.stockCajas < (cajas === "" ? 0 : cajas) && (
-                    <span className="ml-2 font-medium">— insuficiente</span>
-                  )}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#f9fafb] mb-1">Maduración *</label>
-              <input
-                name="maduracion"
-                required
-                list="maduraciones"
-                placeholder="PF-SEMI, VERDE..."
-                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
-              />
-              <datalist id="maduraciones">
-                {maduracionesSugeridas.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </div>
-          </div>
-
-          {/* Cajas + Monto */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cajas *</label>
-              <input
-                name="cajas"
-                type="number"
-                required
-                min={0.5}
-                step={0.5}
-                placeholder="0"
-                value={cajas}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCajas(val === "" ? "" : parseFloat(val));
-                  setMontoManual(null);
-                }}
-                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-                {esCambio && !esReposicion ? "Diferencia a cobrar *" : "Monto total *"}
-                {!esCambio && productoSelec && montoManual === null && (
-                  <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
-                )}
-                {esCambio && esReposicion && (
-                  <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
-                )}
+          {/* Sección de Productos */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-[#f9fafb]">
+                {items.length > 1 ? "Productos *" : "Producto *"}
               </label>
-              <input
-                name="montoTotal"
-                type="number"
-                required
-                min={0}
-                placeholder="0"
-                value={montoFinal}
-                readOnly={esCambio && esReposicion}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setMontoManual(val === "" ? "" : parseInt(val));
-                }}
-                className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] read-only:opacity-40 read-only:cursor-not-allowed"
-              />
+              <button
+                type="button"
+                onClick={agregarItem}
+                className="inline-flex items-center gap-1.5 text-xs text-[#a3e635] hover:text-[#84cc16] font-medium transition-colors cursor-pointer py-1 px-2 rounded hover:bg-[#a3e635]/10"
+              >
+                <Plus size={14} />
+                <span>Agregar otro producto</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {items.map((item, idx) => {
+                const prodSelec = productos.find((p) => p.id === item.idProducto);
+                const stockInsuficiente = prodSelec && typeof item.cajas === "number" && prodSelec.stockCajas < item.cajas;
+                const otrosIdsSeleccionados = items
+                  .filter((_, i) => i !== idx)
+                  .map((it) => it.idProducto)
+                  .filter((id): id is number => typeof id === "number" && id > 0);
+
+                return (
+                  <div
+                    key={item.key}
+                    className="bg-[#17191e] border border-[#2a2d35] rounded-lg p-3.5 flex flex-col gap-3"
+                  >
+                    <div className="flex items-center justify-between text-xs text-[#6b7280]">
+                      <span className="font-semibold uppercase tracking-wider text-[#9ca3af]">
+                        {items.length > 1 ? `Producto #${idx + 1}` : "Detalle del producto"}
+                      </span>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => eliminarItem(idx)}
+                          className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-950/40 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          title="Eliminar este producto"
+                        >
+                          <Trash2 size={13} />
+                          <span>Quitar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                      {/* Producto */}
+                      <div className="md:col-span-6">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Producto *</label>
+                        <SelectorProductoBuscador
+                          productos={productos}
+                          idSeleccionado={item.idProducto}
+                          onSeleccionar={(val) => actualizarItem(idx, "idProducto", val)}
+                          productosExcluidosIds={otrosIdsSeleccionados}
+                          required={!esCobro}
+                        />
+                        {prodSelec && (
+                          <p className={`text-xs mt-1 ${stockInsuficiente ? "text-red-400" : "text-[#6b7280]"}`}>
+                            Stock: <span className="font-medium">{prodSelec.stockCajas} cajas</span>
+                            {prodSelec.kgPorCaja && (
+                              <span className="ml-2">· {prodSelec.kgPorCaja} kg/caja</span>
+                            )}
+                            {stockInsuficiente && (
+                              <span className="ml-2 font-medium">— insuficiente</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Maduración */}
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración *</label>
+                        <input
+                          value={item.maduracion}
+                          required={!esCobro}
+                          list="maduraciones"
+                          placeholder="PF-SEMI, VERDE..."
+                          onChange={(e) => actualizarItem(idx, "maduracion", e.target.value)}
+                          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
+                        />
+                      </div>
+
+                      {/* Cajas */}
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Cajas *</label>
+                        <input
+                          type="number"
+                          min={0.5}
+                          step={0.5}
+                          required={!esCobro}
+                          placeholder="0"
+                          value={item.cajas}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            actualizarItem(idx, "cajas", val === "" ? "" : parseFloat(val));
+                          }}
+                          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono text-right"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <datalist id="maduraciones">
+              {maduracionesSugeridas.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+
+            {errorItems && <p className="text-xs text-red-400 mt-1">{errorItems}</p>}
+
+            {/* Resumen de cajas y Monto total */}
+            <div className="grid grid-cols-2 gap-4 mt-1">
+              <div>
+                <label className="block text-sm font-medium text-[#f9fafb] mb-1">Total cajas</label>
+                <div className="border border-[#2a2d35] bg-[#17191e] rounded-lg px-3 py-2 text-sm font-mono text-[#f9fafb]">
+                  {totalCajas} {totalCajas === 1 ? "caja" : "cajas"}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+                  {esCambio && !esReposicion ? "Diferencia a cobrar *" : "Monto total *"}
+                  {!esCambio && montoManual === null && montoCalculado !== "" && (
+                    <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+                  )}
+                  {esCambio && esReposicion && (
+                    <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
+                  )}
+                </label>
+                <input
+                  name="montoTotal"
+                  type="number"
+                  required
+                  min={0}
+                  placeholder="0"
+                  value={montoFinal}
+                  readOnly={esCambio && esReposicion}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setMontoManual(val === "" ? "" : parseInt(val));
+                  }}
+                  className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono read-only:opacity-40 read-only:cursor-not-allowed"
+                />
+              </div>
             </div>
           </div>
 
@@ -395,12 +534,12 @@ export function FormNuevoPedido({
                     />
                   </div>
                 </div>
-                {cajas !== "" && Number(cajas) > 0 && (
+                {totalCajas > 0 && (
                   <span className="text-xs font-semibold text-[#a3e635] font-mono">
-                    Total descuento: -{formatearPeso(Number(cajas) * valorDescCaja)}
-                    {Number(cajas) > 1 && (
+                    Total descuento: -{formatearPeso(totalCajas * valorDescCaja)}
+                    {totalCajas > 1 && (
                       <span className="text-[#6b7280] font-normal font-sans ml-1">
-                        ({cajas} cajas × {formatearPeso(valorDescCaja)})
+                        ({totalCajas} cajas × {formatearPeso(valorDescCaja)})
                       </span>
                     )}
                   </span>

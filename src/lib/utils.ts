@@ -92,20 +92,25 @@ export const ETIQUETAS_ESTADO_PAGO: Record<string, string> = {
 
 export function obtenerFilaExcel(pedido: {
   cliente: { nombre: string; zona: { nombre: string } };
-  producto: { nombre: string; kgPorCaja: number | null };
+  producto?: { nombre: string; kgPorCaja: number | null } | null;
+  items?: Array<{ cajas: number; maduracion: string; producto: { nombre: string } }>;
   cajas: number;
   montoTotal: number;
-  maduracion: string;
+  maduracion?: string | null;
 }): string {
   const cantidadVal = pedido.cajas.toString().replace(".", ",");
   const totalFormateado = `$ ${pedido.montoTotal.toLocaleString("es-AR")}`;
+  const nombreProducto = pedido.items && pedido.items.length > 1
+    ? pedido.items.map((it) => `${it.cajas} ${it.producto.nombre}`).join(" + ")
+    : (pedido.producto?.nombre ?? "—");
+  const maduracion = pedido.maduracion ?? "";
 
   return [
     pedido.cliente.nombre,
     pedido.cliente.zona.nombre,
     cantidadVal,
-    pedido.producto.nombre,
-    pedido.maduracion,
+    nombreProducto,
+    maduracion,
     totalFormateado
   ].join("\t");
 }

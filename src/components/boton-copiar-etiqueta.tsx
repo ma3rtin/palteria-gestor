@@ -19,6 +19,11 @@ interface Pedido {
     nombre: string;
     kgPorCaja: number | null;
   } | null;
+  items?: Array<{
+    cajas: number;
+    maduracion?: string | null;
+    producto: { nombre: string };
+  }>;
   cajas: number;
   montoTotal: number;
   formaPago: string;
@@ -49,12 +54,20 @@ export function BotonCopiarEtiqueta({ pedido, onCopied }: { pedido: Pedido; onCo
       pagosStr = `${pedido.formaPago.toUpperCase()}: $${pedido.montoPagado.toLocaleString("es-AR")}`;
     }
 
+    const marcasTexto = pedido.items && pedido.items.length > 1
+      ? pedido.items.map((it) => `${it.cajas} ${it.producto.nombre}`).join(" + ").toUpperCase()
+      : (pedido.producto?.nombre ?? "—").toUpperCase();
+
+    const maduracionesTexto = pedido.items && pedido.items.length > 1
+      ? pedido.items.map((it) => `${it.cajas} ${it.maduracion || "—"}`).join(" + ").toUpperCase()
+      : (pedido.maduracion ?? "—").toUpperCase();
+
     const texto = `LA PALTERÍA ${dia}/${mes}
 ${clienteInfo}
 ZONA: ${pedido.cliente.zona.nombre.toUpperCase()}
 CAJAS: ${pedido.cajas}
-MARCA: ${(pedido.producto?.nombre ?? "—").toUpperCase()}
-MADURACIÓN: ${(pedido.maduracion ?? "—").toUpperCase()}
+MARCA: ${marcasTexto}
+MADURACIÓN: ${maduracionesTexto}
 ${pagosStr}`;
 
     navigator.clipboard.writeText(texto).then(() => {

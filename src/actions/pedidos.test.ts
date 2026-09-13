@@ -38,6 +38,11 @@ vi.mock("@/lib/prisma", () => {
       producto: {
         update: vi.fn(),
       },
+      itemPedido: {
+        create: vi.fn(),
+        deleteMany: vi.fn(),
+        findMany: vi.fn(),
+      },
     },
   };
 });
@@ -96,6 +101,17 @@ describe("Server Actions - Pedidos", () => {
           comisionRevendedor: 500,
           observaciones: null,
           pagosParciales: undefined,
+          items: {
+            create: [
+              {
+                idProducto: 5,
+                cajas: 20,
+                maduracion: "PF",
+                precioUnitario: undefined,
+                subtotal: 50000,
+              },
+            ],
+          },
         },
       });
 
@@ -150,8 +166,8 @@ describe("Server Actions - Pedidos", () => {
         data: {
           fecha: new Date("2026-07-31T12:00:00"),
           idCliente: 10,
-          idProducto: 5,
-          maduracion: "PF",
+          idProducto: null,
+          maduracion: null,
           cajas: 0,
           montoTotal: 30000,
           formaPago: "TRANSFERENCIA",
@@ -256,6 +272,46 @@ describe("Server Actions - Pedidos", () => {
       });
 
       expect(prisma.producto.update).not.toHaveBeenCalled();
+    });
+
+    it("debería crear un pedido con múltiples productos y descontar el stock de cada uno", async () => {
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idCliente", "10");
+      formData.append("montoTotal", "75000");
+      formData.append("formaPago", "EFECTIVO");
+      formData.append("itemsJson", JSON.stringify([
+        { idProducto: 5, cajas: 2, maduracion: "SEMI", subtotal: 50000 },
+        { idProducto: 8, cajas: 1, maduracion: "VERDE", subtotal: 25000 },
+      ]));
+
+      await crearPedido(formData);
+
+      expect(prisma.pedido.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            cajas: 3,
+            idProducto: 5,
+            maduracion: "2 SEMI + 1 VERDE",
+            montoTotal: 75000,
+            items: {
+              create: [
+                { idProducto: 5, cajas: 2, maduracion: "SEMI", precioUnitario: undefined, subtotal: 50000 },
+                { idProducto: 8, cajas: 1, maduracion: "VERDE", precioUnitario: undefined, subtotal: 25000 },
+              ],
+            },
+          }),
+        })
+      );
+
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { stockCajas: { decrement: 2 } },
+      });
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 8 },
+        data: { stockCajas: { decrement: 1 } },
+      });
     });
   });
 

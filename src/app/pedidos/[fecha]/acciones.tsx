@@ -46,7 +46,7 @@ export function AccionesPedido({ pedido, fecha }: { pedido: any; fecha: string }
   };
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center justify-end gap-1.5 w-full">
       {!pedido.esCobro && (
         <button
           onClick={copiarExcel}

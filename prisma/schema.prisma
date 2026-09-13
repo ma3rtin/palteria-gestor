@@ -122,8 +122,9 @@ model Producto {
   costo            Float     @default(0)
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
   fechaIngreso     DateTime? @map("fecha_ingreso") @db.Date
-  activo           Boolean   @default(true)
+  activo           Boolean      @default(true)
   pedidos          Pedido[]
+  itemsPedido      ItemPedido[]
 
   @@map("productos")
 }
@@ -239,8 +240,27 @@ model Pedido {
   comisionRevendedor Float         @default(0) @map("comision_revendedor")
   observaciones      String?
   pagosParciales     Json?         @map("pagos_parciales")
+  items              ItemPedido[]
   creadoEn           DateTime      @default(now()) @map("creado_en")
   actualizadoEn      DateTime      @updatedAt @map("actualizado_en")
 
   @@map("pedidos")
 }
+
+// ==================== ITEMS PEDIDO ====================
+
+model ItemPedido {
+  id             Int       @id @default(autoincrement()) @map("id_item_pedido")
+  pedido         Pedido    @relation(fields: [idPedido], references: [id], onDelete: Cascade)
+  idPedido       Int       @map("id_pedido")
+  producto       Producto  @relation(fields: [idProducto], references: [id])
+  idProducto     Int       @map("id_producto")
+  cajas          Float     @default(0)
+  maduracion     String?
+  precioUnitario Float?    @map("precio_unitario")
+  subtotal       Float     @default(0)
+  creadoEn       DateTime  @default(now()) @map("creado_en")
+
+  @@map("items_pedido")
+}
+

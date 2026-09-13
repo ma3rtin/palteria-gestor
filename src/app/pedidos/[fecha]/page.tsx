@@ -50,7 +50,8 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
     entregados = entregados.filter((p) =>
       p.cliente.nombre.toLowerCase().includes(busq) ||
       (p.cliente.direccion && p.cliente.direccion.toLowerCase().includes(busq)) ||
-      (p.producto?.nombre && p.producto.nombre.toLowerCase().includes(busq))
+      (p.producto?.nombre && p.producto.nombre.toLowerCase().includes(busq)) ||
+      (p.items && p.items.some((it) => it.producto.nombre.toLowerCase().includes(busq)))
     );
   }
   if (zona)       entregados = entregados.filter((p) => p.cliente.idZona === Number(zona));
@@ -192,7 +193,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                       <th className="text-left px-4 py-3 font-medium">Estado</th>
                       <th className="text-center px-4 py-3 font-medium w-24">Hora</th>
                       <th className="text-right px-4 py-3 font-medium w-32">Monto</th>
-                      <th className="px-4 py-3 w-28"></th>
+                      <th className="text-right px-4 py-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -222,17 +223,17 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                         <td className="px-4 py-2.5 text-left">
                           <BadgeEstadoPago estado={p.estadoPago} />
                         </td>
-                        <td className="px-4 py-2.5 text-[#9ca3af] text-center font-mono text-xs">
+                        <td className="px-4 py-2.5 text-[#9ca3af] text-center font-mono text-xs w-24">
                           {formatearHora(p.creadoEn)} hs
                         </td>
-                        <td className="px-4 py-2.5 text-right font-semibold font-mono">
+                        <td className="px-4 py-2.5 text-right font-semibold font-mono w-32">
                           {p.estadoPago === "PAGADO" ? (
                             <span className="text-[#4ade80]">{formatearPeso(p.montoPagado)}</span>
                           ) : (
                             <span className="text-yellow-400">{formatearPeso(p.montoTotal)}</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-right w-28">
+                        <td className="px-4 py-2.5 text-right">
                           <AccionesPedido pedido={p as unknown as ComponentProps<typeof AccionesPedido>["pedido"]} fecha={fecha} />
                         </td>
                       </tr>
