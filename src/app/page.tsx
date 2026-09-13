@@ -120,8 +120,21 @@ export default async function Inicio() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-[#9ca3af]">
-                        {p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")}
-                        <span className="text-[#6b7280] ml-1 text-xs">{p.maduracion ?? ""}</span>
+                        {p.esCobro ? (
+                          "Cobranza"
+                        ) : p.items && p.items.length > 1 ? (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#2a2d35] text-[#d1d5db]"
+                            title={p.items.map((it) => `${it.cajas}x ${it.producto.nombre}`).join(", ")}
+                          >
+                            Varios ({p.items.length})
+                          </span>
+                        ) : (
+                          <>
+                            {p.producto?.nombre ?? "—"}
+                            <span className="text-[#6b7280] ml-1 text-xs">{p.maduracion ?? ""}</span>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-[#9ca3af] text-xs">
                         {p.repartidor ? (

@@ -12,10 +12,15 @@ export async function getResumenPeriodo(desde: string, hasta: string) {
     _sum: { cajas: true, montoTotal: true, montoPagado: true },
     _count: { id: true },
   });
-  const porProducto = await prisma.pedido.groupBy({
+  const porProducto = await prisma.itemPedido.groupBy({
     by: ["idProducto"],
-    where: { fecha: { gte: fechaDesde, lte: fechaHasta }, esCobro: false },
-    _sum: { cajas: true, montoTotal: true },
+    where: {
+      pedido: {
+        fecha: { gte: fechaDesde, lte: fechaHasta },
+        esCobro: false,
+      },
+    },
+    _sum: { cajas: true, subtotal: true },
     orderBy: { _sum: { cajas: "desc" } },
     take: 8,
   });
@@ -55,7 +60,7 @@ export async function getResumenPeriodo(desde: string, hasta: string) {
     topProductos: porProducto.map((p) => ({
       nombre: productos.find((pr) => pr.id === p.idProducto)?.nombre ?? "?",
       cajas: p._sum.cajas ?? 0,
-      monto: p._sum.montoTotal ?? 0,
+      monto: p._sum.subtotal ?? 0,
     })),
     porRepartidor: porRepartidor
       .map((g) => ({

@@ -43,6 +43,20 @@ interface Pedido {
     kgPorCaja: number | null;
     precioReferencia: number;
   } | null;
+  items?: Array<{
+    id: number;
+    idProducto: number;
+    cajas: number;
+    maduracion?: string | null;
+    precioUnitario?: number | null;
+    subtotal: number;
+    producto: {
+      id: number;
+      nombre: string;
+      kgPorCaja: number | null;
+      precioReferencia: number;
+    };
+  }>;
   repartidor: {
     id: number;
     nombre: string;
@@ -108,12 +122,12 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
             <th className="w-10"></th>
             <th className="text-left px-4 py-3 font-medium">Dirección</th>
             <th className="text-left px-4 py-3 font-medium">Zona</th>
-            <th className="text-right px-4 py-3 font-medium">Cantidad</th>
-            <th className="text-left px-4 py-3 font-medium">Marca</th>
-            <th className="text-right px-4 py-3 font-medium">Total</th>
+            <th className="text-left px-4 py-3 font-medium">Cantidad</th>
+            <th className="text-left px-4 py-3 font-medium">Producto</th>
+            <th className="text-left px-4 py-3 font-medium">Total</th>
             <th className="text-left px-4 py-3 font-medium">Estado</th>
             <th className="text-left px-4 py-3 font-medium">Factura</th>
-            <th className="px-4 py-3"></th>
+            <th className="text-right px-4 py-3"></th>
           </tr>
         </thead>
         <tbody>
@@ -189,17 +203,26 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                   </td>
 
                   {/* Cantidad (Cajas) */}
-                  <td className="px-4 py-2.5 text-right text-[#9ca3af] font-mono">
+                  <td className="px-4 py-2.5 text-left text-[#9ca3af] font-mono">
                     {p.cajas}
                   </td>
 
-                  {/* Marca (Variedad) */}
+                  {/* Producto */}
                   <td className="px-4 py-2.5 text-left text-[#9ca3af]">
-                    {p.producto?.nombre ?? "—"}
+                    {p.items && p.items.length > 1 ? (
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#2a2d35] text-[#d1d5db]"
+                        title={p.items.map((it) => `${it.cajas}x ${it.producto.nombre} (${it.maduracion})`).join(", ")}
+                      >
+                        Varios ({p.items.length})
+                      </span>
+                    ) : (
+                      p.producto?.nombre ?? "—"
+                    )}
                   </td>
 
                   {/* Total */}
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-4 py-2.5 text-left">
                     <span className="font-medium text-[#f9fafb] font-mono">{formatearPeso(p.montoTotal)}</span>
                     {p.estadoPago === "PARCIAL" && (
                       <div className="text-[10px] mt-0.5 space-x-1 font-mono">
@@ -230,17 +253,59 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                 {isExpanded && (
                   <tr key={`${p.id}-details`} className="bg-[#13151c]/90 border-b border-[#22252e]">
                     <td colSpan={9} className="px-10 py-4 text-left">
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-6 text-sm">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
-                          <span className="text-[#f9fafb]">
-                            {p.producto?.kgPorCaja ? `${p.producto.kgPorCaja} kg / caja` : "Sin especificar"}
+                      {p.items && p.items.length > 1 && (
+                        <div className="mb-4 pb-3 border-b border-[#22252e]/50">
+                          <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold block mb-2">
+                            Productos del pedido ({p.items.length})
                           </span>
+                          <div className="flex flex-col gap-2 max-w-2xl">
+                            {p.items.map((it) => (
+                              <div
+                                key={it.id}
+                                className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-2.5 flex items-center justify-between text-xs"
+                              >
+                                <div>
+                                  <div className="font-medium text-[#f9fafb]">{it.producto.nombre}</div>
+                                  <div className="text-[#6b7280] text-[11px] mt-0.5 flex items-center gap-1.5">
+                                    <span>Maduración: <strong className="text-[#d1d5db] font-medium">{it.maduracion || "—"}</strong></span>
+                                    {it.producto.kgPorCaja && (
+                                      <span className="text-[#9ca3af]">· {it.producto.kgPorCaja} kg/caja</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right font-mono shrink-0 ml-4">
+                                  <span className="text-[#a3e635] font-semibold">{it.cajas} {it.cajas === 1 ? "caja" : "cajas"}</span>
+                                  {it.subtotal > 0 && (
+                                    <div className="text-[#9ca3af] text-[11px]">{formatearPeso(it.subtotal)}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Maduración</span>
-                          <span className="text-[#f9fafb]">{p.maduracion || "—"}</span>
-                        </div>
+                      )}
+
+                      <div
+                        className={
+                          p.items && p.items.length > 1
+                            ? "grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm"
+                            : "grid grid-cols-2 md:grid-cols-6 gap-6 text-sm"
+                        }
+                      >
+                        {(!p.items || p.items.length <= 1) && (
+                          <>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
+                              <span className="text-[#f9fafb]">
+                                {p.producto?.kgPorCaja ? `${p.producto.kgPorCaja} kg / caja` : "Sin especificar"}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Maduración</span>
+                              <span className="text-[#f9fafb]">{p.maduracion || "—"}</span>
+                            </div>
+                          </>
+                        )}
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Repartidor</span>
                           <span className={p.repartidor?.nombre ? "text-[#f9fafb]" : "text-red-400 font-semibold"}>
@@ -280,6 +345,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                               fecha: p.fecha,
                               cliente: p.cliente,
                               producto: p.producto,
+                              items: p.items,
                               cajas: p.cajas,
                               montoTotal: p.montoTotal,
                               montoPagado: p.montoPagado,
