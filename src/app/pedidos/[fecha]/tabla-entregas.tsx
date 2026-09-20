@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BadgeEstadoPago } from "@/components/badge-estado";
+import { BadgeReventa } from "@/components/badge-reventa";
 import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
 import { AccionesPedido } from "./acciones";
 import { registrarCobro } from "@/actions/pedidos";
@@ -34,8 +35,10 @@ interface Pedido {
     id: number;
     nombre: string;
     cuit?: string | null;
+    email?: string | null;
     direccion: string | null;
     zona: { id: number; nombre: string };
+    revendedor?: { id: number; nombre: string } | null;
   };
   producto: {
     id: number;
@@ -122,7 +125,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
             <th className="w-10"></th>
             <th className="text-left px-4 py-3 font-medium">Dirección</th>
             <th className="text-left px-4 py-3 font-medium">Zona</th>
-            <th className="text-left px-4 py-3 font-medium">Cantidad</th>
+            <th className="text-left px-4 py-3 font-medium">Repartidor</th>
             <th className="text-left px-4 py-3 font-medium">Producto</th>
             <th className="text-left px-4 py-3 font-medium">Total</th>
             <th className="text-left px-4 py-3 font-medium">Estado</th>
@@ -163,10 +166,13 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                   {/* Dirección / Cliente */}
                   <td className="px-4 py-2.5 text-left">
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
                           {p.cliente.nombre}
                         </Link>
+                        {p.cliente.revendedor && (
+                          <BadgeReventa nombre={p.cliente.revendedor.nombre} />
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -202,9 +208,13 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                     {p.cliente.zona.nombre}
                   </td>
 
-                  {/* Cantidad (Cajas) */}
-                  <td className="px-4 py-2.5 text-left text-[#9ca3af] font-mono">
-                    {p.cajas}
+                  {/* Repartidor */}
+                  <td className="px-4 py-2.5 text-left text-[#9ca3af]">
+                    {p.repartidor?.nombre ? (
+                      <span className="text-[#d1d5db] font-medium">{p.repartidor.nombre}</span>
+                    ) : (
+                      <span className="text-[#6b7280]">—</span>
+                    )}
                   </td>
 
                   {/* Producto */}
@@ -288,12 +298,18 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                       <div
                         className={
                           p.items && p.items.length > 1
-                            ? "grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm"
-                            : "grid grid-cols-2 md:grid-cols-6 gap-6 text-sm"
+                            ? "grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-6 text-sm"
+                            : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-7 gap-6 text-sm"
                         }
                       >
                         {(!p.items || p.items.length <= 1) && (
                           <>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Cantidad</span>
+                              <span className="text-[#f9fafb] font-mono">
+                                {p.cajas} {p.cajas === 1 ? "caja" : "cajas"}
+                              </span>
+                            </div>
                             <div className="flex flex-col gap-1">
                               <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
                               <span className="text-[#f9fafb]">
@@ -316,6 +332,33 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Forma de Pago</span>
                           <span className="text-[#f9fafb]">{ETIQUETAS_FORMA_PAGO[p.formaPago] || p.formaPago}</span>
                         </div>
+                        {p.formaPago === "EFECTIVO" && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Desc. Efectivo</span>
+                            <label className="flex items-center gap-1.5 text-xs text-[#f9fafb] cursor-default select-none mt-0.5" title="Para modificar el descuento use Editar pedido">
+                              <input
+                                type="checkbox"
+                                checked={Boolean((p as any).descuentoEfectivo || p.observaciones?.includes("[Desc. efectivo"))}
+                                disabled
+                                readOnly
+                                className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] cursor-not-allowed opacity-80"
+                              />
+                              <span className={Boolean((p as any).descuentoEfectivo || p.observaciones?.includes("[Desc. efectivo")) ? "text-[#a3e635] font-medium" : "text-[#6b7280]"}>
+                                {Boolean((p as any).descuentoEfectivo || p.observaciones?.includes("[Desc. efectivo"))
+                                  ? `Aplicado (-${formatearPeso(((p as any).descuentoPorCaja ?? 6000) * (p.cajas || 1))})`
+                                  : "No aplicado"}
+                              </span>
+                            </label>
+                          </div>
+                        )}
+                        {p.cliente.email && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Email</span>
+                            <span className="text-[#f9fafb] truncate" title={p.cliente.email}>
+                              {p.cliente.email}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex flex-col gap-1">
                           <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Creado por</span>
                           <span className="text-[#f9fafb]">
@@ -380,16 +423,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
 
 function FormCobroParcial({ pedido }: { pedido: Pedido }) {
   const [formaPago, setFormaPago] = useState(pedido.formaPago);
-  const [aplicarDescuento, setAplicarDescuento] = useState(false);
-  const [descuentoPorCaja, setDescuentoPorCaja] = useState<number | "">(6000);
-
-  const valorDescCaja = descuentoPorCaja === "" ? 0 : Number(descuentoPorCaja);
-  const descuento = aplicarDescuento && formaPago === "EFECTIVO" && pedido.cajas > 0
-    ? pedido.cajas * valorDescCaja
-    : 0;
-
-  const totalConDescuento = Math.max(0, pedido.montoTotal - descuento);
-  const deudaRestante = Math.max(0, totalConDescuento - pedido.montoPagado);
+  const deudaRestante = Math.max(0, pedido.montoTotal - pedido.montoPagado);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -397,22 +431,13 @@ function FormCobroParcial({ pedido }: { pedido: Pedido }) {
         <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Registrar cobro parcial</span>
         <span className="text-xs text-[#9ca3af]">
           Deuda restante: <span className="font-semibold text-[#f87171]">{formatearPeso(deudaRestante)}</span>
-          {descuento > 0 && (
-            <span className="text-xs text-[#a3e635] ml-1.5 font-medium">(desc. -{formatearPeso(descuento)})</span>
-          )}
         </span>
       </div>
       <form action={registrarCobro.bind(null, pedido.id)} className="flex flex-wrap items-center gap-2">
         <select
           name="formaPago"
           value={formaPago}
-          onChange={(e) => {
-            const val = e.target.value;
-            setFormaPago(val);
-            if (val !== "EFECTIVO") {
-              setAplicarDescuento(false);
-            }
-          }}
+          onChange={(e) => setFormaPago(e.target.value)}
           className="text-xs border border-[#2a2d35] rounded-md px-2 py-1 bg-[#1c1f26] text-[#f9fafb] focus:outline-none focus:border-[#a3e635] cursor-pointer"
         >
           <option value="EFECTIVO">Efectivo</option>
@@ -425,7 +450,7 @@ function FormCobroParcial({ pedido }: { pedido: Pedido }) {
           <input
             name="monto"
             type="number"
-            key={`${deudaRestante}-${aplicarDescuento}-${valorDescCaja}`}
+            key={deudaRestante}
             defaultValue={deudaRestante}
             required
             placeholder="0"
@@ -434,45 +459,6 @@ function FormCobroParcial({ pedido }: { pedido: Pedido }) {
             className="w-24 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
           />
         </div>
-
-        {pedido.cajas > 0 && (
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs text-[#a3e635] select-none">
-              <input
-                type="checkbox"
-                name="aplicarDescuentoEfectivo"
-                checked={aplicarDescuento}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setAplicarDescuento(checked);
-                  if (checked) {
-                    setFormaPago("EFECTIVO");
-                  }
-                }}
-                className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
-              />
-              <span>Desc. efec.</span>
-            </label>
-            {aplicarDescuento && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-[#9ca3af]">$/caja:</span>
-                <input
-                  type="number"
-                  name="descuentoPorCaja"
-                  min={0}
-                  step={500}
-                  value={descuentoPorCaja}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
-                  }}
-                  className="w-20 px-1.5 py-0.5 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
-                  placeholder="6000"
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         <BotonSubmit className="bg-[#16a34a] hover:bg-[#15803d] text-white px-3 py-1 rounded-md text-xs font-semibold transition-colors">
           Cobrar Parcial

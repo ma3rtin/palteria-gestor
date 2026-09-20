@@ -11,7 +11,12 @@ export async function getPedidosPorFecha(fechaStr: string) {
   return prisma.pedido.findMany({
     where: { fecha },
     include: {
-      cliente: { include: { zona: true } },
+      cliente: {
+        include: {
+          zona: true,
+          revendedor: { select: { id: true, nombre: true } },
+        },
+      },
       producto: true,
       items: {
         include: { producto: true },
@@ -170,9 +175,11 @@ export async function crearPedido(formData: FormData) {
   }
 
   // Si se aplicó descuento por pago en efectivo
-  if (descuentoEfectivo && formaPago === "EFECTIVO" && totalCajas > 0 && !esCobro) {
+  const tieneDescuentoEfectivo = !esCobro && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
+  let descuentoPorCaja: number | null = null;
+  if (tieneDescuentoEfectivo) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
-    const descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
+    descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
     const desc = totalCajas * descuentoPorCaja;
     const notaDesc = `[Desc. efectivo: -$${desc.toLocaleString("es-AR")}]`;
     observaciones = observaciones ? `${observaciones} ${notaDesc}` : notaDesc;
@@ -223,6 +230,8 @@ export async function crearPedido(formData: FormData) {
       esCobro,
       esReposicion,
       comisionRevendedor,
+      descuentoEfectivo: tieneDescuentoEfectivo,
+      descuentoPorCaja: tieneDescuentoEfectivo ? descuentoPorCaja : null,
       observaciones,
       pagosParciales: pagosParciales ? (pagosParciales as never) : undefined,
       items: (!esCobro && itemsParsed.length > 0)
@@ -299,8 +308,9 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
   let montoTotal = pedido.montoTotal;
   let observaciones = pedido.observaciones;
 
-  // Si aplica descuento por pago en efectivo
-  if (aplicarDescuentoEfectivo && formaPago === "EFECTIVO" && pedido.cajas > 0) {
+  // Si aplica descuento por pago en efectivo y no lo tenía previamente
+  const aplicaDescNuevo = aplicarDescuentoEfectivo && formaPago === "EFECTIVO" && pedido.cajas > 0 && !pedido.descuentoEfectivo;
+  if (aplicaDescNuevo) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
     const descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
     const descuento = pedido.cajas * descuentoPorCaja;
@@ -336,7 +346,7 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
   listaPagos.push({
     monto: monto,
     formaPago: formaPago,
-    fecha: hoyLocal
+    fecha: hoyLocal,
   });
 
   await prisma.pedido.update({
@@ -347,6 +357,7 @@ export async function registrarCobro(idPedido: number, formData: FormData) {
       estadoPago: estadoPago as never,
       pagosParciales: listaPagos,
       observaciones,
+      descuentoEfectivo: pedido.descuentoEfectivo || aplicaDescNuevo,
     },
   });
 
@@ -495,9 +506,11 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   }
 
   // Si aplica descuento por efectivo al editar
-  if (descuentoEfectivo && formaPago === "EFECTIVO" && totalCajas > 0 && !esCobro) {
+  const tieneDescuentoEfectivo = !esCobro && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
+  let descuentoPorCaja: number | null = null;
+  if (tieneDescuentoEfectivo) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
-    const descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : 6000;
+    descuentoPorCaja = descuentoPorCajaRaw && !isNaN(Number(descuentoPorCajaRaw)) ? Number(descuentoPorCajaRaw) : (pedido.descuentoPorCaja ?? 6000);
     const desc = totalCajas * descuentoPorCaja;
     const notaDesc = `[Desc. efectivo: -$${desc.toLocaleString("es-AR")}]`;
     if (observaciones && observaciones.includes("[Desc. efectivo")) {
@@ -505,7 +518,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
     } else {
       observaciones = observaciones ? `${observaciones} ${notaDesc}` : notaDesc;
     }
-  } else if (!descuentoEfectivo && observaciones && observaciones.includes("[Desc. efectivo")) {
+  } else if (!tieneDescuentoEfectivo && observaciones && observaciones.includes("[Desc. efectivo")) {
     observaciones = observaciones.replace(/\[Desc\. efectivo:[^\]]*\]/, "").trim();
   }
 
@@ -586,6 +599,8 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
       estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
       esCobro,
       comisionRevendedor,
+      descuentoEfectivo: tieneDescuentoEfectivo,
+      descuentoPorCaja: tieneDescuentoEfectivo ? descuentoPorCaja : null,
       observaciones: observaciones?.trim() || null,
       pagosParciales: pagosParciales ?? null,
     },

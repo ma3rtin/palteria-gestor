@@ -99,6 +99,8 @@ describe("Server Actions - Pedidos", () => {
           esCobro: false,
           esReposicion: false,
           comisionRevendedor: 500,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
           pagosParciales: undefined,
           items: {
@@ -143,6 +145,8 @@ describe("Server Actions - Pedidos", () => {
       expect(prisma.pedido.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            descuentoEfectivo: true,
+            descuentoPorCaja: 5000,
             observaciones: "[Desc. efectivo: -$15.000]",
           }),
         })
@@ -180,7 +184,10 @@ describe("Server Actions - Pedidos", () => {
           esCobro: true,
           esReposicion: false,
           comisionRevendedor: 0,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
+          items: undefined,
           pagosParciales: [
             {
               monto: 30000,
@@ -223,7 +230,10 @@ describe("Server Actions - Pedidos", () => {
           esCobro: true,
           esReposicion: false,
           comisionRevendedor: 0,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
+          items: undefined,
           pagosParciales: [
             {
               monto: 45000,
@@ -266,7 +276,10 @@ describe("Server Actions - Pedidos", () => {
           esCobro: true,
           esReposicion: false,
           comisionRevendedor: 0,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
+          items: undefined,
           pagosParciales: undefined,
         },
       });
@@ -312,6 +325,29 @@ describe("Server Actions - Pedidos", () => {
         where: { id: 8 },
         data: { stockCajas: { decrement: 1 } },
       });
+    });
+
+    it("debería setear requiereFactura = true y estadoFactura = PENDIENTE si se tilda requiereFactura", async () => {
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idCliente", "10");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "5");
+      formData.append("montoTotal", "25000");
+      formData.append("formaPago", "TRANSFERENCIA");
+      formData.append("requiereFactura", "on");
+
+      await crearPedido(formData);
+
+      expect(prisma.pedido.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            requiereFactura: true,
+            estadoFactura: "PENDIENTE",
+          }),
+        })
+      );
     });
   });
 
@@ -359,6 +395,8 @@ describe("Server Actions - Pedidos", () => {
           estadoFactura: "NO_REQUIERE",
           esCobro: true,
           comisionRevendedor: 0,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
           pagosParciales: null,
         },
@@ -446,6 +484,8 @@ describe("Server Actions - Pedidos", () => {
           estadoFactura: "NO_REQUIERE",
           esCobro: false,
           comisionRevendedor: 0,
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
           observaciones: null,
           pagosParciales: null,
         },
@@ -481,7 +521,45 @@ describe("Server Actions - Pedidos", () => {
       expect(prisma.pedido.update).toHaveBeenCalledWith({
         where: { id: 100 },
         data: expect.objectContaining({
+          descuentoEfectivo: true,
+          descuentoPorCaja: 7000,
           observaciones: "[Desc. efectivo: -$14.000]",
+        }),
+      });
+    });
+
+    it("debería remover descuento por efectivo y resetear campos si se desmarca al editar", async () => {
+      const pedidoMock = {
+        id: 100,
+        idCliente: 10,
+        idProducto: 5,
+        maduracion: "PF",
+        cajas: 2,
+        esCobro: false,
+        estadoFactura: "NO_REQUIERE",
+        descuentoEfectivo: true,
+        descuentoPorCaja: 6000,
+        observaciones: "[Desc. efectivo: -$12.000]",
+      };
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue(pedidoMock as never);
+
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "2");
+      formData.append("montoTotal", "100000");
+      formData.append("formaPago", "EFECTIVO");
+      // descuentoEfectivo no enviado (desmarcado)
+
+      await actualizarPedido(100, formData);
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: expect.objectContaining({
+          descuentoEfectivo: false,
+          descuentoPorCaja: null,
+          observaciones: null,
         }),
       });
     });
@@ -520,6 +598,82 @@ describe("Server Actions - Pedidos", () => {
         data: expect.objectContaining({
           idRepartidor: 1,
           formaPago: "PAGO_SEMANAL",
+        }),
+      });
+    });
+
+    it("debería actualizar requiereFactura a true y cambiar estadoFactura a PENDIENTE si era NO_REQUIERE", async () => {
+      const pedidoMock = {
+        id: 100,
+        idCliente: 10,
+        idProducto: 5,
+        maduracion: "PF",
+        cajas: 2,
+        formaPago: "EFECTIVO",
+        estadoPago: "PENDIENTE",
+        montoTotal: 60000,
+        montoPagado: 0,
+        idRepartidor: null,
+        esCobro: false,
+        requiereFactura: false,
+        estadoFactura: "NO_REQUIERE",
+        observaciones: null,
+      };
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue(pedidoMock as never);
+
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "2");
+      formData.append("montoTotal", "60000");
+      formData.append("requiereFactura", "on");
+
+      await actualizarPedido(100, formData);
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: expect.objectContaining({
+          requiereFactura: true,
+          estadoFactura: "PENDIENTE",
+        }),
+      });
+    });
+
+    it("debería actualizar requiereFactura a false y cambiar estadoFactura a NO_REQUIERE al destildar", async () => {
+      const pedidoMock = {
+        id: 100,
+        idCliente: 10,
+        idProducto: 5,
+        maduracion: "PF",
+        cajas: 2,
+        formaPago: "EFECTIVO",
+        estadoPago: "PENDIENTE",
+        montoTotal: 60000,
+        montoPagado: 0,
+        idRepartidor: null,
+        esCobro: false,
+        requiereFactura: true,
+        estadoFactura: "PENDIENTE",
+        observaciones: null,
+      };
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue(pedidoMock as never);
+
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "2");
+      formData.append("montoTotal", "60000");
+      // sin requiereFactura = false
+
+      await actualizarPedido(100, formData);
+
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: expect.objectContaining({
+          requiereFactura: false,
+          estadoFactura: "NO_REQUIERE",
         }),
       });
     });
@@ -617,6 +771,7 @@ describe("Server Actions - Pedidos", () => {
           montoPagado: 88000,
           estadoPago: "PAGADO",
           observaciones: "[Desc. efectivo: -$12.000]",
+          descuentoEfectivo: true,
           pagosParciales: [
             {
               monto: 88000,

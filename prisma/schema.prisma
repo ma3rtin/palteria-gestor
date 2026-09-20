@@ -189,6 +189,7 @@ model Cliente {
   id                Int              @id @default(autoincrement()) @map("id_cliente")
   nombre            String
   cuit              String?          @map("cuit")
+  email             String?          @map("email")
   direccion         String?
   telefono          String?
   zona              Zona             @relation(fields: [idZona], references: [id])
@@ -238,6 +239,8 @@ model Pedido {
   // true cuando el cambio no tiene cargo (fruta descartada); false = se cobra diferencia de kg
   esReposicion       Boolean       @default(false) @map("es_reposicion")
   comisionRevendedor Float         @default(0) @map("comision_revendedor")
+  descuentoEfectivo  Boolean       @default(false) @map("descuento_efectivo")
+  descuentoPorCaja   Float?        @map("descuento_por_caja")
   observaciones      String?
   pagosParciales     Json?         @map("pagos_parciales")
   items              ItemPedido[]

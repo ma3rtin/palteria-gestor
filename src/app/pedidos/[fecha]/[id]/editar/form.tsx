@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { formatearFechaCorta } from "@/lib/utils";
 import { SelectorProductoBuscador } from "@/components/selector-producto-buscador";
+import { BadgeReventa } from "@/components/badge-reventa";
 
 interface Cliente {
   id: number;
@@ -131,9 +132,12 @@ export function FormEditarPedido({
   const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(pedido.comisionRevendedor);
   const [esCobro, setEsCobro] = useState(pedido.esCobro);
   const [descuentoEfectivo, setDescuentoEfectivo] = useState(
-    Boolean(pedido.observaciones?.includes("[Desc. efectivo"))
+    Boolean((pedido as any).descuentoEfectivo || pedido.observaciones?.includes("[Desc. efectivo"))
   );
   const [descuentoPorCaja, setDescuentoPorCaja] = useState<number | "">(() => {
+    if ((pedido as any).descuentoPorCaja) {
+      return (pedido as any).descuentoPorCaja;
+    }
     if (pedido.observaciones) {
       const match = pedido.observaciones.match(/\[Desc\. efectivo:\s*-\$([0-9.]+)(?:\s*\/\s*caja)?\]/);
       if (match && pedido.cajas > 0) {
@@ -338,8 +342,11 @@ export function FormEditarPedido({
         </>
       )}
 
-      <div className="text-sm text-[#9ca3af] mb-1">
+      <div className="text-sm text-[#9ca3af] mb-1 flex items-center gap-2 flex-wrap">
         <p>Cliente: <span className="font-medium text-[#f9fafb]">{pedido.cliente.nombre}</span></p>
+        {pedido.cliente.revendedor && (
+          <BadgeReventa nombre={pedido.cliente.revendedor.nombre} mostrarNombreCompleto />
+        )}
       </div>
 
       {esCobro ? (
@@ -510,64 +517,6 @@ export function FormEditarPedido({
               </div>
             </div>
           </div>
-
-          {/* Descuento por pago en efectivo */}
-          <div className="bg-[#17191e]/60 border border-[#2a2d35] rounded-lg p-3 flex flex-col gap-3">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-[#a3e635] select-none">
-              <input
-                type="checkbox"
-                name="descuentoEfectivo"
-                checked={descuentoEfectivo}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setDescuentoEfectivo(checked);
-                  if (checked) {
-                    setFormaPago("EFECTIVO");
-                  }
-                  setMontoManual(null);
-                }}
-                className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
-              />
-              <span className="font-medium">
-                Descuento por pago en efectivo
-              </span>
-            </label>
-
-            {descuentoEfectivo && (
-              <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[#2a2d35]/60 pl-6">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-[#9ca3af] whitespace-nowrap">Descuento por caja:</label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
-                    <input
-                      type="number"
-                      name="descuentoPorCaja"
-                      min={0}
-                      step={500}
-                      value={descuentoPorCaja}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
-                        setMontoManual(null);
-                      }}
-                      className="w-28 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
-                      placeholder="6000"
-                    />
-                  </div>
-                </div>
-                {totalCajas > 0 && (
-                  <span className="text-xs font-semibold text-[#a3e635] font-mono">
-                    Total descuento: -{formatearPeso(totalCajas * valorDescCaja)}
-                    {totalCajas > 1 && (
-                      <span className="text-[#6b7280] font-normal font-sans ml-1">
-                        ({totalCajas} cajas × {formatearPeso(valorDescCaja)})
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
         </>
       )}
 
@@ -583,6 +532,7 @@ export function FormEditarPedido({
               setFormaPago(val);
               if (val !== "EFECTIVO") {
                 setDescuentoEfectivo(false);
+                setMontoManual(null);
               }
             }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
@@ -606,6 +556,63 @@ export function FormEditarPedido({
           </select>
         </div>
       </div>
+
+      {/* Descuento por pago en efectivo: solo visible si la forma de pago es EFECTIVO y no es cobro */}
+      {!esCobro && formaPago === "EFECTIVO" && (
+        <div className="bg-[#17191e]/60 border border-[#2a2d35] rounded-lg p-3 flex flex-col gap-3">
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-[#a3e635] select-none">
+            <input
+              type="checkbox"
+              name="descuentoEfectivo"
+              checked={descuentoEfectivo}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setDescuentoEfectivo(checked);
+                setMontoManual(null);
+              }}
+              className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
+            />
+            <span className="font-medium">
+              Descuento por pago en efectivo
+            </span>
+          </label>
+
+          {descuentoEfectivo && (
+            <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[#2a2d35]/60 pl-6">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-[#9ca3af] whitespace-nowrap">Descuento por caja:</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[#6b7280]">$</span>
+                  <input
+                    type="number"
+                    name="descuentoPorCaja"
+                    min={0}
+                    step={500}
+                    value={descuentoPorCaja}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
+                      setMontoManual(null);
+                    }}
+                    className="w-28 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
+                    placeholder="6000"
+                  />
+                </div>
+              </div>
+              {totalCajas > 0 && (
+                <span className="text-xs font-semibold text-[#a3e635] font-mono">
+                  Total descuento: -{formatearPeso(totalCajas * valorDescCaja)}
+                  {totalCajas > 1 && (
+                    <span className="text-[#6b7280] font-normal font-sans ml-1">
+                      ({totalCajas} cajas × {formatearPeso(valorDescCaja)})
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {esCobro ? (
         <div className="grid grid-cols-2 gap-4">

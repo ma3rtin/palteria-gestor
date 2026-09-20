@@ -107,7 +107,7 @@ export default async function EditarClientePage({ params }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-[#f9fafb] mb-1">Teléfono</label>
             <input
@@ -116,6 +116,19 @@ export default async function EditarClientePage({ params }: Props) {
               className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Email (opcional)</label>
+            <input
+              name="email"
+              type="email"
+              defaultValue={cliente.email ?? ""}
+              placeholder="Ej: contacto@ejemplo.com"
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-[#f9fafb] mb-1">CUIT / CUIL (opcional)</label>
             <input

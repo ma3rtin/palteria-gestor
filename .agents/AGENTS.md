@@ -77,6 +77,7 @@ El proyecto **gestor** se encuentra dentro de un directorio raíz que agrupa tod
 - **Estilos**: Usar Tailwind CSS v4 puro. No usar shadcn/ui.
 - **Iconos**: Usar `lucide-react`. No usar emojis en la UI.
 - **Comentarios**: Documentar el "por qué" de las decisiones de negocio no evidentes.
+- **Diseño de Datos (Anti-patrón prohibido)**: NUNCA simular flags, estados o lógica de negocio concatenando etiquetas o strings dentro de campos de texto libre como `observaciones` (ej: `[Desc. efectivo: -$...]`). Si una entidad requiere un estado o atributo con impacto en cálculos o UI, DEBE modelarse como columna explícita en Prisma/Postgres (`boolean`, `enum`, `float`, etc.).
 
 ---
 

@@ -62,7 +62,12 @@ export async function getStatsHoy() {
   const pedidosHoy = await prisma.pedido.findMany({
     where: { fecha: hoy, esCobro: false },
     include: {
-      cliente: { include: { zona: true } },
+      cliente: {
+        include: {
+          zona: true,
+          revendedor: { select: { id: true, nombre: true } },
+        },
+      },
       producto: true,
       items: { include: { producto: true } },
       repartidor: true,
