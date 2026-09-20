@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
 import { formatearPeso, formatearFecha, formatearHora, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { BadgeEstadoPago } from "@/components/badge-estado";
+import { BadgeReventa } from "@/components/badge-reventa";
 import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
 import { NavegacionFecha } from "./navegacion-fecha";
@@ -203,9 +204,14 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                         className="border-b border-[#22252e] hover:bg-[#22252e]/30 whitespace-nowrap transition-colors last:border-0"
                       >
                         <td className="px-4 py-2.5 font-medium text-left">
-                          <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] text-[#f9fafb]">
-                            {p.cliente.nombre}
-                          </Link>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] text-[#f9fafb]">
+                              {p.cliente.nombre}
+                            </Link>
+                            {p.cliente.revendedor && (
+                              <BadgeReventa nombre={p.cliente.revendedor.nombre} />
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 text-[#9ca3af] text-left">
                           {p.observaciones ?? "Cobranza"}

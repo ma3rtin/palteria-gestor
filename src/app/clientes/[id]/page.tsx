@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { getCliente, getSaldoCliente } from "@/actions/clientes";
 import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
 import { BadgeEstadoPago } from "@/components/badge-estado";
+import { BadgeReventa } from "@/components/badge-reventa";
 import { formatearPeso, formatearFechaCorta, hoyISO, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { AccionesCliente } from "./acciones";
 import { AccionesPedido } from "../../pedidos/[fecha]/acciones";
@@ -236,7 +237,12 @@ export default async function DetalleClientePage({ params }: Props) {
               Clientes
             </Link>
           </div>
-          <h1 className="text-2xl font-bold text-[#f9fafb]">{cliente.nombre}</h1>
+          <h1 className="text-2xl font-bold text-[#f9fafb] flex items-center gap-2">
+            {cliente.nombre}
+            {cliente.revendedor && (
+              <BadgeReventa nombre={cliente.revendedor.nombre} size="md" />
+            )}
+          </h1>
           <p className="text-[#9ca3af] mt-0.5">
             {cliente.zona.nombre}
             {cliente.repartidor && <span> · {cliente.repartidor.nombre}</span>}
@@ -266,10 +272,24 @@ export default async function DetalleClientePage({ params }: Props) {
                   <dd className="font-medium">{cliente.repartidor.nombre}</dd>
                 </div>
               )}
+              {cliente.revendedor && (
+                <div className="flex justify-between">
+                  <dt className="text-[#9ca3af]">Revendedor</dt>
+                  <dd className="font-medium text-purple-300">{cliente.revendedor.nombre}</dd>
+                </div>
+              )}
               {cliente.telefono && (
                 <div className="flex justify-between">
                   <dt className="text-[#9ca3af]">Teléfono</dt>
                   <dd className="font-medium">{cliente.telefono}</dd>
+                </div>
+              )}
+              {cliente.email && (
+                <div className="flex justify-between">
+                  <dt className="text-[#9ca3af]">Email</dt>
+                  <dd className="font-medium text-xs text-[#f9fafb] truncate max-w-[180px]" title={cliente.email}>
+                    {cliente.email}
+                  </dd>
                 </div>
               )}
               <div className="flex justify-between">

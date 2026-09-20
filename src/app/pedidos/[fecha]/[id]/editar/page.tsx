@@ -2,6 +2,7 @@ import { getPedido, getCatalogoNuevoPedido, actualizarPedido } from "@/actions/p
 import { ChevronLeft } from "lucide-react";
 import { MADURACIONES_SUGERIDAS } from "@/lib/utils";
 import { FormEditarPedido } from "./form";
+import { BadgeReventa } from "@/components/badge-reventa";
 
 interface Props {
   params: Promise<{ fecha: string; id: string }>;
@@ -21,10 +22,22 @@ export default async function EditarPedidoPage({ params }: Props) {
           Volver a {fecha}
         </a>
         <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">Editar pedido</h1>
-        <p className="text-[#9ca3af] text-sm">
-          {pedido.cliente.nombre} · {fecha}
-          {pedido.usuario?.nombre && <span> · Cargado por <strong className="text-[#f9fafb] font-medium">{pedido.usuario.nombre.trim().split(" ")[0]}</strong></span>}
-        </p>
+        <div className="text-[#9ca3af] text-sm flex items-center gap-2 flex-wrap mt-0.5">
+          <span>{pedido.cliente.nombre}</span>
+          {pedido.cliente.revendedor && (
+            <BadgeReventa nombre={pedido.cliente.revendedor.nombre} />
+          )}
+          <span>·</span>
+          <span>{fecha}</span>
+          {pedido.usuario?.nombre && (
+            <span>
+              · Cargado por{" "}
+              <strong className="text-[#f9fafb] font-medium">
+                {pedido.usuario.nombre.trim().split(" ")[0]}
+              </strong>
+            </span>
+          )}
+        </div>
       </div>
 
       <FormEditarPedido

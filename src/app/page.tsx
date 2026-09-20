@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getStatsHoy, getResumenPorRepartidorHoy } from "@/actions/dashboard";
 import { TarjetaStat } from "@/components/tarjeta-stat";
 import { BadgeEstadoPago } from "@/components/badge-estado";
+import { BadgeReventa } from "@/components/badge-reventa";
 import { formatearPeso, formatearFecha, hoyISO, ETIQUETAS_FORMA_PAGO, parseFechaRuta } from "@/lib/utils";
 
 export default async function Inicio() {
@@ -105,9 +106,12 @@ export default async function Inicio() {
                     <tr key={p.id} className="border-b border-[#22252e] hover:bg-[#22252e]">
                       <td className="px-4 py-2.5">
                         <div className="flex flex-col">
-                          <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-medium text-[#f9fafb]">{p.cliente.nombre}</span>
-                            <span className="text-[#6b7280] ml-1.5 text-xs">{p.cliente.zona.nombre}</span>
+                            <span className="text-[#6b7280] text-xs">{p.cliente.zona.nombre}</span>
+                            {p.cliente.revendedor && (
+                              <BadgeReventa nombre={p.cliente.revendedor.nombre} />
+                            )}
                           </div>
                           {p.cliente.cuit && (
                             <span

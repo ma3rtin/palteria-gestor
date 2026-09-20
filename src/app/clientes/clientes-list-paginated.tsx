@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatearPeso } from "@/lib/utils";
 import { retryWithExponentialBackoff } from "@/lib/retry";
 import { Paginador } from "@/components/paginador";
+import { BadgeReventa } from "@/components/badge-reventa";
 
 interface ClientesListPaginatedProps {
   initialData: {
@@ -14,6 +15,7 @@ interface ClientesListPaginatedProps {
       cuit?: string | null;
       zona: { id: number; nombre: string };
       saldoPendiente: number;
+      revendedor?: { id: number; nombre: string } | null;
     }>;
     total: number;
     page: number;
@@ -110,11 +112,14 @@ export function ClientesListPaginated({
               className="block bg-[#1c1f26] border border-[#2a2d35] rounded-lg px-4 py-2.5 hover:border-[#a3e635] transition-colors"
             >
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-sm font-medium text-[#f9fafb]">{cliente.nombre}</span>
                   <span className="text-[10px] text-[#6b7280] bg-[#22252e] px-1.5 py-0.5 rounded uppercase tracking-wide">
                     {cliente.zona.nombre}
                   </span>
+                  {cliente.revendedor && (
+                    <BadgeReventa nombre={cliente.revendedor.nombre} />
+                  )}
                   {cliente.cuit && (
                     <span
                       className="text-[11px] font-mono text-[#9ca3af] bg-[#16181f] border border-[#2a2d35] px-1.5 py-0.5 rounded select-all hover:text-[#a3e635]"

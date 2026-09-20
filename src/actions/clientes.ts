@@ -13,7 +13,7 @@ export async function getClientes(busqueda?: string, idZona?: number) {
         : {}),
       ...(idZona ? { idZona } : {}),
     },
-    include: { zona: true, repartidor: true, cuentaCorriente: true },
+    include: { zona: true, repartidor: true, cuentaCorriente: true, revendedor: true },
     orderBy: [{ zona: { nombre: "asc" } }, { nombre: "asc" }],
   });
 }
@@ -21,7 +21,19 @@ export async function getClientes(busqueda?: string, idZona?: number) {
 export async function getClientesBasicos() {
   return prisma.cliente.findMany({
     where: { activo: true },
-    select: { id: true, nombre: true, cuit: true, idZona: true, zona: { select: { nombre: true } }, formaPagoPref: true, idRepartidor: true, requiereFactura: true },
+    select: {
+      id: true,
+      nombre: true,
+      cuit: true,
+      email: true,
+      idZona: true,
+      zona: { select: { nombre: true } },
+      formaPagoPref: true,
+      idRepartidor: true,
+      requiereFactura: true,
+      idRevendedor: true,
+      revendedor: { select: { id: true, nombre: true } },
+    },
     orderBy: { nombre: "asc" },
   });
 }
@@ -33,6 +45,7 @@ export async function getCliente(id: number) {
       zona: true,
       repartidor: true,
       cuentaCorriente: true,
+      revendedor: true,
       pedidos: {
         orderBy: { fecha: "desc" },
         take: 50,
@@ -69,7 +82,7 @@ export async function getClientesConSaldo(
       ...(idZona ? { idZona } : {}),
       ...(idRepartidor ? { idRepartidor } : {}),
     },
-    include: { zona: true, repartidor: true },
+    include: { zona: true, repartidor: true, revendedor: true },
     orderBy: { nombre: "asc" },
   });
 
@@ -121,7 +134,7 @@ export async function getClientesConSaldoPaginado(
 
   const clientes = await prisma.cliente.findMany({
     where,
-    include: { zona: true, repartidor: true },
+    include: { zona: true, repartidor: true, revendedor: true },
     orderBy: { nombre: "asc" },
     skip,
     take: pageSize,
@@ -171,6 +184,7 @@ export async function getCatalogoFormulario() {
 export async function crearCliente(formData: FormData) {
   const nombre = formData.get("nombre") as string;
   const cuit = formData.get("cuit") as string | null;
+  const email = formData.get("email") as string | null;
   const direccion = formData.get("direccion") as string | null;
   const telefono = formData.get("telefono") as string | null;
   const idZona = Number(formData.get("idZona"));
@@ -192,6 +206,7 @@ export async function crearCliente(formData: FormData) {
     data: {
       nombre: nombre.trim().toUpperCase(),
       cuit: cuit?.trim() || null,
+      email: email?.trim() || null,
       direccion: direccion?.trim() || null,
       telefono: telefono?.trim() || null,
       idZona,
@@ -211,6 +226,7 @@ export async function crearCliente(formData: FormData) {
 export async function actualizarCliente(id: number, formData: FormData) {
   const nombre = formData.get("nombre") as string;
   const cuit = formData.get("cuit") as string | null;
+  const email = formData.get("email") as string | null;
   const direccion = formData.get("direccion") as string | null;
   const telefono = formData.get("telefono") as string | null;
   const idZona = Number(formData.get("idZona"));
@@ -236,6 +252,7 @@ export async function actualizarCliente(id: number, formData: FormData) {
     data: {
       nombre: nombre.trim().toUpperCase(),
       cuit: cuit?.trim() || null,
+      email: email?.trim() || null,
       direccion: direccion?.trim() || null,
       telefono: telefono?.trim() || null,
       idZona,
