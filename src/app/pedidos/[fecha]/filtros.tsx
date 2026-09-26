@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useTransition } from "react";
+import { SelectorZonaBuscador } from "@/components/selector-zona-buscador";
 
 interface Zona { id: number; nombre: string }
 interface Repartidor { id: number; nombre: string }
@@ -102,14 +103,11 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
         )}
       </div>
 
-      <select
-        value={zonaActual ?? ""}
-        onChange={(e) => actualizar(e.target.value, repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "", formaPagoActual ?? "")}
-        className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
-      >
-        <option value="">Todas las zonas</option>
-        {zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre}</option>)}
-      </select>
+      <SelectorZonaBuscador
+        zonas={zonas}
+        zonaActual={zonaActual}
+        onChange={(idZona) => actualizar(idZona, repartidorActual ?? "", estadoActual ?? "", busqueda, facturaActual ?? "", formaPagoActual ?? "")}
+      />
 
       <select
         value={repartidorActual ?? ""}

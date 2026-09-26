@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { getStatsHoy, getResumenPorRepartidorHoy } from "@/actions/dashboard";
+import { getStatsHoy, getResumenPorRepartidorHoy, getStockHoy } from "@/actions/dashboard";
 import { TarjetaStat } from "@/components/tarjeta-stat";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { BadgeReventa } from "@/components/badge-reventa";
+import { TabsPanelControl } from "./tabs-panel-control";
 import { formatearPeso, formatearFecha, hoyISO, ETIQUETAS_FORMA_PAGO, parseFechaRuta } from "@/lib/utils";
 
 export default async function Inicio() {
   const stats = await getStatsHoy();
   const resumenRepartidores = await getResumenPorRepartidorHoy();
+  const stock = await getStockHoy();
 
   const hoy = hoyISO();
   const hoyFecha = parseFechaRuta(hoy);
@@ -192,35 +194,17 @@ export default async function Inicio() {
             ))}
           </div>
 
-          {/* Resumen repartidores */}
-          <h2 className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mt-6 mb-3">
-            Repartidores hoy
-          </h2>
-          {resumenRepartidores.length === 0 ? (
-            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 text-center">
-              <p className="text-[#6b7280] text-sm">Sin actividad registrada.</p>
-            </div>
-          ) : (
-            <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] divide-y divide-[#22252e]">
-              {resumenRepartidores.map((r, i) => (
-                <div key={i} className="px-4 py-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-sm text-[#f9fafb]">
-                      {r.repartidor?.nombre ?? "Sin asignar"}
-                    </span>
-                    <span className="text-sm font-semibold text-[#4ade80]">
-                      {formatearPeso(r.totalCobrado)}
-                    </span>
-                  </div>
-                  <div className="flex gap-3 mt-0.5 text-xs text-[#6b7280]">
-                    <span>{r.cantPedidos} pedidos</span>
-                    <span>{r.totalCajas} cajas</span>
-                    <span>Fact. {formatearPeso(r.totalMonto)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Panel de control lateral: Repartidores y Stock */}
+          <div className="mt-6">
+            <h2 className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider mb-3">
+              Control de jornada
+            </h2>
+            <TabsPanelControl
+              resumenRepartidores={resumenRepartidores}
+              stock={stock}
+              fechaHoy={hoy}
+            />
+          </div>
         </div>
       </div>
     </div>

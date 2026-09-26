@@ -8,6 +8,7 @@ import { FiltrosPedidos } from "./filtros";
 import { TablaEntregas } from "./tabla-entregas";
 import { NavegacionFecha } from "./navegacion-fecha";
 import { AccionesPedido } from "./acciones";
+import { ChipsRepartidores, ResumenRepartidorItem } from "./chips-repartidores";
 
 interface Props {
   params: Promise<{ fecha: string }>;
@@ -43,6 +44,32 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
       pedidos.filter((p) => p.repartidor).map((p) => [p.repartidor!.id, p.repartidor!])
     ).values()
   ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  // Cajas y pedidos por repartidor
+  const resumenReps = Array.from(
+    pedidos
+      .filter((p) => !p.esCobro)
+      .reduce((map, p) => {
+        const idRep = p.idRepartidor ?? null;
+        const key = idRep ?? -1;
+        const nombre = p.repartidor?.nombre ?? "Sin asignar";
+        const entry = map.get(key) ?? {
+          id: idRep,
+          nombre,
+          cajas: 0,
+          pedidos: 0,
+        };
+        entry.cajas += p.cajas;
+        entry.pedidos += 1;
+        map.set(key, entry);
+        return map;
+      }, new Map<number, ResumenRepartidorItem>())
+      .values()
+  ).sort((a, b) => {
+    if (a.id === null) return 1;
+    if (b.id === null) return -1;
+    return b.cajas - a.cajas;
+  });
 
   // Filtrar entregas
   let entregados = pedidos.filter((p) => !p.esCobro);
@@ -128,6 +155,15 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
             </div>
           ))}
         </div>
+      )}
+
+      {/* Resumen interactivo de cajas por repartidor */}
+      {pedidos.filter((p) => !p.esCobro).length > 0 && (
+        <ChipsRepartidores
+          fecha={fecha}
+          repartidores={resumenReps}
+          repartidorActual={repartidor}
+        />
       )}
 
       {pedidos.length === 0 ? (
