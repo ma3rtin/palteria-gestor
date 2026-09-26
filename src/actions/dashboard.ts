@@ -109,20 +109,126 @@ export async function getResumenPorRepartidorHoy() {
 
   const grupos = await prisma.pedido.groupBy({
     by: ["idRepartidor"],
-    where: { fecha: hoy, esCobro: false, idRepartidor: { not: null } },
+    where: { fecha: hoy, esCobro: false },
     _sum: { cajas: true, montoTotal: true, montoPagado: true },
     _count: { id: true },
   });
 
+  const idsValidos = grupos.map((g) => g.idRepartidor).filter((id): id is number => id !== null);
   const repartidores = await prisma.repartidor.findMany({
-    where: { id: { in: grupos.map((g) => g.idRepartidor!).filter(Boolean) } },
+    where: { id: { in: idsValidos } },
   });
 
-  return grupos.map((g) => ({
-    repartidor: repartidores.find((r) => r.id === g.idRepartidor) ?? null,
-    totalCajas: g._sum.cajas ?? 0,
-    totalMonto: g._sum.montoTotal ?? 0,
-    totalCobrado: g._sum.montoPagado ?? 0,
-    cantPedidos: g._count.id,
-  }));
+  return grupos
+    .map((g) => ({
+      repartidor: g.idRepartidor ? (repartidores.find((r) => r.id === g.idRepartidor) ?? null) : null,
+      totalCajas: g._sum.cajas ?? 0,
+      totalMonto: g._sum.montoTotal ?? 0,
+      totalCobrado: g._sum.montoPagado ?? 0,
+      cantPedidos: g._count.id,
+    }))
+    .sort((a, b) => {
+      // Sin asignar al final, resto por totalCajas desc
+      if (!a.repartidor) return 1;
+      if (!b.repartidor) return -1;
+      return b.totalCajas - a.totalCajas;
+    });
+}
+
+export async function getStockHoy() {
+  const hoy = parseFechaRuta(hoyISO());
+
+  // 1. Cajas vendidas hoy desde itemsPedido
+  const itemsHoy = await prisma.itemPedido.groupBy({
+    by: ["idProducto"],
+    where: {
+      pedido: {
+        fecha: hoy,
+        esCobro: false,
+      },
+    },
+    _sum: { cajas: true },
+  });
+
+  // 2. Cajas vendidas hoy desde pedidos legados
+  const pedidosLegadosHoy = await prisma.pedido.findMany({
+    where: {
+      fecha: hoy,
+      esCobro: false,
+      idProducto: { not: null },
+      items: { none: {} },
+    },
+    select: {
+      idProducto: true,
+      cajas: true,
+    },
+  });
+
+  const cajasVendidasMap = new Map<number, number>();
+  for (const it of itemsHoy) {
+    cajasVendidasMap.set(it.idProducto, (cajasVendidasMap.get(it.idProducto) ?? 0) + (it._sum.cajas ?? 0));
+  }
+  for (const pl of pedidosLegadosHoy) {
+    if (pl.idProducto) {
+      cajasVendidasMap.set(pl.idProducto, (cajasVendidasMap.get(pl.idProducto) ?? 0) + pl.cajas);
+    }
+  }
+
+  const idsVendidosHoy = Array.from(cajasVendidasMap.keys());
+
+  // 3. Productos que están activos en catálogo O que tuvieron ventas en la jornada
+  const productos = await prisma.producto.findMany({
+    where: {
+      OR: [
+        { activo: true },
+        { id: { in: idsVendidosHoy } },
+      ],
+    },
+    orderBy: { nombre: "asc" },
+    select: {
+      id: true,
+      nombre: true,
+      fechaIngreso: true,
+      stockCajas: true,
+      kgPorCaja: true,
+      activo: true,
+    },
+  });
+
+  const fmtFecha = (d: Date | null) =>
+    d ? d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }) : null;
+
+  // Filtrar estrictamente: solo productos con ventas hoy O con stock real en cámara (> 0)
+  const variedades = productos
+    .map((p) => {
+      const vendidas = cajasVendidasMap.get(p.id) ?? 0;
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        lote: fmtFecha(p.fechaIngreso),
+        cajasVendidasHoy: vendidas,
+        stockDisponible: p.stockCajas,
+        kgPorCaja: p.kgPorCaja,
+        activo: p.activo,
+      };
+    })
+    .filter((v) => v.cajasVendidasHoy > 0 || (v.activo && v.stockDisponible > 0));
+
+  variedades.sort((a, b) => {
+    if (b.cajasVendidasHoy !== a.cajasVendidasHoy) {
+      return b.cajasVendidasHoy - a.cajasVendidasHoy;
+    }
+    return b.stockDisponible - a.stockDisponible;
+  });
+
+  const totalCajasVendidasHoy = Array.from(cajasVendidasMap.values()).reduce((s, c) => s + c, 0);
+  const totalStockDisponible = productos
+    .filter((p) => p.activo)
+    .reduce((s, p) => s + p.stockCajas, 0);
+
+  return {
+    variedades,
+    totalCajasVendidasHoy,
+    totalStockDisponible,
+  };
 }

@@ -55,6 +55,7 @@ Este archivo registra el historial de desarrollo por sesiones y las tareas pendi
 | **45 — Grupo 2 Tanda A (Quick Wins de Datos y UI: Mail, Factura, Reventas, Repartidor y Optimización de Tabla)** | ✅ | Rama `feature/grupo-2-quick-wins`. Campo `email` en `Cliente` con migración Prisma y soporte en creación, edición, ficha de cliente y desglose desplegable de entregas diarias (preservando copiado WhatsApp/Excel intacto). Checkbox de 'Requiere factura' conectado y reactivo en alta y edición de pedidos, sincronizado con la preferencia del cliente y actualizando `estadoFactura` entre `PENDIENTE` y `NO_REQUIERE`. Componente interactivo unificado `BadgeReventa` con estilo sobrio (sin punto ni titileo, cursor estándar y transición sutil de tono en hover) y tooltip nativo del nombre del revendedor en todas las listas. Columna 'Repartidor' agregada a la tabla principal de entregas diarias entre 'Zona' y 'Producto'. Remoción de la columna 'Cantidad' de la tabla principal para optimizar el ancho en pantallas pequeñas, trasladando el dato al panel desplegable (`colSpan={9}`). Suite de 53 tests pasando y build de producción verificado. |
 | **46 — Rediseño y Blindaje de Descuento en Efectivo** | ✅ | Rama `feature/grupo-2-quick-wins`. Columnas tipadas `descuentoEfectivo` (Boolean) y `descuentoPorCaja` (Float) agregadas a `Pedido` con migración SQL y backfill, erradicando el anti-patrón de simular estado en `observaciones` (incorporado como directriz en `.agents/AGENTS.md`). Reubicación del checkbox de descuento por pago en efectivo condicionalmente tras el selector de forma de pago en alta (`nuevo/form.tsx`) y edición (`editar/form.tsx`), visible únicamente si el método seleccionado es Efectivo. En el desglose de detalles diarios (`tabla-entregas.tsx`), se muestra el checkbox de descuento marcado y deshabilitado (solo lectura), removiendo el checkbox redundante de cobro parcial rápido para evitar doble descuento. Sincronización reactiva en edición con recálculo bidireccional automático del total al tildar/destildar. Suite de 54 tests pasando y build Turbopack verificado. |
 | **47 — Badge de Revendedor en Editar Pedido** | ✅ | Rama `feature/grupo-2-quick-wins`. Integración de `BadgeReventa` en la vista de edición de pedido (`/pedidos/[fecha]/[id]/editar`), mostrándolo tanto en la cabecera general (`page.tsx`) como en el detalle del cliente en el formulario (`form.tsx` con `mostrarNombreCompleto`). Build y 54 tests verificados. |
+| **48 — Grupo 2 Tanda B (Stock en Dashboard, Cajas por Repartidor y Filtro de Zona con Fuzzy Match)** | ✅ | Rama `feature/grupo-2-tanda-b`. Pestaña interactiva de Stock en Dashboard (`TabsPanelControl`) con cajas vendidas hoy por variedad y stock disponible en cámara. Barra interactiva de chips en `/pedidos/[fecha]` con cajas y pedidos por chofer (`ChipsRepartidores`) y filtro directo al clic. Selector con búsqueda por subsecuencia (fuzzy match `cb` -> CABA, `hd` -> HAEDO) para zonas (`SelectorZonaBuscador`). Suite de 59 tests pasando y build Turbopack verificado. |
 
 
 ---
@@ -73,11 +74,11 @@ Este archivo registra el historial de desarrollo por sesiones y las tareas pendi
     - ✅ **7. Opción de factura por pedido**: Checkbox 'Requiere factura' conectado en backend (`requiereFactura` y sincronización con `estadoFactura: PENDIENTE / NO_REQUIERE`) y reactivo a la preferencia del cliente seleccionado.
     - ✅ **8. Identificar reventas**: Badge compacto 'Reventa' con tooltip del nombre del revendedor en todas las listas de pedidos (entregas diarias, cobranzas, inicio) y clientes.
     - ✅ **11. Repartidor en planilla principal**: Columna 'Repartidor' visible en la tabla diaria de pedidos entre 'Zona' y 'Cantidad'.
-  - **Tanda B (Siguiente tanda)**:
-    - **5. Cantidad de cajas por repartidor**: Mostrar el total de cajas que tiene cargadas cada repartidor.
-    - **9. Stock diario**: Mostrar claramente la cantidad de stock disponible del día y control de jornada.
-    - **10. Filtro por zona**: Filtrar usando las iniciales de cada zona (ZO, CB, etc.).
-    - **12. Sector Palterías**: Módulo para registrar y controlar la mercadería enviada a las sucursales propias.
+  - **Tanda B (En curso en `feature/grupo-2-tanda-b`)**:
+    - ✅ **5. Cantidad de cajas por repartidor**: Barra interactiva de chips en `/pedidos/[fecha]` con totales por chofer y filtro rápido al clic.
+    - ✅ **9. Stock diario**: Pestaña de stock y variedades en el Dashboard lateral de Inicio (`/`) con cajas vendidas hoy y disponibilidad en cámara.
+    - ✅ **10. Filtro por zona**: Buscador predictivo por subsecuencia (fuzzy match: letras en orden sin estar pegadas) en pedidos diarios.
+    - **12. Sector Palterías**: Módulo para registrar y controlar la mercadería enviada a las sucursales propias (Haedo, Castelar).
 - **Etiquetas para impresión**: Formatear etiquetas para pegar en hoja e imprimir.
 - **Exportar Excel de Pedidos y Cobranzas**: Exportar pedidos y cuentas corrientes a `.xlsx`.
 
