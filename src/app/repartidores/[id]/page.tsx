@@ -50,6 +50,60 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
         ))}
       </div>
 
+      {/* Envíos a Palterías */}
+      {resumen.enviosSucursales && resumen.enviosSucursales.length > 0 && (
+        <div className="mb-6 bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#2a2d35] bg-[#17191e]/50 flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-[#a3e635] uppercase tracking-wider">
+              Envíos a Palterías ({resumen.enviosSucursales.length})
+            </h2>
+            <span className="text-xs text-[#9ca3af]">
+              {resumen.enviosSucursales.reduce((s, e) => s + e.cajas, 0)} cajas
+            </span>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
+                <th className="text-left px-4 py-3 font-medium">Sucursal</th>
+                <th className="text-left px-4 py-3 font-medium">Productos y Cajas</th>
+                <th className="text-right px-4 py-3 font-medium">Total Cajas</th>
+                <th className="text-left px-4 py-3 font-medium">Observaciones</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumen.enviosSucursales.map((e) => (
+                <tr key={e.id} className="border-b border-[#22252e] last:border-0">
+                  <td className="px-4 py-2.5 font-medium text-[#f9fafb]">
+                    {e.sucursal.nombre}
+                    {e.sucursal.direccion && (
+                      <span className="text-xs text-[#9ca3af] ml-1.5">({e.sucursal.direccion})</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-[#9ca3af]">
+                    {e.items.map((it) => `${it.producto.nombre}: ${it.cajas} cajas`).join(" · ")}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-semibold text-[#a3e635]">
+                    {e.cajas}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-[#9ca3af]">
+                    {e.observaciones ?? "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <Link
+                      href={`/pedidos/${fechaConsulta}?vista=palterias`}
+                      className="text-xs text-[#a3e635] hover:underline"
+                    >
+                      Ver en Palterías
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {resumen.pedidos.length === 0 ? (
         <div className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-8 text-center text-[#6b7280] text-sm">
           Sin pedidos para {fechaConsulta}.

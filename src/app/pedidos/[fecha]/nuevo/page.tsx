@@ -1,4 +1,5 @@
 import { getCatalogoNuevoPedido, crearPedido } from "@/actions/pedidos";
+import { getSucursales, crearEnvioSucursal } from "@/actions/sucursales";
 import { ChevronLeft } from "lucide-react";
 import { MADURACIONES_SUGERIDAS } from "@/lib/utils";
 import { FormNuevoPedido } from "./form";
@@ -11,7 +12,10 @@ interface Props {
 export default async function NuevoPedidoPage({ params, searchParams }: Props) {
   const { fecha } = await params;
   const { cliente } = await searchParams;
-  const { clientes, productos, repartidores } = await getCatalogoNuevoPedido();
+  const [{ clientes, productos, repartidores }, sucursales] = await Promise.all([
+    getCatalogoNuevoPedido(),
+    getSucursales(),
+  ]);
 
   return (
     <div className="p-8">
@@ -29,8 +33,10 @@ export default async function NuevoPedidoPage({ params, searchParams }: Props) {
         clientes={clientes}
         productos={productos}
         repartidores={repartidores}
+        sucursales={sucursales}
         maduracionesSugeridas={MADURACIONES_SUGERIDAS}
         crearPedido={crearPedido}
+        crearEnvioSucursal={crearEnvioSucursal}
         clienteInicialId={cliente ? Number(cliente) : undefined}
       />
     </div>
