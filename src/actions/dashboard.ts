@@ -107,25 +107,61 @@ export async function getStatsHoy() {
 export async function getResumenPorRepartidorHoy() {
   const hoy = parseFechaRuta(hoyISO());
 
-  const grupos = await prisma.pedido.groupBy({
-    by: ["idRepartidor"],
-    where: { fecha: hoy, esCobro: false },
-    _sum: { cajas: true, montoTotal: true, montoPagado: true },
-    _count: { id: true },
-  });
+  const [grupos, gruposSucursales] = await Promise.all([
+    prisma.pedido.groupBy({
+      by: ["idRepartidor"],
+      where: { fecha: hoy, esCobro: false },
+      _sum: { cajas: true, montoTotal: true, montoPagado: true },
+      _count: { id: true },
+    }),
+    prisma.envioSucursal.groupBy({
+      by: ["idRepartidor"],
+      where: { fecha: hoy },
+      _sum: { cajas: true },
+      _count: { id: true },
+    }),
+  ]);
 
-  const idsValidos = grupos.map((g) => g.idRepartidor).filter((id): id is number => id !== null);
-  const repartidores = await prisma.repartidor.findMany({
-    where: { id: { in: idsValidos } },
-  });
+  const repMap = new Map<number | null, {
+    totalCajas: number;
+    totalMonto: number;
+    totalCobrado: number;
+    cantPedidos: number;
+  }>();
 
-  return grupos
-    .map((g) => ({
-      repartidor: g.idRepartidor ? (repartidores.find((r) => r.id === g.idRepartidor) ?? null) : null,
+  for (const g of grupos) {
+    repMap.set(g.idRepartidor, {
       totalCajas: g._sum.cajas ?? 0,
       totalMonto: g._sum.montoTotal ?? 0,
       totalCobrado: g._sum.montoPagado ?? 0,
       cantPedidos: g._count.id,
+    });
+  }
+
+  for (const gs of gruposSucursales) {
+    const existing = repMap.get(gs.idRepartidor) ?? {
+      totalCajas: 0,
+      totalMonto: 0,
+      totalCobrado: 0,
+      cantPedidos: 0,
+    };
+    existing.totalCajas += gs._sum.cajas ?? 0;
+    existing.cantPedidos += gs._count.id;
+    repMap.set(gs.idRepartidor, existing);
+  }
+
+  const idsValidos = Array.from(repMap.keys()).filter((id): id is number => id !== null);
+  const repartidores = await prisma.repartidor.findMany({
+    where: { id: { in: idsValidos } },
+  });
+
+  return Array.from(repMap.entries())
+    .map(([idRepartidor, datos]) => ({
+      repartidor: idRepartidor ? (repartidores.find((r) => r.id === idRepartidor) ?? null) : null,
+      totalCajas: datos.totalCajas,
+      totalMonto: datos.totalMonto,
+      totalCobrado: datos.totalCobrado,
+      cantPedidos: datos.cantPedidos,
     }))
     .sort((a, b) => {
       // Sin asignar al final, resto por totalCajas desc
@@ -164,6 +200,17 @@ export async function getStockHoy() {
     },
   });
 
+  // 3. Cajas trasladadas a sucursales hoy desde itemsEnvioSucursal
+  const itemsSucursalesHoy = await prisma.itemEnvioSucursal.groupBy({
+    by: ["idProducto"],
+    where: {
+      envio: {
+        fecha: hoy,
+      },
+    },
+    _sum: { cajas: true },
+  });
+
   const cajasVendidasMap = new Map<number, number>();
   for (const it of itemsHoy) {
     cajasVendidasMap.set(it.idProducto, (cajasVendidasMap.get(it.idProducto) ?? 0) + (it._sum.cajas ?? 0));
@@ -172,6 +219,9 @@ export async function getStockHoy() {
     if (pl.idProducto) {
       cajasVendidasMap.set(pl.idProducto, (cajasVendidasMap.get(pl.idProducto) ?? 0) + pl.cajas);
     }
+  }
+  for (const its of itemsSucursalesHoy) {
+    cajasVendidasMap.set(its.idProducto, (cajasVendidasMap.get(its.idProducto) ?? 0) + (its._sum.cajas ?? 0));
   }
 
   const idsVendidosHoy = Array.from(cajasVendidasMap.keys());

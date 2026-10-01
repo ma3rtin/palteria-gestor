@@ -50,8 +50,9 @@ model Usuario {
   nombre       String
   rol          RolUsuario @default(ADMIN) @map("rol")
   activo       Boolean    @default(true)
-  pedidos      Pedido[]
-  creadoEn     DateTime   @default(now()) @map("creado_en")
+  pedidos          Pedido[]
+  enviosSucursales EnvioSucursal[]
+  creadoEn         DateTime        @default(now()) @map("creado_en")
 
   @@map("usuarios")
 }
@@ -103,28 +104,30 @@ model LiquidacionRevendedor {
 }
 
 model Repartidor {
-  id           Int         @id @default(autoincrement()) @map("id_repartidor")
-  nombre       String      @unique
-  activo       Boolean     @default(true)
-  clientes     Cliente[]
-  pedidos      Pedido[]
-  pagosLocales PagoLocal[]
+  id               Int             @id @default(autoincrement()) @map("id_repartidor")
+  nombre           String          @unique
+  activo           Boolean         @default(true)
+  clientes         Cliente[]
+  pedidos          Pedido[]
+  pagosLocales     PagoLocal[]
+  enviosSucursales EnvioSucursal[]
 
   @@map("repartidores")
 }
 
 model Producto {
-  id               Int       @id @default(autoincrement()) @map("id_producto")
-  nombre           String
-  precioReferencia Float     @default(0) @map("precio_referencia")
-  kgPorCaja        Float?    @map("kg_por_caja")
-  stockCajas       Float     @default(0) @map("stock_cajas")
-  costo            Float     @default(0)
+  id                 Int                  @id @default(autoincrement()) @map("id_producto")
+  nombre             String
+  precioReferencia   Float                @default(0) @map("precio_referencia")
+  kgPorCaja          Float?               @map("kg_por_caja")
+  stockCajas         Float                @default(0) @map("stock_cajas")
+  costo              Float                @default(0)
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
-  fechaIngreso     DateTime? @map("fecha_ingreso") @db.Date
-  activo           Boolean      @default(true)
-  pedidos          Pedido[]
-  itemsPedido      ItemPedido[]
+  fechaIngreso       DateTime?            @map("fecha_ingreso") @db.Date
+  activo             Boolean              @default(true)
+  pedidos            Pedido[]
+  itemsPedido        ItemPedido[]
+  itemsEnvioSucursal ItemEnvioSucursal[]
 
   @@map("productos")
 }
@@ -266,4 +269,54 @@ model ItemPedido {
 
   @@map("items_pedido")
 }
+
+// ==================== SUCURSALES Y ENVÍOS ====================
+
+model Sucursal {
+  id        Int             @id @default(autoincrement()) @map("id_sucursal")
+  nombre    String          @unique
+  direccion String?
+  activo    Boolean         @default(true)
+  envios    EnvioSucursal[]
+  creadoEn  DateTime        @default(now()) @map("creado_en")
+
+  @@map("sucursales")
+}
+
+model EnvioSucursal {
+  id            Int                 @id @default(autoincrement()) @map("id_envio_sucursal")
+  fecha         DateTime            @db.Date
+  idSucursal    Int                 @map("id_sucursal")
+  sucursal      Sucursal            @relation(fields: [idSucursal], references: [id])
+  idRepartidor  Int?                @map("id_repartidor")
+  repartidor    Repartidor?         @relation(fields: [idRepartidor], references: [id])
+  idUsuario     Int?                @map("id_usuario")
+  usuario       Usuario?            @relation(fields: [idUsuario], references: [id])
+  cajas         Float               @default(0)
+  observaciones String?
+  items         ItemEnvioSucursal[]
+  creadoEn      DateTime            @default(now()) @map("creado_en")
+  actualizadoEn DateTime            @updatedAt @map("actualizado_en")
+
+  @@index([fecha])
+  @@index([idSucursal])
+  @@index([idRepartidor])
+  @@map("envios_sucursales")
+}
+
+model ItemEnvioSucursal {
+  id         Int           @id @default(autoincrement()) @map("id_item_envio_sucursal")
+  idEnvio    Int           @map("id_envio_sucursal")
+  envio      EnvioSucursal @relation(fields: [idEnvio], references: [id], onDelete: Cascade)
+  idProducto Int           @map("id_producto")
+  producto   Producto      @relation(fields: [idProducto], references: [id])
+  cajas      Float         @default(0)
+  maduracion String?
+  creadoEn   DateTime      @default(now()) @map("creado_en")
+
+  @@index([idEnvio])
+  @@index([idProducto])
+  @@map("items_envio_sucursal")
+}
+
 

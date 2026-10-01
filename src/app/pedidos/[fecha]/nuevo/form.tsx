@@ -33,13 +33,22 @@ interface Repartidor {
   nombre: string;
 }
 
+interface Sucursal {
+  id: number;
+  nombre: string;
+  direccion?: string | null;
+  activo: boolean;
+}
+
 interface Props {
   fecha: string;
   clientes: Cliente[];
   productos: Producto[];
   repartidores: Repartidor[];
+  sucursales?: Sucursal[];
   maduracionesSugeridas: string[];
   crearPedido: (formData: FormData) => Promise<void>;
+  crearEnvioSucursal?: (formData: FormData) => Promise<void>;
   clienteInicialId?: number;
 }
 
@@ -62,13 +71,20 @@ export function FormNuevoPedido({
   clientes,
   productos,
   repartidores,
+  sucursales = [],
   maduracionesSugeridas,
   crearPedido,
+  crearEnvioSucursal,
   clienteInicialId,
 }: Props) {
   const initialCliente = clienteInicialId ? clientes.find((c) => c.id === clienteInicialId) : null;
 
-  const [esCobro, setEsCobro] = useState(false);
+  type ModoForm = "ENTREGA" | "COBRANZA" | "SUCURSAL";
+  const [modo, setModo] = useState<ModoForm>("ENTREGA");
+  const esCobro = modo === "COBRANZA";
+
+  const [idSucursalSelec, setIdSucursalSelec] = useState<number | null>(null);
+  const [errorSucursal, setErrorSucursal] = useState(false);
   const [idClienteSelec, setIdClienteSelec] = useState<number | null>(clienteInicialId ?? null);
   const [items, setItems] = useState<ItemFormRow[]>([
     { key: "item-1", idProducto: "", cajas: 1, maduracion: "" },
@@ -157,6 +173,23 @@ export function FormNuevoPedido({
     });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (modo === "SUCURSAL") {
+      if (!idSucursalSelec) {
+        e.preventDefault();
+        setErrorSucursal(true);
+        return;
+      }
+      if (
+        items.length === 0 ||
+        items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0)
+      ) {
+        e.preventDefault();
+        setErrorItems("Por favor completá los datos de todos los productos (producto y cantidad mayor a cero).");
+        return;
+      }
+      return;
+    }
+
     if (!idClienteSelec) {
       e.preventDefault();
       setErrorCliente(true);
@@ -185,14 +218,14 @@ export function FormNuevoPedido({
 
   return (
     <form
-      action={crearPedido}
+      action={modo === "SUCURSAL" && crearEnvioSucursal ? crearEnvioSucursal : crearPedido}
       onSubmit={handleSubmit}
       className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-6 flex flex-col gap-5"
     >
       <input type="hidden" name="fecha" value={fecha} />
-      <input type="hidden" name="esCobro" value={esCobro ? "on" : ""} />
-      {!esCobro && (
+      {modo === "SUCURSAL" ? (
         <>
+          <input type="hidden" name="idSucursal" value={idSucursalSelec ?? ""} />
           <input type="hidden" name="itemsJson" value={JSON.stringify(itemsParaEnvio)} />
           <input type="hidden" name="cajas" value={totalCajas} />
           {items.length > 0 && (
@@ -202,18 +235,34 @@ export function FormNuevoPedido({
             </>
           )}
         </>
+      ) : (
+        <>
+          <input type="hidden" name="esCobro" value={esCobro ? "on" : ""} />
+          {!esCobro && (
+            <>
+              <input type="hidden" name="itemsJson" value={JSON.stringify(itemsParaEnvio)} />
+              <input type="hidden" name="cajas" value={totalCajas} />
+              {items.length > 0 && (
+                <>
+                  <input type="hidden" name="idProducto" value={items[0].idProducto} />
+                  <input type="hidden" name="maduracion" value={items[0].maduracion} />
+                </>
+              )}
+            </>
+          )}
+        </>
       )}
 
-      {/* Selector de Modo: Entrega vs Cobranza */}
+      {/* Selector de Modo: Entrega vs Cobranzas vs Sucursal */}
       <div className="flex rounded-lg bg-[#17191e] p-1 border border-[#2a2d35]">
         <button
           type="button"
           onClick={() => {
-            setEsCobro(false);
+            setModo("ENTREGA");
             setMontoManual(null);
           }}
           className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-            !esCobro
+            modo === "ENTREGA"
               ? "bg-[#a3e635] text-[#0f1117] shadow"
               : "text-[#9ca3af] hover:text-[#f9fafb]"
           }`}
@@ -223,23 +272,233 @@ export function FormNuevoPedido({
         <button
           type="button"
           onClick={() => {
-            setEsCobro(true);
+            setModo("COBRANZA");
             setMontoManual(null);
           }}
           className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-            esCobro
+            modo === "COBRANZA"
               ? "bg-[#a3e635] text-[#0f1117] shadow"
               : "text-[#9ca3af] hover:text-[#f9fafb]"
           }`}
         >
           Cobranzas
         </button>
+        {sucursales.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setModo("SUCURSAL");
+              setMontoManual(null);
+              if (!idSucursalSelec && sucursales.length > 0) {
+                setIdSucursalSelec(sucursales[0].id);
+              }
+            }}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+              modo === "SUCURSAL"
+                ? "bg-[#a3e635] text-[#0f1117] shadow"
+                : "text-[#9ca3af] hover:text-[#f9fafb]"
+            }`}
+          >
+            Sucursal
+          </button>
+        )}
       </div>
 
-      {/* Cliente — combobox */}
-      <div>
-        <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cliente *</label>
-        <div className="relative">
+      {modo === "SUCURSAL" ? (
+        <>
+          {/* Selector de Sucursal */}
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-2">
+              Sucursal
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {sucursales.map((s) => {
+                const isSelected = idSucursalSelec === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      setIdSucursalSelec(s.id);
+                      setErrorSucursal(false);
+                    }}
+                    className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-center ${
+                      isSelected
+                        ? "bg-[#1f291e] border-[#a3e635] text-[#f9fafb] ring-1 ring-[#a3e635]"
+                        : "bg-[#17191e] border-[#2a2d35] text-[#9ca3af] hover:border-[#4b5563]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-sm text-[#f9fafb]">{s.nombre}</span>
+                      {isSelected && (
+                        <span className="text-[10px] bg-[#a3e635] text-[#0f1117] font-bold px-1.5 py-0.5 rounded">
+                          SELECCIONADA
+                        </span>
+                      )}
+                    </div>
+                    {s.direccion && (
+                      <span className="text-xs text-[#9ca3af] mt-1">{s.direccion}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {errorSucursal && (
+              <p className="text-red-400 text-xs mt-1.5">Debe seleccionar una sucursal.</p>
+            )}
+          </div>
+
+          {/* Repartidor */}
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+              Repartidor
+            </label>
+            <select
+              name="idRepartidor"
+              className="w-full bg-[#1c1f26] border border-[#2a2d35] rounded-lg px-3 py-2 text-sm text-[#f9fafb] focus:outline-none focus:border-[#a3e635]"
+            >
+              <option value="">Sin asignar</option>
+              {repartidores.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Productos */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-[#f9fafb]">
+                {items.length > 1 ? "Productos" : "Producto"}
+              </label>
+              <button
+                type="button"
+                onClick={agregarItem}
+                className="inline-flex items-center gap-1.5 text-xs text-[#a3e635] hover:text-[#84cc16] font-medium transition-colors cursor-pointer py-1 px-2 rounded hover:bg-[#a3e635]/10"
+              >
+                <Plus size={14} />
+                <span>Agregar otro producto</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {items.map((item, idx) => {
+                const prodSelec = productos.find((p) => p.id === item.idProducto);
+                const stockInsuficiente = prodSelec && typeof item.cajas === "number" && prodSelec.stockCajas < item.cajas;
+                const otrosIdsSeleccionados = items
+                  .filter((_, i) => i !== idx)
+                  .map((it) => it.idProducto)
+                  .filter((id): id is number => typeof id === "number" && id > 0);
+
+                return (
+                  <div
+                    key={item.key}
+                    className="bg-[#17191e] border border-[#2a2d35] rounded-lg p-3.5 flex flex-col gap-3"
+                  >
+                    <div className="flex items-center justify-between text-xs text-[#6b7280]">
+                      <span className="font-semibold uppercase tracking-wider text-[#9ca3af]">
+                        {items.length > 1 ? `Producto #${idx + 1}` : "Detalle del producto"}
+                      </span>
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => eliminarItem(idx)}
+                          className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-950/40 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          title="Eliminar este producto"
+                        >
+                          <Trash2 size={13} />
+                          <span>Quitar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                      {/* Producto */}
+                      <div className="md:col-span-6">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Producto *</label>
+                        <SelectorProductoBuscador
+                          productos={productos}
+                          idSeleccionado={item.idProducto}
+                          onSeleccionar={(val) => actualizarItem(idx, "idProducto", val)}
+                          productosExcluidosIds={otrosIdsSeleccionados}
+                          required={true}
+                        />
+                        {prodSelec && (
+                          <p className={`text-xs mt-1 ${stockInsuficiente ? "text-red-400" : "text-[#6b7280]"}`}>
+                            Stock en cámara: <span className="font-medium">{prodSelec.stockCajas} cajas</span>
+                            {prodSelec.kgPorCaja && (
+                              <span className="ml-2">· {prodSelec.kgPorCaja} kg/caja</span>
+                            )}
+                            {stockInsuficiente && (
+                              <span className="ml-2 font-medium">— insuficiente</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Maduración */}
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración</label>
+                        <input
+                          value={item.maduracion}
+                          list="maduraciones"
+                          placeholder="PF-SEMI, VERDE..."
+                          onChange={(e) => actualizarItem(idx, "maduracion", e.target.value)}
+                          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
+                        />
+                      </div>
+
+                      {/* Cajas */}
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Cajas *</label>
+                        <input
+                          type="number"
+                          min={0.5}
+                          step={0.5}
+                          required={true}
+                          placeholder="0"
+                          value={item.cajas}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            actualizarItem(idx, "cajas", val === "" ? "" : parseFloat(val));
+                          }}
+                          className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono text-right"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {errorItems && <p className="text-xs text-red-400 mt-1">{errorItems}</p>}
+
+            {/* Resumen de cajas */}
+            <div className="mt-1">
+              <label className="block text-sm font-medium text-[#f9fafb] mb-1">Total cajas</label>
+              <div className="border border-[#2a2d35] bg-[#17191e] rounded-lg px-3 py-2 text-sm font-mono text-[#f9fafb]">
+                {totalCajas} {totalCajas === 1 ? "caja" : "cajas"}
+              </div>
+            </div>
+          </div>
+
+          {/* Observaciones */}
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Observaciones</label>
+            <input
+              name="observaciones"
+              placeholder="Ej: Traslado de la mañana, reposición sucursal..."
+              className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb]"
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Cliente — combobox */}
+          <div>
+            <label className="block text-sm font-medium text-[#f9fafb] mb-1">Cliente *</label>
+            <div className="relative">
           <input
             type="text"
             placeholder="Buscar por nombre o zona..."
@@ -672,15 +931,21 @@ export function FormNuevoPedido({
           <span className="text-sm text-[#f9fafb]">Requiere factura</span>
         </label>
       </div>
+      </>
+      )}
 
       <div className="flex gap-3 pt-2 border-t border-[#22252e]">
         <BotonSubmit
           className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-6 py-2 rounded-lg text-sm font-medium transition-colors"
         >
-          {esCobro ? "Guardar cobranza" : "Guardar pedido"}
+          {modo === "SUCURSAL"
+            ? "Confirmar"
+            : esCobro
+            ? "Guardar cobranza"
+            : "Guardar pedido"}
         </BotonSubmit>
         <a
-          href={`/pedidos/${fecha}`}
+          href={`/pedidos/${fecha}${modo === "SUCURSAL" ? "?vista=palterias" : ""}`}
           className="px-6 py-2 rounded-lg text-sm text-[#9ca3af] hover:text-[#f9fafb] border border-[#2a2d35] hover:border-[#4b5563] transition-colors"
         >
           Cancelar
