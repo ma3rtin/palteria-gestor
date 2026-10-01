@@ -181,10 +181,10 @@ export function FormNuevoPedido({
       }
       if (
         items.length === 0 ||
-        items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0)
+        items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0 || !it.maduracion.trim())
       ) {
         e.preventDefault();
-        setErrorItems("Por favor completá los datos de todos los productos (producto y cantidad mayor a cero).");
+        setErrorItems("Por favor completá los datos de todos los productos (producto, maduración y cantidad mayor a cero).");
         return;
       }
       return;
@@ -439,9 +439,10 @@ export function FormNuevoPedido({
 
                       {/* Maduración */}
                       <div className="md:col-span-3">
-                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración</label>
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración *</label>
                         <input
                           value={item.maduracion}
+                          required={true}
                           list="maduraciones"
                           placeholder="PF-SEMI, VERDE..."
                           onChange={(e) => actualizarItem(idx, "maduracion", e.target.value)}
@@ -716,12 +717,6 @@ export function FormNuevoPedido({
               })}
             </div>
 
-            <datalist id="maduraciones">
-              {maduracionesSugeridas.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
-
             {errorItems && <p className="text-xs text-red-400 mt-1">{errorItems}</p>}
 
             {/* Resumen de cajas y Monto total */}
@@ -933,6 +928,12 @@ export function FormNuevoPedido({
       </div>
       </>
       )}
+
+      <datalist id="maduraciones">
+        {maduracionesSugeridas.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
 
       <div className="flex gap-3 pt-2 border-t border-[#22252e]">
         <BotonSubmit

@@ -125,10 +125,10 @@ export function FormEditarEnvioSucursal({
     }
     if (
       items.length === 0 ||
-      items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0)
+      items.some((it) => !it.idProducto || it.cajas === "" || it.cajas <= 0 || !it.maduracion.trim())
     ) {
       e.preventDefault();
-      setErrorItems("Por favor completá los datos de todos los productos (producto y cantidad mayor a cero).");
+      setErrorItems("Por favor completá los datos de todos los productos (producto, maduración y cantidad mayor a cero).");
       return;
     }
   }
@@ -274,9 +274,10 @@ export function FormEditarEnvioSucursal({
 
                   {/* Maduración */}
                   <div className="md:col-span-3">
-                    <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración</label>
+                    <label className="block text-xs font-medium text-[#9ca3af] mb-1">Maduración *</label>
                     <input
                       value={item.maduracion}
+                      required={true}
                       list="maduraciones"
                       placeholder="PF-SEMI, VERDE..."
                       onChange={(e) => actualizarItem(idx, "maduracion", e.target.value)}
