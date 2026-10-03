@@ -202,6 +202,7 @@ export default async function DetalleCuentaPage({ params }: Props) {
                       <div className="flex justify-between items-center px-4 py-2.5 border-b border-[#22252e]">
                         <Link
                           href={`/clientes/${c.id}`}
+                          prefetch={false}
                           className="font-medium text-sm hover:text-[#a3e635]"
                         >
                           {c.nombre}

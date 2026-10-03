@@ -314,7 +314,7 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                         >
                           <td className="px-4 py-2.5 font-medium text-left">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] text-[#f9fafb]">
+                              <Link href={`/clientes/${p.idCliente}`} prefetch={false} className="hover:text-[#a3e635] text-[#f9fafb]">
                                 {p.cliente.nombre}
                               </Link>
                               {p.cliente.revendedor && (

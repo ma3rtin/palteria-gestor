@@ -47,6 +47,7 @@ export default async function PagosSemanalesPage({ searchParams }: Props) {
             <Link
               key={cc.id}
               href={`/pagos-semanales/${cc.id}`}
+              prefetch={false}
               className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] hover:border-[#a3e635] px-4 py-2.5 flex items-center justify-between transition-colors group"
             >
               <div className="flex items-center gap-3">

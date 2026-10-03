@@ -95,6 +95,7 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                     <td className="px-4 py-3 text-[#9ca3af]">
                       <Link
                         href={`/pedidos/${p.fecha.toISOString().split("T")[0]}?pedidoId=${p.id}`}
+                        prefetch={false}
                         className="hover:text-[#a3e635] underline decoration-dotted transition-colors"
                       >
                         {formatearFechaCorta(p.fecha)}
@@ -108,6 +109,7 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/pedidos/${p.fecha.toISOString().split("T")[0]}?pedidoId=${p.id}`}
+                        prefetch={false}
                         className="text-xs text-[#a3e635] hover:underline"
                       >
                         Ver pedido
