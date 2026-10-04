@@ -25,18 +25,13 @@ export function ChipsRepartidores({ fecha, repartidores, repartidorActual }: Pro
 
   function toggleFiltro(idRep: number | null) {
     const sp = new URLSearchParams(searchParams.toString());
-    const valStr = idRep !== null ? String(idRep) : "";
+    const valStr = idRep !== null ? String(idRep) : "sin_repartidor";
 
     // Si ya está activo el filtro de este repartidor, lo quitamos
     if (repartidorActual === valStr) {
       sp.delete("repartidor");
     } else {
-      if (idRep !== null) {
-        sp.set("repartidor", String(idRep));
-      } else {
-        // En caso de querer filtrar sin asignar en el futuro o resetear
-        sp.delete("repartidor");
-      }
+      sp.set("repartidor", valStr);
     }
 
     router.push(`/pedidos/${fecha}${sp.size ? "?" + sp.toString() : ""}`);
@@ -51,32 +46,37 @@ export function ChipsRepartidores({ fecha, repartidores, repartidorActual }: Pro
 
       {repartidores.map((r) => {
         const esSinAsignar = r.id === null;
-        const estaActivo = !esSinAsignar && repartidorActual === String(r.id);
+        const valStr = esSinAsignar ? "sin_repartidor" : String(r.id);
+        const estaActivo = repartidorActual === valStr;
 
         return (
           <button
             key={r.id ?? "sin-asignar"}
             type="button"
-            onClick={() => !esSinAsignar && toggleFiltro(r.id)}
+            onClick={() => toggleFiltro(r.id)}
             title={
-              esSinAsignar
-                ? "Hay pedidos sin chofer asignado"
-                : estaActivo
-                ? `Quitar filtro de ${r.nombre}`
+              estaActivo
+                ? esSinAsignar
+                  ? "Quitar filtro de sin chofer"
+                  : `Quitar filtro de ${r.nombre}`
+                : esSinAsignar
+                ? "Filtrar pedidos sin chofer asignado"
                 : `Filtrar entregas de ${r.nombre}`
             }
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all select-none ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all select-none cursor-pointer ${
               estaActivo
-                ? "bg-[#a3e635]/20 text-[#a3e635] border border-[#a3e635]/50 font-medium cursor-pointer shadow-xs"
+                ? esSinAsignar
+                  ? "bg-red-900/40 text-red-300 border border-red-500/80 font-medium shadow-xs"
+                  : "bg-[#a3e635]/20 text-[#a3e635] border border-[#a3e635]/50 font-medium shadow-xs"
                 : esSinAsignar
-                ? "bg-red-950/40 text-red-300 border border-red-800/60 cursor-default"
-                : "bg-[#1c1f26] text-[#d1d5db] border border-[#2a2d35] hover:border-[#a3e635]/60 hover:text-white cursor-pointer"
+                ? "bg-red-950/40 text-red-300 border border-red-800/60 hover:border-red-500/60"
+                : "bg-[#1c1f26] text-[#d1d5db] border border-[#2a2d35] hover:border-[#a3e635]/60 hover:text-white"
             }`}
           >
             {esSinAsignar && <AlertTriangle size={12} className="text-red-400 shrink-0" />}
             <span>{r.nombre}:</span>
             <span className="font-semibold text-[#f9fafb] inline-flex items-center gap-1">
-              <IconoCaja size={11} className={estaActivo ? "text-[#a3e635]" : "text-[#9ca3af]"} />
+              <IconoCaja size={11} className={estaActivo ? (esSinAsignar ? "text-red-400" : "text-[#a3e635]") : "text-[#9ca3af]"} />
               {r.cajas}
             </span>
             <span className="text-[11px] opacity-70">({r.pedidos} ped)</span>

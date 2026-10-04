@@ -14,6 +14,9 @@ enum FormaPago {
   TRANSFERENCIA
   PAGO_SEMANAL
   CAMBIO
+  CANJE
+  MUESTRA
+  RETIRO
 
   @@map("forma_pago")
 }

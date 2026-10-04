@@ -105,7 +105,9 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                     <td className="px-4 py-3 text-[#9ca3af]">{p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")}</td>
                     <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{p.esCobro ? "—" : p.cajas}</td>
                     <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{formatearPeso(p.montoTotal)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-[#4ade80] font-mono">{formatearPeso(p.comisionRevendedor)}</td>
+                    <td className={`px-4 py-3 text-right font-semibold font-mono ${p.comisionRevendedor < 0 ? "text-red-400" : "text-[#4ade80]"}`}>
+                      {p.comisionRevendedor < 0 ? `-${formatearPeso(Math.abs(p.comisionRevendedor))}` : formatearPeso(p.comisionRevendedor)}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/pedidos/${p.fecha.toISOString().split("T")[0]}?pedidoId=${p.id}`}

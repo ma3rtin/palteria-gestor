@@ -4,7 +4,15 @@ import { actualizarEstadoFactura } from "@/actions/pedidos";
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: number; estadoActual: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA" }) {
+export function SelectorEstadoFactura({
+  idPedido,
+  estadoActual,
+  onUpdated,
+}: {
+  idPedido: number;
+  estadoActual: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA";
+  onUpdated?: () => void;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [estado, setEstado] = useState(estadoActual);
@@ -31,6 +39,7 @@ export function SelectorEstadoFactura({ idPedido, estadoActual }: { idPedido: nu
           setEstado(nuevoEstado);
           startTransition(async () => {
             await actualizarEstadoFactura(idPedido, nuevoEstado);
+            onUpdated?.();
             router.refresh();
           });
         }}

@@ -30,6 +30,9 @@ const OPCIONES_FORMA_PAGO = [
   { value: "TRANSFERENCIA", label: "Transferencia" },
   { value: "PAGO_SEMANAL",  label: "Pago Semanal" },
   { value: "CAMBIO",        label: "Cambio" },
+  { value: "CANJE",         label: "Canje" },
+  { value: "MUESTRA",       label: "Muestra" },
+  { value: "RETIRO",        label: "Retiro" },
 ];
 
 const OPCIONES_FACTURA = [
@@ -115,6 +118,7 @@ export function FiltrosPedidos({ fecha, zonas, repartidores, zonaActual, reparti
         className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
       >
         <option value="">Todos los repartidores</option>
+        <option value="sin_repartidor">Sin repartidor</option>
         {repartidores.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
       </select>
 

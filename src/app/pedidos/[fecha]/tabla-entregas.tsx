@@ -6,6 +6,9 @@ import Link from "next/link";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { BadgeReventa } from "@/components/badge-reventa";
 import { SelectorEstadoFactura } from "@/components/selector-estado-factura";
+import { SelectorRepartidorPedido } from "@/components/selector-repartidor-pedido";
+import { SelectorProductoPedido } from "@/components/selector-producto-pedido";
+import { EditorCantidadPedido } from "@/components/editor-cantidad-pedido";
 import { AccionesPedido } from "./acciones";
 import { registrarCobro } from "@/actions/pedidos";
 import { BotonSubmit } from "@/components/boton-submit";
@@ -75,9 +78,11 @@ interface Props {
   pedidos: Pedido[];
   fecha: string;
   totalEntregasDia: number;
+  repartidores?: Array<{ id: number; nombre: string }>;
+  productos?: Array<{ id: number; nombre: string }>;
 }
 
-export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
+export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores = [], productos = [] }: Props) {
   const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { showToast, ToastComponent } = useToast();
@@ -137,6 +142,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
           {pedidos.map((p) => {
             const isExpanded = expandedId === p.id;
             const sinRepartidor = !p.idRepartidor;
+            const estaPagado = p.estadoPago === "PAGADO";
             return (
               <Fragment key={p.id}>
                 {/* Fila Principal */}
@@ -210,36 +216,68 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
 
                   {/* Repartidor */}
                   <td className="px-4 py-2.5 text-left text-[#9ca3af]">
-                    {p.repartidor?.nombre ? (
-                      <span className="text-[#d1d5db] font-medium">{p.repartidor.nombre}</span>
+                    {estaPagado ? (
+                      <span className={p.repartidor?.nombre ? "text-[11px] text-[#d1d5db] font-medium" : "text-red-400 font-semibold text-[11px]"}>
+                        {p.repartidor?.nombre || "Sin asignar"}
+                      </span>
                     ) : (
-                      <span className="text-[#6b7280]">—</span>
+                      <SelectorRepartidorPedido
+                        idPedido={p.id}
+                        idRepartidorActual={p.idRepartidor}
+                        repartidores={repartidores}
+                        onUpdated={() => showToast("Repartidor actualizado con éxito")}
+                      />
                     )}
                   </td>
 
                   {/* Producto */}
                   <td className="px-4 py-2.5 text-left text-[#9ca3af]">
-                    {p.items && p.items.length > 1 ? (
+                    {Boolean(p.items && p.items.length > 1) ? (
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#2a2d35] text-[#d1d5db]"
-                        title={p.items.map((it) => `${it.cajas}x ${it.producto.nombre} (${it.maduracion})`).join(", ")}
+                        title={p.items?.map((it) => `${it.cajas}x ${it.producto.nombre} (${it.maduracion})`).join(", ")}
                       >
-                        Varios ({p.items.length})
+                        Varios
+                      </span>
+                    ) : estaPagado ? (
+                      <span className="text-[11px] text-[#d1d5db] font-medium">
+                        {p.producto?.nombre || "—"}
                       </span>
                     ) : (
-                      p.producto?.nombre ?? "—"
+                      <SelectorProductoPedido
+                        idPedido={p.id}
+                        idProductoActual={p.idProducto}
+                        productos={productos}
+                        onUpdated={() => showToast("Producto actualizado con éxito")}
+                      />
                     )}
                   </td>
 
                   {/* Total */}
                   <td className="px-4 py-2.5 text-left">
-                    <span className="font-medium text-[#f9fafb] font-mono">{formatearPeso(p.montoTotal)}</span>
-                    {p.estadoPago === "PARCIAL" && (
-                      <div className="text-[10px] mt-0.5 space-x-1 font-mono">
-                        <span className="text-[#4ade80]">P. {formatearPeso(p.montoPagado)}</span>
-                        <span className="text-[#6b7280]">·</span>
-                        <span className="text-red-400">D. {formatearPeso(p.montoTotal - p.montoPagado)}</span>
-                      </div>
+                    {p.formaPago === "RETIRO" ? (
+                      <span className="inline-flex items-center text-[10px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                        Retiro ($0)
+                      </span>
+                    ) : p.formaPago === "CANJE" ? (
+                      <span className="inline-flex items-center text-[10px] font-semibold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded">
+                        Canje ($0)
+                      </span>
+                    ) : p.formaPago === "MUESTRA" ? (
+                      <span className="inline-flex items-center text-[10px] font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">
+                        Muestra ($0)
+                      </span>
+                    ) : (
+                      <>
+                        <span className="font-medium text-[#f9fafb] font-mono">{formatearPeso(p.montoTotal)}</span>
+                        {p.estadoPago === "PARCIAL" && (
+                          <div className="text-[10px] mt-0.5 space-x-1 font-mono">
+                            <span className="text-[#4ade80]">P. {formatearPeso(p.montoPagado)}</span>
+                            <span className="text-[#6b7280]">·</span>
+                            <span className="text-red-400">D. {formatearPeso(p.montoTotal - p.montoPagado)}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
 
@@ -250,7 +288,11 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
 
                   {/* Factura */}
                   <td className="px-4 py-2.5 text-left">
-                    <SelectorEstadoFactura idPedido={p.id} estadoActual={p.estadoFactura} />
+                    <SelectorEstadoFactura
+                      idPedido={p.id}
+                      estadoActual={p.estadoFactura}
+                      onUpdated={() => showToast("Factura actualizada con éxito")}
+                    />
                   </td>
 
                   {/* Acciones */}
@@ -275,16 +317,35 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                                 className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-2.5 flex items-center justify-between text-xs"
                               >
                                 <div>
-                                  <div className="font-medium text-[#f9fafb]">{it.producto.nombre}</div>
-                                  <div className="text-[#6b7280] text-[11px] mt-0.5 flex items-center gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {estaPagado ? (
+                                      <div className="font-medium text-[#f9fafb]">{it.producto.nombre}</div>
+                                    ) : (
+                                      <SelectorProductoPedido
+                                        idItemPedido={it.id}
+                                        idProductoActual={it.producto.id}
+                                        productos={productos}
+                                        onUpdated={() => showToast("Producto actualizado con éxito")}
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="text-[#6b7280] text-[11px] mt-1 flex items-center gap-1.5">
                                     <span>Maduración: <strong className="text-[#d1d5db] font-medium">{it.maduracion || "—"}</strong></span>
                                     {it.producto.kgPorCaja && (
                                       <span className="text-[#9ca3af]">· {it.producto.kgPorCaja} kg/caja</span>
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-right font-mono shrink-0 ml-4">
-                                  <span className="text-[#a3e635] font-semibold">{it.cajas} {it.cajas === 1 ? "caja" : "cajas"}</span>
+                                <div className="text-right font-mono shrink-0 ml-4 flex flex-col items-end gap-1">
+                                  {estaPagado ? (
+                                    <span className="text-[#a3e635] font-semibold">{it.cajas} {it.cajas === 1 ? "caja" : "cajas"}</span>
+                                  ) : (
+                                    <EditorCantidadPedido
+                                      idItemPedido={it.id}
+                                      cajasActuales={it.cajas}
+                                      onUpdated={() => showToast("Cantidad actualizada con éxito")}
+                                    />
+                                  )}
                                   {it.subtotal > 0 && (
                                     <div className="text-[#9ca3af] text-[11px]">{formatearPeso(it.subtotal)}</div>
                                   )}
@@ -306,9 +367,18 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                           <>
                             <div className="flex flex-col gap-1">
                               <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Cantidad</span>
-                              <span className="text-[#f9fafb] font-mono">
-                                {p.cajas} {p.cajas === 1 ? "caja" : "cajas"}
-                              </span>
+                              {estaPagado ? (
+                                <span className="text-[#f9fafb] font-mono">
+                                  {p.cajas} {p.cajas === 1 ? "caja" : "cajas"}
+                                </span>
+                              ) : (
+                                <EditorCantidadPedido
+                                  idPedido={p.id}
+                                  idItemPedido={p.items?.[0]?.id}
+                                  cajasActuales={p.cajas}
+                                  onUpdated={() => showToast("Cantidad actualizada con éxito")}
+                                />
+                              )}
                             </div>
                             <div className="flex flex-col gap-1">
                               <span className="text-xs uppercase tracking-wider text-[#6b7280] font-semibold">Caja (Peso)</span>
@@ -375,7 +445,10 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                       <div className="mt-4 pt-3 border-t border-[#22252e]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         {/* Izquierda: Cobro Parcial (si no está pagado) */}
                         {p.estadoPago !== "PAGADO" ? (
-                          <FormCobroParcial pedido={p} />
+                          <FormCobroParcial
+                            pedido={p}
+                            onCobrado={() => showToast("Cobro registrado con éxito")}
+                          />
                         ) : (
                           <div className="text-xs text-[#6b7280]">
                             Pedido pagado en su totalidad.
@@ -421,7 +494,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
   );
 }
 
-function FormCobroParcial({ pedido }: { pedido: Pedido }) {
+function FormCobroParcial({ pedido, onCobrado }: { pedido: Pedido; onCobrado?: () => void }) {
   const [formaPago, setFormaPago] = useState(pedido.formaPago);
   const deudaRestante = Math.max(0, pedido.montoTotal - pedido.montoPagado);
 
@@ -433,7 +506,13 @@ function FormCobroParcial({ pedido }: { pedido: Pedido }) {
           Deuda restante: <span className="font-semibold text-[#f87171]">{formatearPeso(deudaRestante)}</span>
         </span>
       </div>
-      <form action={registrarCobro.bind(null, pedido.id)} className="flex flex-wrap items-center gap-2">
+      <form
+        action={async (formData) => {
+          await registrarCobro(pedido.id, formData);
+          onCobrado?.();
+        }}
+        className="flex flex-wrap items-center gap-2"
+      >
         <select
           name="formaPago"
           value={formaPago}

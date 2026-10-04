@@ -178,8 +178,9 @@ export async function registrarLiquidacion(formData: FormData) {
   const idRevendedor = Number(formData.get("idRevendedor"));
   const fechaInicio = formData.get("fechaInicio") as string;
   const fechaFin = formData.get("fechaFin") as string;
-  const montoCalculado = parseFloat(formData.get("montoCalculado") as string);
-  const montoPagado = parseFloat(formData.get("montoPagado") as string) || 0;
+  const montoCalculado = parseFloat(formData.get("montoCalculado") as string) || 0;
+  const montoPagadoRaw = parseFloat(formData.get("montoPagado") as string);
+  const montoPagado = isNaN(montoPagadoRaw) ? 0 : montoPagadoRaw;
   const formaPago = formData.get("formaPago") as string | null;
   const observaciones = formData.get("observaciones") as string | null;
 
