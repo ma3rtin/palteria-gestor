@@ -6,6 +6,11 @@ import {
   marcarPagado,
   actualizarEstadoFactura,
   registrarCobro,
+  actualizarRepartidorPedido,
+  actualizarProductoPedido,
+  actualizarProductoItemPedido,
+  actualizarCajasPedido,
+  actualizarCajasItemPedido,
 } from "./pedidos";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -37,11 +42,14 @@ vi.mock("@/lib/prisma", () => {
       },
       producto: {
         update: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
       },
       itemPedido: {
         create: vi.fn(),
+        update: vi.fn(),
         deleteMany: vi.fn(),
         findMany: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
       },
     },
   };
@@ -853,6 +861,376 @@ describe("Server Actions - Pedidos", () => {
         },
         select: { fecha: true },
       });
+    });
+  });
+
+  describe("Nuevas features de Tanda 1 (Negativos, Retiro, Canje, Muestra y Selectores rápidos)", () => {
+    it("debería permitir comisionRevendedor negativa para descuentos o penalizaciones", async () => {
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idCliente", "10");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "10");
+      formData.append("montoTotal", "50000");
+      formData.append("formaPago", "EFECTIVO");
+      formData.append("comisionRevendedor", "-2500");
+
+      await crearPedido(formData);
+
+      expect(prisma.pedido.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            comisionRevendedor: -2500,
+          }),
+        })
+      );
+    });
+
+    it("debería crear pedido RETIRO sin cargo ($0), PAGADO y SIN descontar stock de cámara", async () => {
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idCliente", "10");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "3");
+      formData.append("montoTotal", "50000"); // Se envía pero el backend debe fijarlo en 0
+      formData.append("formaPago", "RETIRO");
+
+      await crearPedido(formData);
+
+      expect(prisma.pedido.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            formaPago: "RETIRO",
+            montoTotal: 0,
+            estadoPago: "PAGADO",
+            montoPagado: 0,
+            requiereFactura: false,
+            estadoFactura: "NO_REQUIERE",
+          }),
+        })
+      );
+      // Para RETIRO NO debe descontarse stock
+      expect(prisma.producto.update).not.toHaveBeenCalled();
+    });
+
+    it("debería crear pedido CANJE o MUESTRA sin cargo ($0), PAGADO pero SÍ descontando stock", async () => {
+      const formData = new FormData();
+      formData.append("fecha", "2026-07-31");
+      formData.append("idCliente", "10");
+      formData.append("idProducto", "5");
+      formData.append("maduracion", "PF");
+      formData.append("cajas", "2");
+      formData.append("formaPago", "CANJE");
+
+      await crearPedido(formData);
+
+      expect(prisma.pedido.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            formaPago: "CANJE",
+            montoTotal: 0,
+            estadoPago: "PAGADO",
+            montoPagado: 0,
+          }),
+        })
+      );
+      // Para CANJE SÍ debe descontarse stock
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { stockCajas: { decrement: 2 } },
+      });
+    });
+
+    it("actualizarRepartidorPedido debería cambiar el chofer asignado si no está pagado", async () => {
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue({
+        id: 100,
+        estadoPago: "PENDIENTE",
+      } as never);
+
+      vi.mocked(prisma.pedido.update).mockResolvedValue({
+        id: 100,
+        fecha: new Date("2026-07-31T12:00:00Z"),
+      } as never);
+
+      const res = await actualizarRepartidorPedido(100, 3);
+      expect(res).toEqual({ ok: true });
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: { idRepartidor: 3 },
+        select: { fecha: true },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/pedidos/2026-07-31");
+    });
+
+    it("actualizarRepartidorPedido debería rechazar cambios si el pedido ya está PAGADO", async () => {
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue({
+        id: 100,
+        estadoPago: "PAGADO",
+      } as never);
+
+      await expect(actualizarRepartidorPedido(100, 3)).rejects.toThrow(
+        "No se puede modificar el repartidor de un pedido ya pagado."
+      );
+    });
+
+    it("actualizarProductoPedido debería reponer stock del anterior, descontar del nuevo y recalcular montoTotal", async () => {
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue({
+        id: 100,
+        fecha: new Date("2026-07-31T12:00:00Z"),
+        idProducto: 5,
+        cajas: 10,
+        esCobro: false,
+        formaPago: "EFECTIVO",
+        montoPagado: 0,
+        estadoPago: "PENDIENTE",
+        descuentoEfectivo: false,
+        items: [{ id: 50, idProducto: 5, cajas: 10, subtotal: 400000 }],
+      } as never);
+
+      vi.mocked(prisma.producto.findUniqueOrThrow).mockResolvedValue({
+        id: 8,
+        nombre: "MEXICANA",
+        precioReferencia: 45000,
+      } as never);
+
+      const res = await actualizarProductoPedido(100, 8);
+      expect(res).toEqual({ ok: true });
+
+      // Repone 10 cajas al producto 5
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 5 },
+        data: { stockCajas: { increment: 10 } },
+      });
+
+      // Descuenta 10 cajas al producto 8
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 8 },
+        data: { stockCajas: { decrement: 10 } },
+      });
+
+      // Actualiza pedido e ítem recalculando 10 * 45000 = 450000
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 100 },
+        data: { idProducto: 8, montoTotal: 450000, estadoPago: "PENDIENTE" },
+      });
+      expect(prisma.itemPedido.update).toHaveBeenCalledWith({
+        where: { id: 50 },
+        data: { idProducto: 8, precioUnitario: 45000, subtotal: 450000 },
+      });
+    });
+
+    it("actualizarProductoItemPedido debería cambiar producto de un ítem, actualizar stock y recalcular montoTotal", async () => {
+      vi.mocked(prisma.itemPedido.findUniqueOrThrow).mockResolvedValue({
+        id: 55,
+        idProducto: 3,
+        cajas: 4,
+        pedido: {
+          id: 200,
+          fecha: new Date("2026-07-31T12:00:00Z"),
+          idProducto: 3,
+          esCobro: false,
+          formaPago: "EFECTIVO",
+          montoPagado: 0,
+          estadoPago: "PENDIENTE",
+          descuentoEfectivo: false,
+          items: [
+            { id: 55, idProducto: 3, cajas: 4, subtotal: 160000 },
+            { id: 56, idProducto: 9, cajas: 6, subtotal: 300000 },
+          ],
+        },
+      } as never);
+
+      vi.mocked(prisma.producto.findUniqueOrThrow).mockResolvedValue({
+        id: 7,
+        nombre: "CHILENA",
+        precioReferencia: 50000,
+      } as never);
+
+      const res = await actualizarProductoItemPedido(55, 7);
+      expect(res).toEqual({ ok: true });
+
+      // Repone 4 cajas al producto viejo (3)
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 3 },
+        data: { stockCajas: { increment: 4 } },
+      });
+
+      // Descuenta 4 cajas al producto nuevo (7)
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 7 },
+        data: { stockCajas: { decrement: 4 } },
+      });
+
+      // Actualiza el ítem con nuevo precioUnitario (50000) y subtotal (4 * 50000 = 200000)
+      expect(prisma.itemPedido.update).toHaveBeenCalledWith({
+        where: { id: 55 },
+        data: { idProducto: 7, precioUnitario: 50000, subtotal: 200000 },
+      });
+
+      // Actualiza pedido recalculando: 200000 + 300000 = 500000
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 200 },
+        data: { idProducto: 7, montoTotal: 500000, estadoPago: "PENDIENTE" },
+      });
+
+      expect(revalidatePath).toHaveBeenCalledWith("/pedidos/2026-07-31");
+    });
+
+    it("actualizarCajasItemPedido debería ajustar stock por diferencia y recalcular total de pedido", async () => {
+      vi.mocked(prisma.itemPedido.findUniqueOrThrow).mockResolvedValue({
+        id: 55,
+        idProducto: 3,
+        cajas: 4,
+        precioUnitario: 50000,
+        subtotal: 200000,
+        pedido: {
+          id: 200,
+          fecha: new Date("2026-07-31T12:00:00Z"),
+          cajas: 10,
+          montoTotal: 500000,
+          montoPagado: 0,
+          estadoPago: "PENDIENTE",
+          esCobro: false,
+          formaPago: "EFECTIVO",
+          descuentoEfectivo: false,
+          items: [
+            { id: 55, idProducto: 3, cajas: 4, precioUnitario: 50000, subtotal: 200000 },
+            { id: 56, idProducto: 9, cajas: 6, precioUnitario: 50000, subtotal: 300000 },
+          ],
+        },
+        producto: {
+          id: 3,
+          precioReferencia: 50000,
+        },
+      } as never);
+
+      // Aumentamos de 4 a 6 cajas (+2 cajas)
+      const res = await actualizarCajasItemPedido(55, 6);
+      expect(res).toEqual({ ok: true });
+
+      // Descuenta 2 cajas adicionales de stock al producto 3
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 3 },
+        data: { stockCajas: { decrement: 2 } },
+      });
+
+      // Actualiza el ítem con nuevo subtotal (6 * 50000 = 300000)
+      expect(prisma.itemPedido.update).toHaveBeenCalledWith({
+        where: { id: 55 },
+        data: {
+          cajas: 6,
+          subtotal: 300000,
+        },
+      });
+
+      // Actualiza pedido total: 6 + 6 = 12 cajas, total = 300000 + 300000 = 600000
+      expect(prisma.pedido.update).toHaveBeenCalledWith({
+        where: { id: 200 },
+        data: {
+          cajas: 12,
+          montoTotal: 600000,
+          estadoPago: "PENDIENTE",
+        },
+      });
+    });
+
+    it("actualizarCajasPedido debería delegar al ítem cuando tiene 1 solo producto", async () => {
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValue({
+        id: 300,
+        fecha: new Date("2026-07-31T12:00:00Z"),
+        cajas: 5,
+        esCobro: false,
+        items: [{ id: 88, idProducto: 2, cajas: 5 }],
+      } as never);
+
+      // Mock para la llamada delegada de itemPedido.findUniqueOrThrow
+      vi.mocked(prisma.itemPedido.findUniqueOrThrow).mockResolvedValue({
+        id: 88,
+        idProducto: 2,
+        cajas: 5,
+        precioUnitario: 40000,
+        subtotal: 200000,
+        pedido: {
+          id: 300,
+          fecha: new Date("2026-07-31T12:00:00Z"),
+          cajas: 5,
+          montoTotal: 200000,
+          montoPagado: 0,
+          estadoPago: "PENDIENTE",
+          esCobro: false,
+          formaPago: "EFECTIVO",
+          descuentoEfectivo: false,
+          items: [{ id: 88, idProducto: 2, cajas: 5, precioUnitario: 40000, subtotal: 200000 }],
+        },
+        producto: { id: 2, precioReferencia: 40000 },
+      } as never);
+
+      const res = await actualizarCajasPedido(300, 3);
+      expect(res).toEqual({ ok: true });
+
+      // Como bajó de 5 a 3 (-2 cajas), incrementa 2 cajas de stock
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 2 },
+        data: { stockCajas: { increment: 2 } },
+      });
+    });
+
+    it("acciones inline de producto y cajas deberían rechazar cambios si el pedido está PAGADO", async () => {
+      // 1. actualizarProductoPedido
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValueOnce({
+        id: 401,
+        estadoPago: "PAGADO",
+        esCobro: false,
+        items: [],
+      } as never);
+      await expect(actualizarProductoPedido(401, 8)).rejects.toThrow(
+        "No se puede modificar el producto de un pedido ya pagado."
+      );
+
+      // 2. actualizarProductoItemPedido
+      vi.mocked(prisma.itemPedido.findUniqueOrThrow).mockResolvedValueOnce({
+        id: 501,
+        idProducto: 3,
+        cajas: 2,
+        pedido: {
+          id: 402,
+          estadoPago: "PAGADO",
+          esCobro: false,
+          items: [{ id: 501, idProducto: 3, cajas: 2 }],
+        },
+      } as never);
+      await expect(actualizarProductoItemPedido(501, 7)).rejects.toThrow(
+        "No se puede modificar el producto de un pedido ya pagado."
+      );
+
+      // 3. actualizarCajasPedido
+      vi.mocked(prisma.pedido.findUniqueOrThrow).mockResolvedValueOnce({
+        id: 403,
+        estadoPago: "PAGADO",
+        esCobro: false,
+        items: [],
+      } as never);
+      await expect(actualizarCajasPedido(403, 10)).rejects.toThrow(
+        "No se puede modificar la cantidad de un pedido ya pagado."
+      );
+
+      // 4. actualizarCajasItemPedido
+      vi.mocked(prisma.itemPedido.findUniqueOrThrow).mockResolvedValueOnce({
+        id: 502,
+        idProducto: 3,
+        cajas: 2,
+        pedido: {
+          id: 404,
+          estadoPago: "PAGADO",
+          esCobro: false,
+          items: [{ id: 502, idProducto: 3, cajas: 2 }],
+        },
+      } as never);
+      await expect(actualizarCajasItemPedido(502, 5)).rejects.toThrow(
+        "No se puede modificar la cantidad de un pedido ya pagado."
+      );
     });
   });
 });

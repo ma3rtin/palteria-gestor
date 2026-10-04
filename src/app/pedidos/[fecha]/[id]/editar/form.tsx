@@ -77,6 +77,7 @@ interface ItemFormRow {
   idProducto: number | "";
   cajas: number | "";
   maduracion: string;
+  precioUnitario?: number | "";
 }
 
 interface Props {
@@ -94,6 +95,9 @@ const FORMAS_PAGO = [
   { value: "TRANSFERENCIA", label: "Transferencia" },
   { value: "PAGO_SEMANAL",  label: "Pago Semanal" },
   { value: "CAMBIO",        label: "Cambio" },
+  { value: "CANJE",         label: "Canje" },
+  { value: "MUESTRA",       label: "Muestra" },
+  { value: "RETIRO",        label: "Retirar" },
 ];
 
 export function FormEditarPedido({
@@ -111,6 +115,7 @@ export function FormEditarPedido({
         idProducto: it.idProducto,
         cajas: it.cajas,
         maduracion: it.maduracion ?? "",
+        precioUnitario: it.precioUnitario ?? productos.find((p) => p.id === it.idProducto)?.precioReferencia ?? "",
       }));
     }
     if (pedido.idProducto) {
@@ -120,6 +125,7 @@ export function FormEditarPedido({
           idProducto: pedido.idProducto,
           cajas: pedido.cajas,
           maduracion: pedido.maduracion ?? "",
+          precioUnitario: productos.find((p) => p.id === pedido.idProducto)?.precioReferencia ?? "",
         },
       ];
     }
@@ -169,6 +175,10 @@ export function FormEditarPedido({
     setItems((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [campo]: valor };
+      if (campo === "idProducto") {
+        const prod = productos.find((p) => p.id === valor);
+        copy[index].precioUnitario = prod?.precioReferencia ?? "";
+      }
       return copy;
     });
     setMontoManual(null);
@@ -196,36 +206,38 @@ export function FormEditarPedido({
     ? 0
     : items.reduce((sum, it) => sum + (typeof it.cajas === "number" ? it.cajas : 0), 0);
 
+  const esSinCargo = (formaPago === "CAMBIO" && (pedido as any).esReposicion) || formaPago === "CANJE" || formaPago === "MUESTRA" || formaPago === "RETIRO";
   const valorDescCaja = descuentoPorCaja === "" ? 0 : Number(descuentoPorCaja);
-  const descuentoMonto = (descuentoEfectivo && formaPago === "EFECTIVO" && !esCobro && totalCajas > 0)
+  const descuentoMonto = (descuentoEfectivo && formaPago === "EFECTIVO" && !esCobro && !esSinCargo && totalCajas > 0)
     ? (totalCajas * valorDescCaja)
     : 0;
 
   const precioBase = items.reduce((sum, it) => {
     if (!it.idProducto || typeof it.cajas !== "number") return sum;
     const prod = productos.find((p) => p.id === it.idProducto);
-    return sum + (prod ? Math.round(prod.precioReferencia * it.cajas) : 0);
+    const unit = typeof it.precioUnitario === "number" ? it.precioUnitario : (prod?.precioReferencia ?? 0);
+    return sum + Math.round(unit * it.cajas);
   }, 0);
 
   const montoCalculado = precioBase > 0 ? Math.max(0, precioBase - descuentoMonto) : "";
-  const montoFinal = montoManual ?? montoCalculado;
+  const montoFinal = esSinCargo ? 0 : (montoManual ?? montoCalculado);
   const totalReq = montoFinal === "" ? 0 : Number(montoFinal);
 
   const totalPagosList = pagosList.reduce((acc, curr) => acc + curr.monto, 0);
-  const montoPagado = esCobro ? (estadoPago === "PAGADO" ? totalReq : 0) : totalPagosList;
+  const montoPagado = esCobro ? (estadoPago === "PAGADO" ? totalReq : 0) : (esSinCargo ? 0 : totalPagosList);
 
   const itemsParaEnvio = items
     .filter((it) => it.idProducto !== "" && typeof it.cajas === "number" && it.cajas > 0)
     .map((it) => {
       const prod = productos.find((p) => p.id === it.idProducto);
-      const precioUnit = prod?.precioReferencia ?? 0;
+      const precioUnit = typeof it.precioUnitario === "number" ? it.precioUnitario : (prod?.precioReferencia ?? 0);
       const sub = Math.round(precioUnit * (it.cajas as number));
       return {
         idProducto: Number(it.idProducto),
         cajas: Number(it.cajas),
         maduracion: it.maduracion.trim().toUpperCase(),
         precioUnitario: precioUnit,
-        subtotal: sub,
+        subtotal: esSinCargo ? 0 : sub,
       };
     });
 
@@ -420,7 +432,7 @@ export function FormEditarPedido({
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                       {/* Producto */}
-                      <div className="md:col-span-6">
+                      <div className={esSinCargo ? "md:col-span-6" : "md:col-span-5"}>
                         <label className="block text-xs font-medium text-[#9ca3af] mb-1">Producto *</label>
                         <SelectorProductoBuscador
                           productos={productos}
@@ -456,8 +468,10 @@ export function FormEditarPedido({
                       </div>
 
                       {/* Cajas */}
-                      <div className="md:col-span-3">
-                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">Cajas *</label>
+                      <div className={esSinCargo ? "md:col-span-3" : "md:col-span-2"}>
+                        <label className="block text-xs font-medium text-[#9ca3af] mb-1">
+                          {formaPago === "RETIRO" ? "A retirar *" : "Cajas *"}
+                        </label>
                         <input
                           type="number"
                           min={0.5}
@@ -472,6 +486,25 @@ export function FormEditarPedido({
                           className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono text-right"
                         />
                       </div>
+
+                      {/* Precio por caja (editable si no es sin cargo) */}
+                      {!esSinCargo && (
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-[#9ca3af] mb-1">Precio caja ($)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={500}
+                            placeholder={prodSelec ? String(prodSelec.precioReferencia) : "0"}
+                            value={item.precioUnitario ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              actualizarItem(idx, "precioUnitario", val === "" ? "" : parseFloat(val));
+                            }}
+                            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono text-right"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -489,7 +522,9 @@ export function FormEditarPedido({
             {/* Resumen de cajas y Monto total */}
             <div className="grid grid-cols-2 gap-4 mt-1">
               <div>
-                <label className="block text-sm font-medium text-[#f9fafb] mb-1">Total cajas</label>
+                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
+                  {formaPago === "RETIRO" ? "Total a retirar" : "Total cajas"}
+                </label>
                 <div className="border border-[#2a2d35] bg-[#17191e] rounded-lg px-3 py-2 text-sm font-mono text-[#f9fafb]">
                   {totalCajas} {totalCajas === 1 ? "caja" : "cajas"}
                 </div>
@@ -497,8 +532,11 @@ export function FormEditarPedido({
               <div>
                 <label className="block text-sm font-medium text-[#f9fafb] mb-1">
                   Monto total *
-                  {montoManual === null && montoCalculado !== "" && (
+                  {!esSinCargo && montoManual === null && montoCalculado !== "" && (
                     <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+                  )}
+                  {esSinCargo && (
+                    <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
                   )}
                 </label>
                 <input
@@ -508,11 +546,12 @@ export function FormEditarPedido({
                   min={0}
                   placeholder="0"
                   value={montoFinal}
+                  readOnly={esSinCargo}
                   onChange={(e) => {
                     const val = e.target.value;
                     setMontoManual(val === "" ? "" : parseInt(val));
                   }}
-                  className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
+                  className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono read-only:opacity-40 read-only:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -532,7 +571,6 @@ export function FormEditarPedido({
               setFormaPago(val);
               if (val !== "EFECTIVO") {
                 setDescuentoEfectivo(false);
-                setMontoManual(null);
               }
             }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
@@ -557,8 +595,8 @@ export function FormEditarPedido({
         </div>
       </div>
 
-      {/* Descuento por pago en efectivo: solo visible si la forma de pago es EFECTIVO y no es cobro */}
-      {!esCobro && formaPago === "EFECTIVO" && (
+      {/* Descuento por pago en efectivo: solo visible si la forma de pago es EFECTIVO y no es cobro ni sin cargo */}
+      {!esCobro && !esSinCargo && formaPago === "EFECTIVO" && (
         <div className="bg-[#17191e]/60 border border-[#2a2d35] rounded-lg p-3 flex flex-col gap-3">
           <label className="flex items-center gap-2 cursor-pointer text-xs text-[#a3e635] select-none">
             <input
@@ -568,7 +606,10 @@ export function FormEditarPedido({
               onChange={(e) => {
                 const checked = e.target.checked;
                 setDescuentoEfectivo(checked);
-                setMontoManual(null);
+                if (montoManual !== null && typeof montoManual === "number" && totalCajas > 0) {
+                  const diff = totalCajas * valorDescCaja;
+                  setMontoManual(checked ? Math.max(0, montoManual - diff) : montoManual + diff);
+                }
               }}
               className="rounded border-[#2a2d35] bg-[#1c1f26] text-[#a3e635] focus:ring-0 cursor-pointer"
             />
@@ -592,7 +633,6 @@ export function FormEditarPedido({
                     onChange={(e) => {
                       const val = e.target.value;
                       setDescuentoPorCaja(val === "" ? "" : parseFloat(val));
-                      setMontoManual(null);
                     }}
                     className="w-28 pl-6 pr-2.5 py-1 text-xs border border-[#2a2d35] rounded-md focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-[#f9fafb] font-mono"
                     placeholder="6000"
@@ -773,7 +813,6 @@ export function FormEditarPedido({
             name="comisionRevendedor"
             type="number"
             required
-            min={0}
             placeholder="Monto a pagar al revendedor..."
             value={comisionRevendedor}
             onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}

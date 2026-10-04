@@ -82,6 +82,9 @@ export const ETIQUETAS_FORMA_PAGO: Record<string, string> = {
   TRANSFERENCIA: "Transferencia",
   PAGO_SEMANAL: "Pago Semanal",
   CAMBIO: "Cambio",
+  CANJE: "Canje",
+  MUESTRA: "Muestra",
+  RETIRO: "Retirar",
 };
 
 export const ETIQUETAS_ESTADO_PAGO: Record<string, string> = {

@@ -46,7 +46,13 @@ export function BotonCopiarEtiqueta({ pedido, onCopied }: { pedido: Pedido; onCo
 
     // Generar bloque de pagos
     let pagosStr = "";
-    if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales) && pedido.pagosParciales.length > 0) {
+    if (pedido.formaPago === "RETIRO") {
+      pagosStr = "PAGO: RETIRO ($0)";
+    } else if (pedido.formaPago === "CANJE") {
+      pagosStr = "PAGO: CANJE ($0)";
+    } else if (pedido.formaPago === "MUESTRA") {
+      pagosStr = "PAGO: MUESTRA ($0)";
+    } else if (pedido.pagosParciales && Array.isArray(pedido.pagosParciales) && pedido.pagosParciales.length > 0) {
       pagosStr = (pedido.pagosParciales as PagoParcialItem[])
         .map((p) => `${p.formaPago.toUpperCase()}: $${p.monto.toLocaleString("es-AR")}`)
         .join("\n");
@@ -62,10 +68,14 @@ export function BotonCopiarEtiqueta({ pedido, onCopied }: { pedido: Pedido; onCo
       ? pedido.items.map((it) => `${it.cajas} ${it.maduracion || "—"}`).join(" + ").toUpperCase()
       : (pedido.maduracion ?? "—").toUpperCase();
 
-    const texto = `LA PALTERÍA ${dia}/${mes}
+    const titulo = pedido.formaPago === "RETIRO"
+      ? `LA PALTERÍA ${dia}/${mes} - [SOLO RETIRO]`
+      : `LA PALTERÍA ${dia}/${mes}`;
+
+    const texto = `${titulo}
 ${clienteInfo}
 ZONA: ${pedido.cliente.zona.nombre.toUpperCase()}
-CAJAS: ${pedido.cajas}
+CAJAS: ${pedido.cajas}${pedido.formaPago === "RETIRO" ? " (A RETIRAR)" : ""}
 MARCA: ${marcasTexto}
 MADURACIÓN: ${maduracionesTexto}
 ${pagosStr}`;

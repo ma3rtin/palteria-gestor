@@ -170,12 +170,15 @@ export async function crearPedido(formData: FormData) {
   if (esCobro && montoTotal <= 0) {
     throw new Error("El monto a cobrar debe ser mayor a cero.");
   }
-  if (isNaN(comisionRevendedor) || comisionRevendedor < 0) {
-    throw new Error("La comisión del revendedor no puede ser negativa.");
+  if (isNaN(comisionRevendedor)) {
+    throw new Error("La comisión del revendedor no es válida.");
   }
 
+  // Modos sin cargo: Canje, Muestra, Retiro, o Cambio sin cargo (reposición)
+  const esSinCargo = (formaPago === "CAMBIO" && esReposicion) || formaPago === "CANJE" || formaPago === "MUESTRA" || formaPago === "RETIRO";
+
   // Si se aplicó descuento por pago en efectivo
-  const tieneDescuentoEfectivo = !esCobro && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
+  const tieneDescuentoEfectivo = !esCobro && !esSinCargo && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
   let descuentoPorCaja: number | null = null;
   if (tieneDescuentoEfectivo) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
@@ -186,12 +189,13 @@ export async function crearPedido(formData: FormData) {
   }
 
   // Si es un cobro de dinero, puede empezar PAGADO o PENDIENTE (según estadoCobro);
-  // si es un CAMBIO sin cargo (reposición), empieza PAGADO. Cualquier otro caso empieza PENDIENTE.
+  // si es sin cargo (Canje, Muestra, Retiro o Reposición), empieza PAGADO. Cualquier otro caso empieza PENDIENTE.
   const estadoCobro = (formData.get("estadoCobro") as string) || "PAGADO";
   const estadoPago = esCobro
     ? (estadoCobro === "PENDIENTE" ? "PENDIENTE" : "PAGADO")
-    : (formaPago === "CAMBIO" && esReposicion ? "PAGADO" : "PENDIENTE");
-  const montoPagado = (esCobro && estadoPago === "PAGADO") ? montoTotal : 0;
+    : (esSinCargo ? "PAGADO" : "PENDIENTE");
+  const montoPedidoFinal = esSinCargo ? 0 : montoTotal;
+  const montoPagado = (esCobro && estadoPago === "PAGADO") ? montoTotal : (esSinCargo ? 0 : 0);
   const pagosParciales = (esCobro && estadoPago === "PAGADO")
     ? [
         {
@@ -211,6 +215,7 @@ export async function crearPedido(formData: FormData) {
 
   const session = await auth();
   const idUsuario = session?.user?.id ? Number(session.user.id) : null;
+  const esFacturable = requiereFactura && !esSinCargo;
 
   await prisma.pedido.create({
     data: {
@@ -219,14 +224,14 @@ export async function crearPedido(formData: FormData) {
       idProducto: primerProducto,
       maduracion: maduracionResumen,
       cajas: totalCajas,
-      montoTotal,
+      montoTotal: montoPedidoFinal,
       formaPago: formaPago as never,
       estadoPago: estadoPago as never,
       montoPagado,
       idRepartidor,
       idUsuario,
-      requiereFactura,
-      estadoFactura: requiereFactura ? "PENDIENTE" : "NO_REQUIERE",
+      requiereFactura: esFacturable,
+      estadoFactura: esFacturable ? "PENDIENTE" : "NO_REQUIERE",
       esCobro,
       esReposicion,
       comisionRevendedor,
@@ -241,14 +246,15 @@ export async function crearPedido(formData: FormData) {
               cajas: i.cajas,
               maduracion: i.maduracion,
               precioUnitario: i.precioUnitario,
-              subtotal: i.subtotal ?? 0,
+              subtotal: esSinCargo ? 0 : (i.subtotal ?? 0),
             })),
           }
         : undefined,
     },
   });
 
-  if (!esCobro && itemsParsed.length > 0) {
+  // Descontar stock si es entrega normal, muestra o canje (RETIRO no descuenta stock de cámara)
+  if (!esCobro && formaPago !== "RETIRO" && itemsParsed.length > 0) {
     for (const it of itemsParsed) {
       if (it.idProducto && it.cajas > 0) {
         await prisma.producto.update({
@@ -435,8 +441,8 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   if (isNaN(montoPagado) || montoPagado < 0) {
     throw new Error("El monto pagado no puede ser negativo.");
   }
-  if (isNaN(comisionRevendedor) || comisionRevendedor < 0) {
-    throw new Error("La comisión del revendedor no puede ser negativa.");
+  if (isNaN(comisionRevendedor)) {
+    throw new Error("La comisión del revendedor no es válida.");
   }
 
   const pedido = await prisma.pedido.findUniqueOrThrow({
@@ -444,6 +450,10 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
     include: { items: true },
   });
   const formaPago = (formData.get("formaPago") as string) || pedido.formaPago;
+  const esReposicion = formData.has("esReposicion") ? formData.get("esReposicion") === "true" : pedido.esReposicion;
+
+  // Modos sin cargo: Canje, Muestra, Retiro, o Cambio sin cargo (reposición)
+  const esSinCargo = (formaPago === "CAMBIO" && esReposicion) || formaPago === "CANJE" || formaPago === "MUESTRA" || formaPago === "RETIRO";
 
   // Parsear itemsJson si viene del formulario dinámico
   const itemsJsonRaw = formData.get("itemsJson") as string | null;
@@ -459,7 +469,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
             cajas: parseFloat(it.cajas) || 0,
             maduracion: String(it.maduracion ?? "").trim().toUpperCase(),
             precioUnitario: it.precioUnitario ? parseFloat(it.precioUnitario) : undefined,
-            subtotal: it.subtotal ? parseFloat(it.subtotal) : 0,
+            subtotal: esSinCargo ? 0 : (it.subtotal ? parseFloat(it.subtotal) : 0),
           }));
       }
     } catch (e) {
@@ -480,7 +490,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
       idProducto: nuevoIdProductoLegacy,
       cajas: cajasLegacy,
       maduracion: nuevaMaduracionLegacy || "",
-      subtotal: montoTotal,
+      subtotal: esSinCargo ? 0 : montoTotal,
     }];
   }
 
@@ -506,7 +516,7 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   }
 
   // Si aplica descuento por efectivo al editar
-  const tieneDescuentoEfectivo = !esCobro && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
+  const tieneDescuentoEfectivo = !esCobro && !esSinCargo && formaPago === "EFECTIVO" && descuentoEfectivo && totalCajas > 0;
   let descuentoPorCaja: number | null = null;
   if (tieneDescuentoEfectivo) {
     const descuentoPorCajaRaw = formData.get("descuentoPorCaja");
@@ -532,8 +542,8 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
     }
   }
 
-  // Reversión de stock de los ítems o producto anterior
-  if (!pedido.esCobro) {
+  // Reversión de stock de los ítems o producto anterior (si no era un RETIRO)
+  if (!pedido.esCobro && (pedido.formaPago as string) !== "RETIRO") {
     if (pedido.items && pedido.items.length > 0) {
       for (const oldItem of pedido.items) {
         if (oldItem.idProducto && oldItem.cajas > 0) {
@@ -565,10 +575,10 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
           cajas: it.cajas,
           maduracion: it.maduracion,
           precioUnitario: it.precioUnitario,
-          subtotal: it.subtotal ?? 0,
+          subtotal: esSinCargo ? 0 : (it.subtotal ?? 0),
         },
       });
-      if (it.idProducto && it.cajas > 0) {
+      if (formaPago !== "RETIRO" && it.idProducto && it.cajas > 0) {
         await prisma.producto.update({
           where: { id: it.idProducto },
           data: { stockCajas: { decrement: it.cajas } },
@@ -584,19 +594,24 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
         ? itemsParsed[0].maduracion
         : itemsParsed.map((i) => `${i.cajas} ${i.maduracion}`).join(" + "));
 
+  const montoFinalActualizado = esSinCargo ? 0 : montoTotal;
+  const montoPagadoActualizado = esSinCargo ? 0 : montoPagado;
+  const estadoPagoActualizado = esSinCargo ? "PAGADO" : estadoPago;
+  const esFacturable = requiereFactura && !esSinCargo;
+
   await prisma.pedido.update({
     where: { id: idPedido },
     data: {
       idProducto: primerProducto,
       maduracion: maduracionResumen,
       cajas: totalCajas,
-      montoTotal,
+      montoTotal: montoFinalActualizado,
       formaPago: formaPago as never,
-      estadoPago: estadoPago as never,
-      montoPagado,
+      estadoPago: estadoPagoActualizado as never,
+      montoPagado: montoPagadoActualizado,
       idRepartidor,
-      requiereFactura,
-      estadoFactura: requiereFactura ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
+      requiereFactura: esFacturable,
+      estadoFactura: esFacturable ? (pedido.estadoFactura === "NO_REQUIERE" ? "PENDIENTE" : pedido.estadoFactura) : "NO_REQUIERE",
       esCobro,
       comisionRevendedor,
       descuentoEfectivo: tieneDescuentoEfectivo,
@@ -610,6 +625,427 @@ export async function actualizarPedido(idPedido: number, formData: FormData) {
   revalidatePath("/productos");
   revalidatePath("/");
   redirect(`/pedidos/${fecha}`);
+}
+
+export async function actualizarRepartidorPedido(idPedido: number, idRepartidor: number | null) {
+  const pedidoExistente = await prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    select: { estadoPago: true },
+  });
+
+  if (pedidoExistente.estadoPago === "PAGADO") {
+    throw new Error("No se puede modificar el repartidor de un pedido ya pagado.");
+  }
+
+  const pedido = await prisma.pedido.update({
+    where: { id: idPedido },
+    data: { idRepartidor: idRepartidor || null },
+    select: { fecha: true },
+  });
+  const fechaStr = pedido.fecha instanceof Date
+    ? pedido.fecha.toISOString().split("T")[0]
+    : String(pedido.fecha).split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function actualizarProductoPedido(idPedido: number, idProductoNuevo: number) {
+  const pedido = await prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    include: { items: true },
+  });
+
+  if (pedido.esCobro) {
+    throw new Error("No se puede cambiar el producto de una cobranza.");
+  }
+
+  if (pedido.estadoPago === "PAGADO") {
+    throw new Error("No se puede modificar el producto de un pedido ya pagado.");
+  }
+
+  const idProductoViejo = pedido.idProducto;
+  if (idProductoViejo === idProductoNuevo) return { ok: true };
+
+  // Revertir stock del producto anterior (si no era retiro)
+  if ((pedido.formaPago as string) !== "RETIRO" && idProductoViejo && pedido.cajas > 0) {
+    await prisma.producto.update({
+      where: { id: idProductoViejo },
+      data: { stockCajas: { increment: pedido.cajas } },
+    });
+  }
+
+  // Descontar stock del producto nuevo (si no es retiro)
+  if ((pedido.formaPago as string) !== "RETIRO" && pedido.cajas > 0) {
+    await prisma.producto.update({
+      where: { id: idProductoNuevo },
+      data: { stockCajas: { decrement: pedido.cajas } },
+    });
+  }
+
+  const productoNuevo = await prisma.producto.findUniqueOrThrow({
+    where: { id: idProductoNuevo },
+  });
+
+  const esSinCargo =
+    ((pedido.formaPago as string) === "CAMBIO" && pedido.esReposicion) ||
+    ((pedido.formaPago as string) === "CANJE") ||
+    ((pedido.formaPago as string) === "MUESTRA") ||
+    ((pedido.formaPago as string) === "RETIRO");
+
+  const nuevoPrecioUnit = productoNuevo.precioReferencia;
+  const nuevoSubtotal = esSinCargo ? 0 : Math.round(nuevoPrecioUnit * pedido.cajas);
+  const descPorCaja = pedido.descuentoEfectivo ? (pedido.descuentoPorCaja ?? 6000) : 0;
+  const descuentoTotal = descPorCaja * pedido.cajas;
+  const nuevoMontoTotal = esSinCargo ? 0 : Math.max(0, Math.round(nuevoSubtotal - descuentoTotal));
+
+  let nuevoEstadoPago: string = pedido.estadoPago;
+  if (nuevoMontoTotal === 0 || esSinCargo) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado >= nuevoMontoTotal) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado > 0) {
+    nuevoEstadoPago = "PARCIAL";
+  } else {
+    nuevoEstadoPago = "PENDIENTE";
+  }
+
+  // Actualizar pedido
+  await prisma.pedido.update({
+    where: { id: idPedido },
+    data: {
+      idProducto: idProductoNuevo,
+      montoTotal: nuevoMontoTotal,
+      estadoPago: nuevoEstadoPago as never,
+    },
+  });
+
+  // Si tiene un único ítem en ItemPedido, actualizarlo también con precioUnitario y subtotal
+  if (pedido.items && pedido.items.length === 1) {
+    await prisma.itemPedido.update({
+      where: { id: pedido.items[0].id },
+      data: {
+        idProducto: idProductoNuevo,
+        precioUnitario: nuevoPrecioUnit,
+        subtotal: nuevoSubtotal,
+      },
+    });
+  }
+
+  const fechaStr = pedido.fecha instanceof Date
+    ? pedido.fecha.toISOString().split("T")[0]
+    : String(pedido.fecha).split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/productos");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function actualizarProductoItemPedido(idItemPedido: number, idProductoNuevo: number) {
+  const item = await prisma.itemPedido.findUniqueOrThrow({
+    where: { id: idItemPedido },
+    include: {
+      pedido: {
+        include: { items: true },
+      },
+    },
+  });
+
+  const { pedido } = item;
+  if (pedido.esCobro) {
+    throw new Error("No se puede cambiar el producto de una cobranza.");
+  }
+
+  if (pedido.estadoPago === "PAGADO") {
+    throw new Error("No se puede modificar el producto de un pedido ya pagado.");
+  }
+
+  const idProductoViejo = item.idProducto;
+  if (idProductoViejo === idProductoNuevo) return { ok: true };
+
+  // Revertir stock del producto anterior (si no era retiro y tenía cajas)
+  if ((pedido.formaPago as string) !== "RETIRO" && idProductoViejo && item.cajas > 0) {
+    await prisma.producto.update({
+      where: { id: idProductoViejo },
+      data: { stockCajas: { increment: item.cajas } },
+    });
+  }
+
+  // Descontar stock del producto nuevo (si no es retiro y tiene cajas)
+  if ((pedido.formaPago as string) !== "RETIRO" && item.cajas > 0) {
+    await prisma.producto.update({
+      where: { id: idProductoNuevo },
+      data: { stockCajas: { decrement: item.cajas } },
+    });
+  }
+
+  const productoNuevo = await prisma.producto.findUniqueOrThrow({
+    where: { id: idProductoNuevo },
+  });
+
+  const esSinCargo =
+    ((pedido.formaPago as string) === "CAMBIO" && pedido.esReposicion) ||
+    ((pedido.formaPago as string) === "CANJE") ||
+    ((pedido.formaPago as string) === "MUESTRA") ||
+    ((pedido.formaPago as string) === "RETIRO");
+
+  const nuevoPrecioUnit = productoNuevo.precioReferencia;
+  const nuevoSubtotal = esSinCargo ? 0 : Math.round(nuevoPrecioUnit * item.cajas);
+
+  // Actualizar el ítem
+  await prisma.itemPedido.update({
+    where: { id: idItemPedido },
+    data: {
+      idProducto: idProductoNuevo,
+      precioUnitario: nuevoPrecioUnit,
+      subtotal: nuevoSubtotal,
+    },
+  });
+
+  // Recalcular pedido total
+  const itemsActualizados = pedido.items.map((it) =>
+    it.id === idItemPedido
+      ? { ...it, idProducto: idProductoNuevo, precioUnitario: nuevoPrecioUnit, subtotal: nuevoSubtotal }
+      : it
+  );
+  const totalCajas = itemsActualizados.reduce((acc, it) => acc + it.cajas, 0);
+  const sumaSubtotales = itemsActualizados.reduce((acc, it) => acc + it.subtotal, 0);
+
+  const descPorCaja = pedido.descuentoEfectivo ? (pedido.descuentoPorCaja ?? 6000) : 0;
+  const descuentoTotal = descPorCaja * totalCajas;
+  const nuevoMontoTotal = esSinCargo ? 0 : Math.max(0, Math.round(sumaSubtotales - descuentoTotal));
+
+  let nuevoEstadoPago: string = pedido.estadoPago;
+  if (nuevoMontoTotal === 0 || esSinCargo) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado >= nuevoMontoTotal) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado > 0) {
+    nuevoEstadoPago = "PARCIAL";
+  } else {
+    nuevoEstadoPago = "PENDIENTE";
+  }
+
+  const dataPedidoUpdate: any = {
+    montoTotal: nuevoMontoTotal,
+    estadoPago: nuevoEstadoPago as never,
+  };
+
+  // Si este ítem es el primer ítem del pedido o el único, mantener sincronizado pedido.idProducto
+  if (pedido.items.length === 1 || pedido.items[0]?.id === idItemPedido) {
+    dataPedidoUpdate.idProducto = idProductoNuevo;
+  }
+
+  await prisma.pedido.update({
+    where: { id: pedido.id },
+    data: dataPedidoUpdate,
+  });
+
+  const fechaStr = pedido.fecha instanceof Date
+    ? pedido.fecha.toISOString().split("T")[0]
+    : String(pedido.fecha).split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/productos");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function actualizarCajasItemPedido(idItemPedido: number, nuevasCajas: number) {
+  if (nuevasCajas <= 0) {
+    throw new Error("La cantidad de cajas debe ser mayor a 0.");
+  }
+
+  const item = await prisma.itemPedido.findUniqueOrThrow({
+    where: { id: idItemPedido },
+    include: {
+      pedido: {
+        include: {
+          items: {
+            include: { producto: true },
+          },
+        },
+      },
+      producto: true,
+    },
+  });
+
+  const { pedido } = item;
+  if (pedido.esCobro) {
+    throw new Error("No se pueden modificar cajas de una cobranza.");
+  }
+
+  if (pedido.estadoPago === "PAGADO") {
+    throw new Error("No se puede modificar la cantidad de un pedido ya pagado.");
+  }
+
+  const diffCajas = nuevasCajas - item.cajas;
+  if (diffCajas === 0) return { ok: true };
+
+  // Ajustar stock físico del producto si no es retiro
+  if ((pedido.formaPago as string) !== "RETIRO" && item.idProducto) {
+    if (diffCajas > 0) {
+      await prisma.producto.update({
+        where: { id: item.idProducto },
+        data: { stockCajas: { decrement: diffCajas } },
+      });
+    } else {
+      await prisma.producto.update({
+        where: { id: item.idProducto },
+        data: { stockCajas: { increment: Math.abs(diffCajas) } },
+      });
+    }
+  }
+
+  const esSinCargo =
+    ((pedido.formaPago as string) === "CAMBIO" && pedido.esReposicion) ||
+    ((pedido.formaPago as string) === "CANJE") ||
+    ((pedido.formaPago as string) === "MUESTRA") ||
+    ((pedido.formaPago as string) === "RETIRO");
+
+  const precioUnit =
+    item.precioUnitario ??
+    item.producto?.precioReferencia ??
+    (item.cajas > 0 ? item.subtotal / item.cajas : 0);
+
+  const nuevoSubtotal = esSinCargo ? 0 : Math.round(precioUnit * nuevasCajas);
+
+  // Actualizar el ítem
+  await prisma.itemPedido.update({
+    where: { id: idItemPedido },
+    data: {
+      cajas: nuevasCajas,
+      subtotal: nuevoSubtotal,
+    },
+  });
+
+  // Recalcular pedido total
+  const itemsActualizados = pedido.items.map((it) =>
+    it.id === idItemPedido ? { ...it, cajas: nuevasCajas, subtotal: nuevoSubtotal } : it
+  );
+  const totalCajas = itemsActualizados.reduce((acc, it) => acc + it.cajas, 0);
+  const sumaSubtotales = itemsActualizados.reduce((acc, it) => acc + it.subtotal, 0);
+
+  const descPorCaja = pedido.descuentoEfectivo ? (pedido.descuentoPorCaja ?? 6000) : 0;
+  const descuentoTotal = descPorCaja * totalCajas;
+  const nuevoMontoTotal = esSinCargo ? 0 : Math.max(0, Math.round(sumaSubtotales - descuentoTotal));
+
+  let nuevoEstadoPago: string = pedido.estadoPago;
+  if (nuevoMontoTotal === 0 || esSinCargo) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado >= nuevoMontoTotal) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado > 0) {
+    nuevoEstadoPago = "PARCIAL";
+  } else {
+    nuevoEstadoPago = "PENDIENTE";
+  }
+
+  await prisma.pedido.update({
+    where: { id: pedido.id },
+    data: {
+      cajas: totalCajas,
+      montoTotal: nuevoMontoTotal,
+      estadoPago: nuevoEstadoPago as never,
+    },
+  });
+
+  const fechaStr = pedido.fecha instanceof Date
+    ? pedido.fecha.toISOString().split("T")[0]
+    : String(pedido.fecha).split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/productos");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function actualizarCajasPedido(idPedido: number, nuevasCajas: number) {
+  if (nuevasCajas <= 0) {
+    throw new Error("La cantidad de cajas debe ser mayor a 0.");
+  }
+
+  const pedido = await prisma.pedido.findUniqueOrThrow({
+    where: { id: idPedido },
+    include: {
+      items: {
+        include: { producto: true },
+      },
+      producto: true,
+    },
+  });
+
+  if (pedido.esCobro) {
+    throw new Error("No se pueden modificar cajas de una cobranza.");
+  }
+
+  if (pedido.estadoPago === "PAGADO") {
+    throw new Error("No se puede modificar la cantidad de un pedido ya pagado.");
+  }
+
+  // Si tiene un único ítem en ItemPedido, delegar para mantener consistencia
+  if (pedido.items && pedido.items.length === 1) {
+    return actualizarCajasItemPedido(pedido.items[0].id, nuevasCajas);
+  }
+
+  const diffCajas = nuevasCajas - pedido.cajas;
+  if (diffCajas === 0) return { ok: true };
+
+  // Ajustar stock físico si no es retiro
+  if ((pedido.formaPago as string) !== "RETIRO" && pedido.idProducto) {
+    if (diffCajas > 0) {
+      await prisma.producto.update({
+        where: { id: pedido.idProducto },
+        data: { stockCajas: { decrement: diffCajas } },
+      });
+    } else {
+      await prisma.producto.update({
+        where: { id: pedido.idProducto },
+        data: { stockCajas: { increment: Math.abs(diffCajas) } },
+      });
+    }
+  }
+
+  const esSinCargo =
+    ((pedido.formaPago as string) === "CAMBIO" && pedido.esReposicion) ||
+    ((pedido.formaPago as string) === "CANJE") ||
+    ((pedido.formaPago as string) === "MUESTRA") ||
+    ((pedido.formaPago as string) === "RETIRO");
+
+  const precioUnit =
+    pedido.producto?.precioReferencia ??
+    (pedido.cajas > 0 ? pedido.montoTotal / pedido.cajas : 0);
+
+  const subtotal = esSinCargo ? 0 : Math.round(precioUnit * nuevasCajas);
+  const descPorCaja = pedido.descuentoEfectivo ? (pedido.descuentoPorCaja ?? 6000) : 0;
+  const descuentoTotal = descPorCaja * nuevasCajas;
+  const nuevoMontoTotal = esSinCargo ? 0 : Math.max(0, Math.round(subtotal - descuentoTotal));
+
+  let nuevoEstadoPago: string = pedido.estadoPago;
+  if (nuevoMontoTotal === 0 || esSinCargo) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado >= nuevoMontoTotal) {
+    nuevoEstadoPago = "PAGADO";
+  } else if (pedido.montoPagado > 0) {
+    nuevoEstadoPago = "PARCIAL";
+  } else {
+    nuevoEstadoPago = "PENDIENTE";
+  }
+
+  await prisma.pedido.update({
+    where: { id: idPedido },
+    data: {
+      cajas: nuevasCajas,
+      montoTotal: nuevoMontoTotal,
+      estadoPago: nuevoEstadoPago as never,
+    },
+  });
+
+  const fechaStr = pedido.fecha instanceof Date
+    ? pedido.fecha.toISOString().split("T")[0]
+    : String(pedido.fecha).split("T")[0];
+  revalidatePath(`/pedidos/${fechaStr}`);
+  revalidatePath("/productos");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function actualizarEstadoFactura(idPedido: number, estadoFactura: "NO_REQUIERE" | "PENDIENTE" | "EMITIDA") {

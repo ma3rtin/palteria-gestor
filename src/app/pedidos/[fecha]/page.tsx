@@ -1,5 +1,6 @@
 import { ComponentProps } from "react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { getPedidosPorFecha, getTotalesDia } from "@/actions/pedidos";
 import { getEnviosSucursalesPorFecha } from "@/actions/sucursales";
 import { formatearPeso, formatearFecha, formatearHora, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
@@ -42,10 +43,12 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
   const { fecha } = await params;
   const { zona, repartidor, estado, q, factura, formaPago, vista } = await searchParams;
 
-  const [pedidos, totales, enviosSucursales] = await Promise.all([
+  const [pedidos, totales, enviosSucursales, repartidoresCatalogo, productosCatalogo] = await Promise.all([
     getPedidosPorFecha(fecha),
     getTotalesDia(fecha),
     getEnviosSucursalesPorFecha(fecha),
+    prisma.repartidor.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    prisma.producto.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   // Catálogo para filtros: zonas y repartidores únicos del día (incluyendo traslados a sucursales)
@@ -112,7 +115,11 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
     );
   }
   if (zona)       entregados = entregados.filter((p) => p.cliente.idZona === Number(zona));
-  if (repartidor) entregados = entregados.filter((p) => p.idRepartidor === Number(repartidor));
+  if (repartidor === "sin_repartidor") {
+    entregados = entregados.filter((p) => !p.idRepartidor);
+  } else if (repartidor) {
+    entregados = entregados.filter((p) => p.idRepartidor === Number(repartidor));
+  }
   if (estado)     entregados = entregados.filter((p) => p.estadoPago === estado);
   if (formaPago) {
     entregados = entregados.filter((p) =>
@@ -135,7 +142,11 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
     );
   }
   if (zona)       cobros = cobros.filter((p) => p.cliente.idZona === Number(zona));
-  if (repartidor) cobros = cobros.filter((p) => p.idRepartidor === Number(repartidor));
+  if (repartidor === "sin_repartidor") {
+    cobros = cobros.filter((p) => !p.idRepartidor);
+  } else if (repartidor) {
+    cobros = cobros.filter((p) => p.idRepartidor === Number(repartidor));
+  }
   if (estado)     cobros = cobros.filter((p) => p.estadoPago === estado);
   if (formaPago) {
     cobros = cobros.filter((p) =>
@@ -146,7 +157,9 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
 
   // Filtrar envíos a sucursales
   let enviosFiltrados = enviosSucursales;
-  if (repartidor) {
+  if (repartidor === "sin_repartidor") {
+    enviosFiltrados = enviosFiltrados.filter((e) => !e.idRepartidor);
+  } else if (repartidor) {
     enviosFiltrados = enviosFiltrados.filter((e) => e.idRepartidor === Number(repartidor));
   }
   if (q) {
@@ -269,6 +282,8 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
                     pedidos={entregados as unknown as ComponentProps<typeof TablaEntregas>["pedidos"]}
                     fecha={fecha}
                     totalEntregasDia={pedidos.filter((p) => !p.esCobro).length}
+                    repartidores={repartidoresCatalogo}
+                    productos={productosCatalogo}
                   />
                 )}
               </div>
