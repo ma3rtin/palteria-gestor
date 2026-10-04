@@ -58,6 +58,7 @@ export function AccionesPedido({ pedido, fecha }: { pedido: any; fecha: string }
       )}
       <Link
         href={`/pedidos/${fecha}/${pedido.id}/editar`}
+        prefetch={false}
         className="border border-[#2a2d35] text-[#9ca3af] px-2 py-1 rounded text-xs hover:border-[#a3e635] hover:text-[#a3e635] transition-colors"
       >
         Editar

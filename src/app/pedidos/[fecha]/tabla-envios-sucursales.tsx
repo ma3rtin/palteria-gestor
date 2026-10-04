@@ -214,6 +214,7 @@ export function TablaEnviosSucursales({ envios, fecha }: Props) {
                     <div className="flex items-center justify-end gap-1">
                       <Link
                         href={`/pedidos/${fecha}/sucursales/${e.id}/editar`}
+                        prefetch={false}
                         className="text-[#9ca3af] hover:text-[#a3e635] p-1.5 transition-colors cursor-pointer rounded hover:bg-[#2a2d35]/40"
                         title="Editar envío"
                       >

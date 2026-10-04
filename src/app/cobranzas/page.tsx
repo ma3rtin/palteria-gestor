@@ -57,7 +57,7 @@ export default async function CobranzasPage({ searchParams }: Props) {
               <div key={cliente.id} className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#22252e]">
                   <div>
-                    <Link href={`/clientes/${cliente.id}`} className="font-semibold text-[#f9fafb] hover:text-[#a3e635] transition-colors">
+                    <Link href={`/clientes/${cliente.id}`} prefetch={false} className="font-semibold text-[#f9fafb] hover:text-[#a3e635] transition-colors">
                       {cliente.nombre}
                     </Link>
                     <span className="text-xs text-[#6b7280] ml-2">{cliente.zona.nombre}</span>

@@ -167,7 +167,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia }: Props) {
                   <td className="px-4 py-2.5 text-left">
                     <div className="flex flex-col">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
+                        <Link href={`/clientes/${p.idCliente}`} prefetch={false} className="hover:text-[#a3e635] font-medium text-[#f9fafb]">
                           {p.cliente.nombre}
                         </Link>
                         {p.cliente.revendedor && (

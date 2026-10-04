@@ -92,6 +92,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                   <td className="px-4 py-2.5 text-right">
                     <Link
                       href={`/pedidos/${fechaConsulta}?vista=palterias`}
+                      prefetch={false}
                       className="text-xs text-[#a3e635] hover:underline"
                     >
                       Ver en Palterías
@@ -126,7 +127,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
               {resumen.pedidos.map((p) => (
                 <tr key={p.id} className="border-b border-[#22252e] last:border-0">
                   <td className="px-4 py-2.5">
-                    <Link href={`/clientes/${p.idCliente}`} className="hover:text-[#a3e635]">
+                    <Link href={`/clientes/${p.idCliente}`} prefetch={false} className="hover:text-[#a3e635]">
                       {p.cliente.nombre}
                     </Link>
                     <span className="text-xs text-[#6b7280] ml-1">{p.cliente.zona.nombre}</span>
@@ -143,6 +144,7 @@ export default async function DetalleRepartidorPage({ params, searchParams }: Pr
                   <td className="px-4 py-2.5 text-right">
                     <Link
                       href={`/pedidos/${fechaConsulta}?pedidoId=${p.id}`}
+                      prefetch={false}
                       className="text-xs text-[#a3e635] hover:underline"
                     >
                       Ver pedido

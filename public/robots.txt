@@ -1,0 +1,3 @@
+# Bloquear el rastreo de bots y crawlers automatizados para evitar consumo de funciones serverless
+User-agent: *
+Disallow: /

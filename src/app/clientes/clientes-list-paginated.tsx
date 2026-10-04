@@ -109,6 +109,7 @@ export function ClientesListPaginated({
             <Link
               key={cliente.id}
               href={`/clientes/${cliente.id}`}
+              prefetch={false}
               className="block bg-[#1c1f26] border border-[#2a2d35] rounded-lg px-4 py-2.5 hover:border-[#a3e635] transition-colors"
             >
               <div className="flex justify-between items-center">

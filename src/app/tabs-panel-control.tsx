@@ -126,6 +126,7 @@ export function TabsPanelControl({ resumenRepartidores, stock, fechaHoy }: Props
                         ) : (
                           <Link
                             href={`/repartidores/${r.repartidor?.id}`}
+                            prefetch={false}
                             className="font-medium text-sm text-[#f9fafb] hover:text-[#a3e635] transition-colors"
                           >
                             {r.repartidor?.nombre}

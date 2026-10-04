@@ -54,6 +54,7 @@ export default async function RevendedoresPage() {
             <Link
               key={r.id}
               href={`/revendedores/${r.id}`}
+              prefetch={false}
               className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-5 hover:border-[#a3e635] transition-colors"
             >
               <div className="flex items-start justify-between mb-3">
