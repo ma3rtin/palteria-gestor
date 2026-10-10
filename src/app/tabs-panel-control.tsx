@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Truck, Package, AlertTriangle, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Truck, Package, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, Star } from "lucide-react";
 import { formatearPeso } from "@/lib/utils";
 import { IconoCaja } from "@/components/icono-caja";
 
@@ -21,6 +21,8 @@ interface VariedadStock {
   cajasVendidasHoy: number;
   stockDisponible: number;
   kgPorCaja: number | null;
+  maduracion?: string | null;
+  prioritario?: boolean;
 }
 
 interface StockResumen {
@@ -234,12 +236,20 @@ export function TabsPanelControl({ resumenRepartidores, stock, fechaHoy }: Props
     const sinStock = v.stockDisponible <= 0;
 
     return (
-      <div key={v.id} className="px-4 py-2.5 hover:bg-[#20232c] transition-colors">
+      <div key={v.id} className={`px-4 py-2.5 transition-colors ${v.prioritario ? "bg-amber-500/[0.04] hover:bg-amber-500/[0.08]" : "hover:bg-[#20232c]"}`}>
         <div className="flex justify-between items-center gap-2">
-          <div className="min-w-0 flex items-center flex-wrap">
-            <span className="font-medium text-sm text-[#f9fafb] truncate">{v.nombre}</span>
+          <div className="min-w-0 flex items-center flex-wrap gap-1.5">
+            {v.prioritario && (
+              <Star size={12} className="fill-amber-400 text-amber-400 shrink-0" />
+            )}
+            <span className={`font-medium text-sm truncate ${v.prioritario ? "text-amber-300" : "text-[#f9fafb]"}`}>{v.nombre}</span>
+            {v.maduracion && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#2a2d35] text-emerald-300 font-semibold uppercase border border-emerald-800/40 shrink-0">
+                {v.maduracion}
+              </span>
+            )}
             {v.lote && (
-              <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-[#2a2d35] text-[#9ca3af] font-mono border border-[#373a43] shrink-0">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#2a2d35] text-[#9ca3af] font-mono border border-[#373a43] shrink-0">
                 lote {v.lote}
               </span>
             )}

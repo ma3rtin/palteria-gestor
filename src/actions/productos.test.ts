@@ -6,6 +6,8 @@ import {
   actualizarKg,
   actualizarStock,
   toggleProducto,
+  actualizarMaduracion,
+  togglePrioridadProducto,
 } from "./productos";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -69,6 +71,34 @@ describe("Server Actions - Productos", () => {
           stockCajas: 50,
           costo: 8000,
           fechaIngreso: new Date("2026-07-31T12:00:00"),
+          maduracion: null,
+          prioritario: false,
+        },
+      });
+
+      expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería crear un producto con maduración y prioridad", async () => {
+      const formData = new FormData();
+      formData.append("nombre", "NEGRITA CAL 26");
+      formData.append("precioReferencia", "60000");
+      formData.append("costo", "45000");
+      formData.append("maduracion", "semi");
+      formData.append("prioritario", "on");
+
+      await crearProducto(formData);
+
+      expect(prisma.producto.create).toHaveBeenCalledWith({
+        data: {
+          nombre: "NEGRITA CAL 26",
+          precioReferencia: 60000,
+          kgPorCaja: null,
+          stockCajas: 0,
+          costo: 45000,
+          fechaIngreso: null,
+          maduracion: "SEMI",
+          prioritario: true,
         },
       });
 
@@ -91,6 +121,8 @@ describe("Server Actions - Productos", () => {
           stockCajas: 0,
           costo: 9000,
           fechaIngreso: null,
+          maduracion: null,
+          prioritario: false,
         },
       });
     });
@@ -211,6 +243,84 @@ describe("Server Actions - Productos", () => {
         data: { activo: false },
       });
       expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+  });
+
+  describe("actualizarMaduracion", () => {
+    it("debería actualizar la maduración a un valor en mayúsculas", async () => {
+      const formData = new FormData();
+      formData.append("id", "12");
+      formData.append("maduracion", "semi-verde");
+
+      await actualizarMaduracion(formData);
+
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 12 },
+        data: { maduracion: "SEMI-VERDE" },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería asignar null si la maduración enviada está vacía", async () => {
+      const formData = new FormData();
+      formData.append("id", "12");
+      formData.append("maduracion", "   ");
+
+      await actualizarMaduracion(formData);
+
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 12 },
+        data: { maduracion: null },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería lanzar un error si el id de producto es inválido", async () => {
+      const formData = new FormData();
+      formData.append("id", "no-es-numero");
+      formData.append("maduracion", "PF");
+
+      await expect(actualizarMaduracion(formData)).rejects.toThrow("ID de producto inválido");
+      expect(prisma.producto.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("togglePrioridadProducto", () => {
+    it("debería cambiar prioritario de false a true", async () => {
+      const formData = new FormData();
+      formData.append("id", "15");
+      formData.append("prioritario", "false");
+
+      await togglePrioridadProducto(formData);
+
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 15 },
+        data: { prioritario: true },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería cambiar prioritario de true a false", async () => {
+      const formData = new FormData();
+      formData.append("id", "15");
+      formData.append("prioritario", "true");
+
+      await togglePrioridadProducto(formData);
+
+      expect(prisma.producto.update).toHaveBeenCalledWith({
+        where: { id: 15 },
+        data: { prioritario: false },
+      });
+      expect(revalidatePath).toHaveBeenCalledWith("/productos");
+    });
+
+    it("debería lanzar un error si el id es inválido", async () => {
+      const formData = new FormData();
+      formData.append("id", "abc");
+      formData.append("prioritario", "false");
+
+      await expect(togglePrioridadProducto(formData)).rejects.toThrow("ID de producto inválido");
+      expect(prisma.producto.update).not.toHaveBeenCalled();
     });
   });
 });

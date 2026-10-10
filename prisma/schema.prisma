@@ -125,6 +125,8 @@ model Producto {
   kgPorCaja          Float?               @map("kg_por_caja")
   stockCajas         Float                @default(0) @map("stock_cajas")
   costo              Float                @default(0)
+  maduracion         String?              @map("maduracion")
+  prioritario        Boolean              @default(false) @map("prioritario")
   // Fecha en que ingresó este lote — distingue batches con mismo nombre
   fechaIngreso       DateTime?            @map("fecha_ingreso") @db.Date
   activo             Boolean              @default(true)

@@ -9,10 +9,18 @@ import {
   actualizarKg,
   actualizarStock,
   toggleProducto,
+  actualizarMaduracion,
+  togglePrioridadProducto,
 } from "@/actions/productos";
 
 async function getProductos() {
-  return prisma.producto.findMany({ orderBy: { nombre: "asc" } });
+  return prisma.producto.findMany({
+    orderBy: [
+      { prioritario: "desc" },
+      { activo: "desc" },
+      { nombre: "asc" },
+    ],
+  });
 }
 
 export default async function ProductosPage() {
@@ -37,6 +45,8 @@ export default async function ProductosPage() {
         actualizarKg={actualizarKg}
         actualizarStock={actualizarStock}
         toggleProducto={toggleProducto}
+        actualizarMaduracion={actualizarMaduracion}
+        togglePrioridadProducto={togglePrioridadProducto}
       />
     </div>
   );
