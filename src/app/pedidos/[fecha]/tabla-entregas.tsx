@@ -16,6 +16,7 @@ import { BotonCopiarEtiqueta } from "@/components/boton-copiar-etiqueta";
 import { useToast } from "@/hooks/use-toast";
 import { formatearPeso, ETIQUETAS_FORMA_PAGO, obtenerFilaExcel, formatearHora } from "@/lib/utils";
 import { ChevronDown, ChevronUp, FileSpreadsheet, Copy } from "lucide-react";
+import { Paginador } from "@/components/paginador";
 
 interface Pedido {
   id: number;
@@ -82,17 +83,34 @@ interface Props {
   productos?: Array<{ id: number; nombre: string }>;
 }
 
+const PAGE_SIZE = 50;
+
 export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores = [], productos = [] }: Props) {
   const searchParams = useSearchParams();
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [pagina, setPagina] = useState(0);
+  const [verTodos, setVerTodos] = useState(false);
   const { showToast, ToastComponent } = useToast();
 
+  // Resetear página a 0 cuando cambian los filtros / lista de pedidos
+  useEffect(() => {
+    setPagina(0);
+  }, [pedidos]);
+
+  // Si viene pedidoId en searchParams, expandirlo y saltar a su página
   useEffect(() => {
     const pId = searchParams.get("pedidoId");
     if (pId) {
-      setExpandedId(Number(pId));
+      const idNum = Number(pId);
+      setExpandedId(idNum);
+      if (!verTodos) {
+        const index = pedidos.findIndex((p) => p.id === idNum);
+        if (index !== -1) {
+          setPagina(Math.floor(index / PAGE_SIZE));
+        }
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, pedidos, verTodos]);
 
   const toggleExpand = (id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -106,20 +124,36 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores =
     });
   };
 
+  const totalPaginas = Math.ceil(pedidos.length / PAGE_SIZE);
+  const pedidosAMostrar = verTodos
+    ? pedidos
+    : pedidos.slice(pagina * PAGE_SIZE, (pagina + 1) * PAGE_SIZE);
+
   return (
     <div className="flex flex-col">
       {/* Cabecera de la sección Entregas */}
-      <div className="px-4 py-3 border-b border-[#2a2d35] flex items-center justify-between bg-[#17191e]/50">
-        <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
-          Entregas ({pedidos.length}{pedidos.length !== totalEntregasDia ? ` de ${totalEntregasDia}` : ""})
-        </h2>
+      <div className="px-4 py-3 border-b border-[#2a2d35] flex items-center justify-between bg-[#17191e]/50 flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xs font-semibold text-[#6b7280] uppercase tracking-widest">
+            Entregas ({pedidos.length}{pedidos.length !== totalEntregasDia ? ` de ${totalEntregasDia}` : ""})
+          </h2>
+          {pedidos.length > PAGE_SIZE && (
+            <button
+              type="button"
+              onClick={() => setVerTodos((prev) => !prev)}
+              className="text-[11px] text-[#9ca3af] hover:text-[#a3e635] bg-[#22252e] border border-[#2a2d35] px-2.5 py-0.5 rounded transition-colors cursor-pointer"
+            >
+              {verTodos ? "Ver en páginas (50 por pág.)" : `Ver todos (${pedidos.length})`}
+            </button>
+          )}
+        </div>
         <button
           onClick={copiarTodoExcel}
-          className="inline-flex items-center gap-1.5 text-xs text-[#a3e635] hover:text-[#84cc16] font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-[#a3e635] hover:text-[#84cc16] font-semibold transition-colors cursor-pointer"
           title="Copia toda la lista de pedidos al portapapeles formateada para pegar en Excel"
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
-          <span>Copiar pedidos</span>
+          <span>Copiar pedidos ({pedidos.length})</span>
         </button>
       </div>
 
@@ -139,7 +173,7 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores =
           </tr>
         </thead>
         <tbody>
-          {pedidos.map((p) => {
+          {pedidosAMostrar.map((p) => {
             const isExpanded = expandedId === p.id;
             const sinRepartidor = !p.idRepartidor;
             const estaPagado = p.estadoPago === "PAGADO";
@@ -489,6 +523,21 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores =
         </tbody>
       </table>
     </div>
+
+      {/* Paginador al pie */}
+      {!verTodos && totalPaginas > 1 && (
+        <div className="px-4 py-3 border-t border-[#2a2d35] bg-[#17191e]/50">
+          <Paginador
+            pageActual={pagina}
+            totalPaginas={totalPaginas}
+            totalItems={pedidos.length}
+            onAnterior={() => setPagina((prev) => Math.max(0, prev - 1))}
+            onSiguiente={() => setPagina((prev) => Math.min(totalPaginas - 1, prev + 1))}
+            className="mt-0"
+          />
+        </div>
+      )}
+
       {ToastComponent}
     </div>
   );
