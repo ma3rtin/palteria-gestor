@@ -64,8 +64,17 @@ export async function getCatalogoNuevoPedido() {
   });
   const productos = await prisma.producto.findMany({
     where: { activo: true },
-    select: { id: true, nombre: true, precioReferencia: true, kgPorCaja: true, stockCajas: true, fechaIngreso: true },
-    orderBy: { nombre: "asc" },
+    select: {
+      id: true,
+      nombre: true,
+      precioReferencia: true,
+      kgPorCaja: true,
+      stockCajas: true,
+      fechaIngreso: true,
+      maduracion: true,
+      prioritario: true,
+    },
+    orderBy: [{ prioritario: "desc" }, { nombre: "asc" }],
   });
   const repartidores = await prisma.repartidor.findMany({
     where: { activo: true },

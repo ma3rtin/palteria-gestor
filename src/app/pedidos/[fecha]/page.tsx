@@ -48,7 +48,11 @@ export default async function PedidosFechaPage({ params, searchParams }: Props) 
     getTotalesDia(fecha),
     getEnviosSucursalesPorFecha(fecha),
     prisma.repartidor.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
-    prisma.producto.findMany({ where: { activo: true }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    prisma.producto.findMany({
+      where: { activo: true },
+      select: { id: true, nombre: true, maduracion: true, prioritario: true },
+      orderBy: [{ prioritario: "desc" }, { nombre: "asc" }],
+    }),
   ]);
 
   // Catálogo para filtros: zonas y repartidores únicos del día (incluyendo traslados a sucursales)

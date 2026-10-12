@@ -24,7 +24,7 @@ export default async function EditarEnvioSucursalPage({ params }: Props) {
           { itemsEnvioSucursal: { some: { idEnvio } } },
         ],
       },
-      orderBy: { nombre: "asc" },
+      orderBy: [{ prioritario: "desc" }, { nombre: "asc" }],
     }),
   ]);
 

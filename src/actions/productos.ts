@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { parseFechaRuta } from "../lib/utils";
 
-// Crear un nuevo producto (con soporte opcional para lote/fecha de ingreso)
+// Crear un nuevo producto (con soporte opcional para lote/fecha de ingreso, maduración y prioridad)
 export async function crearProducto(formData: FormData) {
   const nombre = (formData.get("nombre") as string).trim().toUpperCase();
   const precio = parseFloat(formData.get("precioReferencia") as string);
@@ -16,6 +16,9 @@ export async function crearProducto(formData: FormData) {
   const costo = costoRaw ? parseFloat(costoRaw as string) : 0;
   const fechaIngresoStr = formData.get("fechaIngreso") as string;
   const fechaIngreso = fechaIngresoStr ? parseFechaRuta(fechaIngresoStr) : null;
+  const maduracionRaw = formData.get("maduracion") as string | null;
+  const maduracion = maduracionRaw ? maduracionRaw.trim().toUpperCase() : null;
+  const prioritario = formData.get("prioritario") === "on" || formData.get("prioritario") === "true";
 
   if (!nombre) {
     throw new Error("El nombre es requerido");
@@ -35,6 +38,8 @@ export async function crearProducto(formData: FormData) {
       stockCajas: isNaN(stock) ? 0 : stock,
       costo,
       fechaIngreso,
+      maduracion: maduracion || null,
+      prioritario,
     },
   });
 
@@ -132,6 +137,41 @@ export async function toggleProducto(formData: FormData) {
   await prisma.producto.update({
     where: { id },
     data: { activo: !activo },
+  });
+
+  revalidatePath("/productos");
+}
+
+// Actualizar maduración del lote/producto
+export async function actualizarMaduracion(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const maduracionRaw = formData.get("maduracion") as string | null;
+  const maduracion = maduracionRaw ? maduracionRaw.trim().toUpperCase() : null;
+
+  if (isNaN(id)) {
+    throw new Error("ID de producto inválido");
+  }
+
+  await prisma.producto.update({
+    where: { id },
+    data: { maduracion: maduracion || null },
+  });
+
+  revalidatePath("/productos");
+}
+
+// Alternar prioridad de venta del producto/lote
+export async function togglePrioridadProducto(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const prioritarioActual = formData.get("prioritario") === "true";
+
+  if (isNaN(id)) {
+    throw new Error("ID de producto inválido");
+  }
+
+  await prisma.producto.update({
+    where: { id },
+    data: { prioritario: !prioritarioActual },
   });
 
   revalidatePath("/productos");

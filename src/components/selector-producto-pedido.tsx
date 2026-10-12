@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 interface ProductoItem {
   id: number;
   nombre: string;
+  maduracion?: string | null;
+  prioritario?: boolean;
 }
 
 interface Props {
@@ -49,6 +51,9 @@ export function SelectorProductoPedido({
 
   const existeActual = idProducto ? productos.some((p) => p.id === idProducto) : true;
 
+  const prodActual = productos.find((p) => p.id === idProducto);
+  const esPrioritario = Boolean(prodActual?.prioritario);
+
   return (
     <div className="relative inline-block group">
       <select
@@ -68,9 +73,11 @@ export function SelectorProductoPedido({
             router.refresh();
           });
         }}
-        className={`appearance-none text-[11px] rounded px-1.5 py-0.5 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] transition-colors pr-[18px] bg-[#1c1f26] text-[#d1d5db] border-[#2a2d35] hover:border-[#a3e635] font-medium ${
-          isPending ? "opacity-60" : ""
-        }`}
+        className={`appearance-none text-[11px] rounded px-1.5 py-0.5 border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#a3e635] transition-colors pr-[18px] bg-[#1c1f26] font-medium ${
+          esPrioritario
+            ? "border-amber-500/40 text-amber-300 hover:border-amber-400"
+            : "text-[#d1d5db] border-[#2a2d35] hover:border-[#a3e635]"
+        } ${isPending ? "opacity-60" : ""}`}
         title="Cambiar marca / producto"
       >
         <option value="" disabled>Seleccionar producto</option>
@@ -81,7 +88,7 @@ export function SelectorProductoPedido({
         )}
         {productos.map((prod) => (
           <option key={prod.id} value={prod.id}>
-            {prod.nombre}
+            {prod.prioritario ? "★ " : ""}{prod.nombre}{prod.maduracion ? ` (${prod.maduracion})` : ""}
           </option>
         ))}
       </select>

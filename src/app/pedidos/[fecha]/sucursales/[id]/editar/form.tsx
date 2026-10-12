@@ -19,6 +19,8 @@ interface Producto {
   kgPorCaja: number | null;
   stockCajas: number;
   fechaIngreso?: Date | string | null;
+  maduracion?: string | null;
+  prioritario?: boolean;
 }
 
 interface Repartidor {
@@ -99,6 +101,12 @@ export function FormEditarEnvioSucursal({
     setItems((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [campo]: valor };
+      if (campo === "idProducto") {
+        const prod = productos.find((p) => p.id === valor);
+        if (prod?.maduracion && !copy[index].maduracion) {
+          copy[index].maduracion = prod.maduracion;
+        }
+      }
       return copy;
     });
     setErrorItems(null);

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "lucide-react";
+import { Save, Star } from "lucide-react";
 import { BotonSubmit } from "@/components/boton-submit";
-import { formatearFechaCorta } from "@/lib/utils";
+import { formatearFechaCorta, MADURACIONES_SUGERIDAS } from "@/lib/utils";
 
 interface Producto {
   id: number;
@@ -15,6 +15,8 @@ interface Producto {
   activo: boolean;
   costo: number;
   fechaIngreso: Date | string | null;
+  maduracion?: string | null;
+  prioritario?: boolean;
 }
 
 interface Props {
@@ -27,6 +29,8 @@ interface Props {
   actualizarKg: (formData: FormData) => Promise<void>;
   actualizarStock: (formData: FormData) => Promise<void>;
   toggleProducto: (formData: FormData) => Promise<void>;
+  actualizarMaduracion: (formData: FormData) => Promise<void>;
+  togglePrioridadProducto: (formData: FormData) => Promise<void>;
 }
 
 function FilaProducto({
@@ -38,6 +42,8 @@ function FilaProducto({
   actualizarKg,
   actualizarStock,
   toggleProducto,
+  actualizarMaduracion,
+  togglePrioridadProducto,
 }: {
   p: Producto;
   puedeVerCostos?: boolean;
@@ -47,6 +53,8 @@ function FilaProducto({
   actualizarKg: Props["actualizarKg"];
   actualizarStock: Props["actualizarStock"];
   toggleProducto: Props["toggleProducto"];
+  actualizarMaduracion: Props["actualizarMaduracion"];
+  togglePrioridadProducto: Props["togglePrioridadProducto"];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -79,10 +87,37 @@ function FilaProducto({
     setStock(p.stockCajas);
   }
 
+  const [prevMaduracion, setPrevMaduracion] = useState(p.maduracion ?? "");
+  const [maduracion, setMaduracion] = useState(p.maduracion ?? "");
+  if ((p.maduracion ?? "") !== prevMaduracion) {
+    setPrevMaduracion(p.maduracion ?? "");
+    setMaduracion(p.maduracion ?? "");
+  }
+
   const precioDirty = precio !== p.precioReferencia;
   const costoDirty = costo !== p.costo;
   const kgDirty = kg !== (p.kgPorCaja ?? "");
   const stockDirty = stock !== p.stockCajas;
+  const maduracionDirty = maduracion !== (p.maduracion ?? "");
+
+  const handleTogglePrioridad = () => {
+    const fd = new FormData();
+    fd.append("id", String(p.id));
+    fd.append("prioritario", String(p.prioritario ?? false));
+    startTransition(async () => {
+      await togglePrioridadProducto(fd);
+      router.refresh();
+    });
+  };
+
+  const handleSubmitMaduracion = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    startTransition(async () => {
+      await actualizarMaduracion(fd);
+      router.refresh();
+    });
+  };
 
   const handleSubmitKg = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -130,14 +165,58 @@ function FilaProducto({
   };
 
   return (
-    <tr className={`border-b border-[#22252e] last:border-0 transition-opacity duration-200 ${!p.activo ? "opacity-50" : ""} ${isPending ? "opacity-60" : ""}`}>
-      <td className="px-4 py-3">
-        <div className="font-medium text-[#f9fafb]">{p.nombre}</div>
+    <tr className={`border-b border-[#22252e] last:border-0 transition-opacity duration-200 ${p.prioritario ? "bg-amber-500/[0.04]" : ""} ${!p.activo ? "opacity-50" : ""} ${isPending ? "opacity-60" : ""}`}>
+      <td className="pl-4 pr-1 py-3 w-10 text-center">
+        <button
+          type="button"
+          onClick={handleTogglePrioridad}
+          disabled={isPending}
+          title={p.prioritario ? "Quitar estrella de prioridad" : "Marcar con estrella de prioridad"}
+          className={`p-1.5 rounded transition-all cursor-pointer ${
+            p.prioritario
+              ? "text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30"
+              : "text-[#4b5563] hover:text-amber-400 hover:bg-[#22252e] border border-transparent"
+          }`}
+        >
+          <Star size={15} className={p.prioritario ? "fill-amber-400" : ""} />
+        </button>
+      </td>
+
+      <td className="px-3 py-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`font-medium ${p.prioritario ? "text-amber-300" : "text-[#f9fafb]"}`}>
+            {p.nombre}
+          </span>
+        </div>
         {p.fechaIngreso && (
           <div className="text-[10px] text-[#6b7280] mt-0.5 font-normal">
             Lote: {formatearFechaCorta(p.fechaIngreso)}
           </div>
         )}
+      </td>
+
+      <td className="px-3 py-3">
+        <form onSubmit={handleSubmitMaduracion} className="flex items-center gap-1">
+          <input type="hidden" name="id" value={p.id} />
+          <input
+            name="maduracion"
+            list="maduraciones-sugeridas-lista"
+            placeholder="—"
+            value={maduracion}
+            onChange={(e) => setMaduracion(e.target.value.toUpperCase())}
+            className="w-24 border border-[#2a2d35] rounded px-2 py-1 text-xs uppercase bg-[#1c1f26] focus:outline-none focus:border-[#a3e635] text-white"
+          />
+          <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+            <BotonSubmit
+              className={`p-1.5 text-[#a3e635] hover:bg-[#22252e] rounded transition-all duration-200 ${
+                maduracionDirty ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
+              }`}
+              title="Guardar maduración"
+            >
+              <Save size={15} />
+            </BotonSubmit>
+          </div>
+        </form>
       </td>
 
       <td className="px-4 py-3">
@@ -286,11 +365,18 @@ export function ProductosUI({
   actualizarKg,
   actualizarStock,
   toggleProducto,
+  actualizarMaduracion,
+  togglePrioridadProducto,
 }: Props) {
   const [busqueda, setBusqueda] = useState("");
+  const [prioritarioCrear, setPrioritarioCrear] = useState(false);
 
   const filtrados = busqueda
-    ? productos.filter((p) => p.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+    ? productos.filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          (p.maduracion && p.maduracion.toLowerCase().includes(busqueda.toLowerCase()))
+      )
     : productos;
 
   return (
@@ -316,6 +402,16 @@ export function ProductosUI({
               type="date"
               defaultValue={new Date().toLocaleDateString("en-CA")}
               className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635]"
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-28">
+            <label className="text-[10px] uppercase tracking-widest text-[#6b7280]">Maduración</label>
+            <input
+              form="form-crear"
+              name="maduracion"
+              list="maduraciones-sugeridas-lista"
+              placeholder="VERDE, SEMI..."
+              className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm uppercase bg-[#1c1f26] text-white focus:outline-none focus:border-[#a3e635]"
             />
           </div>
           <div className="flex flex-col gap-1 w-24">
@@ -368,17 +464,37 @@ export function ProductosUI({
               className="border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635]"
             />
           </div>
+          <div className="flex items-center">
+            <input
+              form="form-crear"
+              type="hidden"
+              name="prioritario"
+              value={String(prioritarioCrear)}
+            />
+            <button
+              type="button"
+              onClick={() => setPrioritarioCrear(!prioritarioCrear)}
+              title={prioritarioCrear ? "Prioridad activada (clic para quitar)" : "Marcar prioridad"}
+              className={`h-[38px] w-[38px] rounded-lg border transition-all cursor-pointer flex items-center justify-center ${
+                prioritarioCrear
+                  ? "text-amber-400 bg-amber-400/20 border-amber-400/40 shadow-sm shadow-amber-500/20"
+                  : "text-[#6b7280] hover:text-amber-400 border-[#2a2d35] hover:border-[#4b5563] bg-[#1c1f26]"
+              }`}
+            >
+              <Star size={18} className={prioritarioCrear ? "fill-amber-400" : ""} />
+            </button>
+          </div>
           <form id="form-crear" action={crearProducto}>
-            <BotonSubmit className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <BotonSubmit className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 h-[38px] rounded-lg text-sm font-medium transition-colors">
               Agregar
             </BotonSubmit>
           </form>
         </div>
 
-        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-4 self-stretch flex items-center w-56 relative">
+        <div className="bg-[#1c1f26] rounded-lg border border-[#2a2d35] p-4 self-stretch flex items-center w-64 relative">
           <input
             type="search"
-            placeholder="Buscar producto..."
+            placeholder="Buscar por nombre o maduración..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm bg-[#13161e] focus:outline-none focus:border-[#a3e635] text-white"
@@ -391,7 +507,11 @@ export function ProductosUI({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#2a2d35] text-[#6b7280] text-xs">
-              <th className="text-left px-4 py-3 font-medium">Producto</th>
+              <th className="w-10 pl-4 pr-1 py-3 text-center" title="Prioridad de venta">
+                <Star size={13} className="inline text-[#6b7280]" />
+              </th>
+              <th className="text-left px-3 py-3 font-medium">Producto</th>
+              <th className="text-left px-3 py-3 font-medium">Maduración</th>
               <th className="text-right pl-4 pr-[52px] py-3 font-medium">Kg/caja</th>
               <th className="text-right pl-4 pr-[52px] py-3 font-medium">Stock (cajas)</th>
               {puedeVerCostos && (
@@ -404,7 +524,7 @@ export function ProductosUI({
           <tbody>
             {filtrados.length === 0 ? (
               <tr>
-                <td colSpan={puedeVerCostos ? 6 : 5} className="px-4 py-6 text-center text-[#6b7280] text-sm">
+                <td colSpan={puedeVerCostos ? 8 : 7} className="px-4 py-6 text-center text-[#6b7280] text-sm">
                   {busqueda ? `Sin resultados para "${busqueda}"` : "Sin productos cargados."}
                 </td>
               </tr>
@@ -420,12 +540,20 @@ export function ProductosUI({
                   actualizarKg={actualizarKg}
                   actualizarStock={actualizarStock}
                   toggleProducto={toggleProducto}
+                  actualizarMaduracion={actualizarMaduracion}
+                  togglePrioridadProducto={togglePrioridadProducto}
                 />
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <datalist id="maduraciones-sugeridas-lista">
+        {MADURACIONES_SUGERIDAS.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
     </div>
   );
 }

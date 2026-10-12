@@ -241,6 +241,8 @@ export async function getStockHoy() {
       fechaIngreso: true,
       stockCajas: true,
       kgPorCaja: true,
+      maduracion: true,
+      prioritario: true,
       activo: true,
     },
   });
@@ -259,6 +261,8 @@ export async function getStockHoy() {
         cajasVendidasHoy: vendidas,
         stockDisponible: p.stockCajas,
         kgPorCaja: p.kgPorCaja,
+        maduracion: p.maduracion,
+        prioritario: p.prioritario,
         activo: p.activo,
       };
     })
