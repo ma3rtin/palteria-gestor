@@ -158,13 +158,32 @@ export default async function EditarClientePage({ params }: Props) {
           />
         </div>
 
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Precio Referido ($)</label>
+          <input
+            name="precioReferido"
+            type="number"
+            min={0}
+            step={500}
+            defaultValue={cliente.precioReferido ?? ""}
+            placeholder="0"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+          />
+        </div>
+
         {puedeGestionarRevendedores ? (
           <RevendedorSelector
             revendedores={revendedores}
             defaultIdRevendedor={cliente.idRevendedor}
+            defaultComisionFija={cliente.comisionRevendedorFija}
           />
         ) : cliente.idRevendedor ? (
-          <input type="hidden" name="idRevendedor" value={cliente.idRevendedor} />
+          <>
+            <input type="hidden" name="idRevendedor" value={cliente.idRevendedor} />
+            {cliente.comisionRevendedorFija && (
+              <input type="hidden" name="comisionRevendedorFija" value={cliente.comisionRevendedorFija} />
+            )}
+          </>
         ) : null}
 
         <label className="flex items-center gap-2 cursor-pointer">

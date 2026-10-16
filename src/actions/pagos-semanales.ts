@@ -94,7 +94,11 @@ export async function getDetalleCuenta(idCuenta: number) {
           zona: true,
           pedidos: {
             where: { estadoPago: { not: "PAGADO" }, esCobro: false },
-            include: { producto: true, repartidor: true },
+            include: {
+              producto: true,
+              repartidor: true,
+              items: { include: { producto: true } },
+            },
             orderBy: { fecha: "asc" },
           },
         },
@@ -292,3 +296,40 @@ export async function registrarPagoLocal(formData: FormData) {
   revalidatePath("/cobranzas");
   revalidatePath("/");
 }
+
+export async function getTodasCuentasParaExportar() {
+  const cuentas = await prisma.cuentaCorriente.findMany({
+    where: { activo: true },
+    include: { clientes: { select: { id: true, nombre: true } } },
+    orderBy: { nombre: "asc" },
+  });
+
+  const deudas = await prisma.pedido.groupBy({
+    by: ["idCliente"],
+    where: {
+      estadoPago: { not: "PAGADO" as const },
+      esCobro: false,
+      cliente: { idCuentaCorriente: { not: null } },
+    },
+    _sum: { montoTotal: true, montoPagado: true },
+  });
+
+  const deudaPorCliente = new Map(
+    deudas.map((d) => [d.idCliente, (d._sum.montoTotal ?? 0) - (d._sum.montoPagado ?? 0)])
+  );
+
+  return cuentas.map((cc) => {
+    const deudaTotal = cc.clientes.reduce(
+      (s, c) => s + (deudaPorCliente.get(c.id) ?? 0),
+      0
+    );
+    return {
+      id: cc.id,
+      nombre: cc.nombre,
+      diaCobranza: cc.diaCobranza,
+      cantidadLocales: cc.clientes.length,
+      deudaTotal,
+    };
+  });
+}
+

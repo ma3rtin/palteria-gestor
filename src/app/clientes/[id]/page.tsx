@@ -302,6 +302,18 @@ export default async function DetalleClientePage({ params }: Props) {
                 <dt className="text-[#9ca3af]">Factura</dt>
                 <dd className="font-medium">{cliente.requiereFactura ? "Sí requiere" : "No"}</dd>
               </div>
+              {cliente.precioReferido && (
+                <div className="flex justify-between">
+                  <dt className="text-[#9ca3af]">Precio Referido</dt>
+                  <dd className="font-medium text-[#a3e635] font-mono">{formatearPeso(cliente.precioReferido)}</dd>
+                </div>
+              )}
+              {cliente.comisionRevendedorFija && (
+                <div className="flex justify-between">
+                  <dt className="text-[#9ca3af]">Comisión Revendedor</dt>
+                  <dd className="font-medium text-[#4ade80] font-mono">{formatearPeso(cliente.comisionRevendedorFija)} / caja</dd>
+                </div>
+              )}
             </dl>
             {cliente.observaciones && (
               <p className="mt-3 pt-3 border-t border-[#22252e] text-xs text-[#9ca3af]">

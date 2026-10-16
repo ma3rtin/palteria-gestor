@@ -85,6 +85,7 @@ export async function getPedidosPeriodo(idRevendedor: number, desde: string, has
     include: {
       cliente: { select: { id: true, nombre: true } },
       producto: { select: { id: true, nombre: true, precioReferencia: true } },
+      items: { include: { producto: true } },
     },
     orderBy: [{ cliente: { nombre: "asc" } }, { fecha: "asc" }],
     take: 1000,
@@ -151,6 +152,7 @@ export async function getPedidosPeriodoPaginados(
       include: {
         cliente: { select: { id: true, nombre: true } },
         producto: { select: { id: true, nombre: true, precioReferencia: true } },
+        items: { include: { producto: true } },
       },
       orderBy: [{ fecha: "desc" }, { cliente: { nombre: "asc" } }],
       skip,

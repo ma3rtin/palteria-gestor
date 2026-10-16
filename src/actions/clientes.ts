@@ -33,6 +33,8 @@ export async function getClientesBasicos() {
       requiereFactura: true,
       idRevendedor: true,
       revendedor: { select: { id: true, nombre: true } },
+      precioReferido: true,
+      comisionRevendedorFija: true,
     },
     orderBy: { nombre: "asc" },
   });
@@ -193,6 +195,10 @@ export async function crearCliente(formData: FormData) {
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
+  const precioReferidoRaw = formData.get("precioReferido") as string | null;
+  const precioReferido = precioReferidoRaw && !isNaN(Number(precioReferidoRaw)) && Number(precioReferidoRaw) > 0 ? Number(precioReferidoRaw) : null;
+  const comisionRevendedorFijaRaw = formData.get("comisionRevendedorFija") as string | null;
+  const comisionRevendedorFija = comisionRevendedorFijaRaw && !isNaN(Number(comisionRevendedorFijaRaw)) ? Number(comisionRevendedorFijaRaw) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   if (!nombre || !nombre.trim()) {
@@ -215,6 +221,8 @@ export async function crearCliente(formData: FormData) {
       requiereFactura,
       idCuentaCorriente,
       idRevendedor,
+      precioReferido,
+      comisionRevendedorFija: idRevendedor ? comisionRevendedorFija : null,
       observaciones: observaciones?.trim() || null,
     },
   });
@@ -235,6 +243,10 @@ export async function actualizarCliente(id: number, formData: FormData) {
   const requiereFactura = formData.get("requiereFactura") === "on";
   const idCuentaCorriente = formData.get("idCuentaCorriente") ? Number(formData.get("idCuentaCorriente")) : null;
   const idRevendedor = formData.get("idRevendedor") ? Number(formData.get("idRevendedor")) : null;
+  const precioReferidoRaw = formData.get("precioReferido") as string | null;
+  const precioReferido = precioReferidoRaw && !isNaN(Number(precioReferidoRaw)) && Number(precioReferidoRaw) > 0 ? Number(precioReferidoRaw) : null;
+  const comisionRevendedorFijaRaw = formData.get("comisionRevendedorFija") as string | null;
+  const comisionRevendedorFija = comisionRevendedorFijaRaw && !isNaN(Number(comisionRevendedorFijaRaw)) ? Number(comisionRevendedorFijaRaw) : null;
   const observaciones = formData.get("observaciones") as string | null;
 
   if (isNaN(id) || id <= 0) {
@@ -261,6 +273,8 @@ export async function actualizarCliente(id: number, formData: FormData) {
       requiereFactura,
       idCuentaCorriente,
       idRevendedor,
+      precioReferido,
+      comisionRevendedorFija: idRevendedor ? comisionRevendedorFija : null,
       observaciones: observaciones?.trim() || null,
     },
   });
