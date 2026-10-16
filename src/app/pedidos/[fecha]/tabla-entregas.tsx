@@ -311,6 +311,11 @@ export function TablaEntregas({ pedidos, fecha, totalEntregasDia, repartidores =
                             <span className="text-red-400">D. {formatearPeso(p.montoTotal - p.montoPagado)}</span>
                           </div>
                         )}
+                        <div className="text-[11px] text-[#9ca3af] leading-tight mt-0.5">
+                          {Array.isArray(p.pagosParciales) && p.pagosParciales.length > 1
+                            ? `Mixto (${p.pagosParciales.length})`
+                            : (ETIQUETAS_FORMA_PAGO[p.formaPago] ?? p.formaPago)}
+                        </div>
                       </>
                     )}
                   </td>

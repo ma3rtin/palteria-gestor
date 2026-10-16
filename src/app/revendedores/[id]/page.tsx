@@ -4,11 +4,12 @@ import { ChevronLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { tienePermiso } from "@/lib/permisos";
 import { getPedidosPeriodoPaginados, getLiquidacionesPaginadas, getRevendedor, registrarLiquidacion } from "@/actions/revendedores";
-import { formatearPeso, formatearFechaCorta, hoyISO, parseFechaRuta } from "@/lib/utils";
+import { formatearPeso, formatearFechaCorta, hoyISO, parseFechaRuta, ETIQUETAS_FORMA_PAGO } from "@/lib/utils";
 import { BotonSubmit } from "@/components/boton-submit";
 import SelectorPeriodo from "./selector-periodo";
 import { TabsRevendedor } from "@/components/tabs-revendedor";
 import { Paginador } from "@/components/paginador";
+import { AccionesPedidosRevendedor } from "./acciones-pedidos-revendedor";
 
 const FORMAS_PAGO = [
   { value: "EFECTIVO", label: "Efectivo" },
@@ -70,6 +71,20 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
   // Render para pestaña de Pedidos
   const tabPedidos = (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <span className="text-xs text-[#6b7280]">
+          {totalPedidos} pedido{totalPedidos !== 1 ? "s" : ""} en {periodoLabel}
+        </span>
+        {totalPedidos > 0 && (
+          <AccionesPedidosRevendedor
+            idRevendedor={revendedor.id}
+            revendedorNombre={revendedor.nombre}
+            desde={desde}
+            hasta={hasta}
+          />
+        )}
+      </div>
+
       {pedidos.length === 0 ? (
         <div className="bg-[#1c1f26] border border-[#2a2d35] rounded-lg p-10 text-center">
           <p className="text-[#6b7280] text-sm">Sin pedidos en el período {periodoLabel}.</p>
@@ -84,6 +99,7 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                   <th className="text-left px-4 py-3 font-medium">Cliente</th>
                   <th className="text-left px-4 py-3 font-medium">Producto</th>
                   <th className="text-right px-4 py-3 font-medium">Cajas</th>
+                  <th className="text-left px-4 py-3 font-medium">Pago</th>
                   <th className="text-right px-4 py-3 font-medium">Total Pedido</th>
                   <th className="text-right px-4 py-3 font-medium">Ganancia</th>
                   <th className="px-4 py-3"></th>
@@ -102,8 +118,15 @@ export default async function RevendedorDetallePage({ params, searchParams }: Pr
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-[#f9fafb] font-medium">{p.cliente.nombre}</td>
-                    <td className="px-4 py-3 text-[#9ca3af]">{p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—")}</td>
+                    <td className="px-4 py-3 text-[#9ca3af]">
+                      {p.items && p.items.length > 1
+                        ? `Varios (${p.items.length})`
+                        : (p.producto?.nombre ?? (p.esCobro ? "Cobranza" : "—"))}
+                    </td>
                     <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{p.esCobro ? "—" : p.cajas}</td>
+                    <td className="px-4 py-3 text-left text-[#9ca3af] text-xs font-mono">
+                      {ETIQUETAS_FORMA_PAGO[p.formaPago] ?? p.formaPago}
+                    </td>
                     <td className="px-4 py-3 text-right text-[#9ca3af] font-mono">{formatearPeso(p.montoTotal)}</td>
                     <td className={`px-4 py-3 text-right font-semibold font-mono ${p.comisionRevendedor < 0 ? "text-red-400" : "text-[#4ade80]"}`}>
                       {p.comisionRevendedor < 0 ? `-${formatearPeso(Math.abs(p.comisionRevendedor))}` : formatearPeso(p.comisionRevendedor)}

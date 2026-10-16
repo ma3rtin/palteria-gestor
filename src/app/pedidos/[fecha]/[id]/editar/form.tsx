@@ -3,7 +3,7 @@
 import { BotonSubmit } from "@/components/boton-submit";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { formatearFechaCorta } from "@/lib/utils";
+import { formatearFechaCorta, formatearPeso } from "@/lib/utils";
 import { SelectorProductoBuscador } from "@/components/selector-producto-buscador";
 import { BadgeReventa } from "@/components/badge-reventa";
 
@@ -16,6 +16,8 @@ interface Cliente {
   requiereFactura: boolean;
   idRevendedor: number | null;
   revendedor?: { nombre: string } | null;
+  precioReferido?: number | null;
+  comisionRevendedorFija?: number | null;
 }
 
 interface Producto {
@@ -61,6 +63,8 @@ interface Pedido {
     nombre: string;
     idRevendedor?: number | null;
     revendedor?: { nombre: string } | null;
+    precioReferido?: number | null;
+    comisionRevendedorFija?: number | null;
   };
   producto: Producto | null;
   items?: Array<{
@@ -105,6 +109,7 @@ const FORMAS_PAGO = [
 export function FormEditarPedido({
   fecha,
   pedido,
+  clientes = [],
   productos,
   repartidores,
   maduracionesSugeridas,
@@ -336,7 +341,10 @@ export function FormEditarPedido({
     }
   };
 
+  const clienteCatalogo = clientes.find((c) => c.id === pedido.idCliente);
   const clienteAsociado = pedido.cliente;
+  const precioReferidoCliente = clienteAsociado.precioReferido ?? clienteCatalogo?.precioReferido ?? null;
+  const comisionRevendedorFijaCliente = clienteAsociado.comisionRevendedorFija ?? clienteCatalogo?.comisionRevendedorFija ?? null;
 
   return (
     <form
@@ -527,23 +535,53 @@ export function FormEditarPedido({
             {/* Resumen de cajas y Monto total */}
             <div className="grid grid-cols-2 gap-4 mt-1">
               <div>
-                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-                  {formaPago === "RETIRO" ? "Total a retirar" : "Total cajas"}
-                </label>
+                <div className="flex items-center h-7 mb-1.5">
+                  <label className="block text-sm font-medium text-[#f9fafb]">
+                    {formaPago === "RETIRO" ? "Total a retirar" : "Total cajas"}
+                  </label>
+                </div>
                 <div className="border border-[#2a2d35] bg-[#17191e] rounded-lg px-3 py-2 text-sm font-mono text-[#f9fafb]">
                   {totalCajas} {totalCajas === 1 ? "caja" : "cajas"}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-                  Monto total *
-                  {!esSinCargo && montoManual === null && montoCalculado !== "" && (
-                    <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+                <div className="flex items-center justify-between h-7 mb-1.5">
+                  <label className="block text-sm font-medium text-[#f9fafb]">
+                    Monto total *
+                    {esSinCargo && (
+                      <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
+                    )}
+                  </label>
+                  {precioReferidoCliente != null && !esSinCargo && (
+                    <div className="inline-flex items-center bg-[#13151b] border border-[#2a2d35] rounded-md p-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setMontoManual(precioReferidoCliente)}
+                        className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all cursor-pointer ${
+                          montoManual !== null && Number(montoManual) === precioReferidoCliente
+                            ? "bg-[#a3e635] text-[#12141a] shadow-xs"
+                            : "text-[#9ca3af] hover:text-[#f9fafb]"
+                        }`}
+                        title={`Precio fijado acordado: ${formatearPeso(precioReferidoCliente)}`}
+                      >
+                        Referido
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMontoManual(null)}
+                        className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all cursor-pointer ${
+                          montoManual === null || (montoCalculado !== "" && Number(montoFinal) === Number(montoCalculado) && Number(montoFinal) !== precioReferidoCliente)
+                            ? "bg-[#a3e635] text-[#12141a] shadow-xs"
+                            : "text-[#9ca3af] hover:text-[#f9fafb]"
+                        }`}
+                        title={montoCalculado !== "" ? `Por lista: ${formatearPeso(Number(montoCalculado))}` : "Calcular por lista"}
+                      >
+                        Lista
+                      </button>
+                    </div>
                   )}
-                  {esSinCargo && (
-                    <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
-                  )}
-                </label>
+                </div>
+
                 <input
                   name="montoTotal"
                   type="number"
@@ -808,17 +846,31 @@ export function FormEditarPedido({
 
       {clienteAsociado?.idRevendedor && (
         <div className="w-full md:w-1/2">
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-            Ganancia Revendedor * 
-            <span className="text-xs font-medium text-[#16a34a] ml-1.5 uppercase">
-              {clienteAsociado.revendedor?.nombre || "Revendedor"}
-            </span>
-          </label>
+          <div className="flex items-center justify-between h-7 mb-1.5">
+            <label className="block text-sm font-medium text-[#f9fafb]">
+              Ganancia Revendedor
+              {clienteAsociado.revendedor?.nombre && (
+                <span className="text-xs text-[#9ca3af] font-normal ml-1.5">
+                  ({clienteAsociado.revendedor.nombre})
+                </span>
+              )}
+            </label>
+            {comisionRevendedorFijaCliente != null && (
+              <button
+                type="button"
+                onClick={() => setComisionRevendedor(Math.round(totalCajas * comisionRevendedorFijaCliente))}
+                className="text-xs px-2 py-0.5 rounded border border-[#2a2d35] bg-[#17191e] text-[#9ca3af] hover:text-[#a3e635] hover:border-[#a3e635]/40 transition-colors cursor-pointer font-mono"
+                title="Restablecer comisión fija configurada"
+              >
+                Fija: {formatearPeso(comisionRevendedorFijaCliente)}/caja
+              </button>
+            )}
+          </div>
           <input
             name="comisionRevendedor"
             type="number"
             required
-            placeholder="Monto a pagar al revendedor..."
+            placeholder="0"
             value={comisionRevendedor}
             onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26] text-white"
@@ -879,14 +931,4 @@ export function FormEditarPedido({
       </div>
     </form>
   );
-}
-
-// Utilidad local para formatear pesos
-function formatearPeso(num: number) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num);
 }

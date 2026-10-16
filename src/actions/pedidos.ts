@@ -59,6 +59,8 @@ export async function getCatalogoNuevoPedido() {
       requiereFactura: true,
       idRevendedor: true,
       revendedor: { select: { nombre: true } },
+      precioReferido: true,
+      comisionRevendedorFija: true,
     },
     orderBy: [{ zona: { nombre: "asc" } }, { nombre: "asc" }],
   });

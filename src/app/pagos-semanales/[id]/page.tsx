@@ -10,6 +10,7 @@ import {
 import { formatearPeso, formatearFechaCorta, hoyISO } from "@/lib/utils";
 import { BadgeEstadoPago } from "@/components/badge-estado";
 import { BotonSubmit } from "@/components/boton-submit";
+import { BotonExportarDetalleCuenta } from "./boton-exportar-detalle-cuenta";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -42,16 +43,19 @@ export default async function DetalleCuentaPage({ params }: Props) {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <Link href="/pagos-semanales" className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
-          <ChevronLeft size={14} />
-          Pagos semanales
-        </Link>
-        <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">{cuenta.nombre}</h1>
-        <p className="text-[#9ca3af] text-sm">
-          {cuenta.clientes.length} locales
-          {cuenta.diaCobranza && <span> · Cobra: {cuenta.diaCobranza}</span>}
-        </p>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div>
+          <Link href="/pagos-semanales" className="text-xs text-[#6b7280] hover:text-[#a3e635] flex items-center gap-1">
+            <ChevronLeft size={14} />
+            Pagos semanales
+          </Link>
+          <h1 className="text-2xl font-bold text-[#f9fafb] mt-1">{cuenta.nombre}</h1>
+          <p className="text-[#9ca3af] text-sm">
+            {cuenta.clientes.length} locales
+            {cuenta.diaCobranza && <span> · Cobra: {cuenta.diaCobranza}</span>}
+          </p>
+        </div>
+        <BotonExportarDetalleCuenta cuenta={cuenta} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

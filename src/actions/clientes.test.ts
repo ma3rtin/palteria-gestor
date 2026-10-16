@@ -64,6 +64,8 @@ describe("Server Actions - Clientes", () => {
           requiereFactura: true,
           idCuentaCorriente: null,
           idRevendedor: 2,
+          precioReferido: null,
+          comisionRevendedorFija: null,
           observaciones: null,
         },
       });
@@ -92,6 +94,29 @@ describe("Server Actions - Clientes", () => {
       );
     });
 
+    it("debería guardar precioReferido y comisionRevendedorFija si se proporcionan", async () => {
+      vi.mocked(prisma.cliente.create).mockResolvedValue({ id: 50 } as never);
+
+      const formData = new FormData();
+      formData.append("nombre", "CLIENTE CON PRECIOS ESPECIALES");
+      formData.append("idZona", "2");
+      formData.append("formaPagoPref", "EFECTIVO");
+      formData.append("idRevendedor", "1");
+      formData.append("precioReferido", "45000");
+      formData.append("comisionRevendedorFija", "4500");
+
+      await crearCliente(formData);
+
+      expect(prisma.cliente.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            precioReferido: 45000,
+            comisionRevendedorFija: 4500,
+          }),
+        })
+      );
+    });
+
     it("debería lanzar error si falta el nombre o zona", async () => {
       const formData = new FormData();
       formData.append("nombre", "   ");
@@ -102,7 +127,7 @@ describe("Server Actions - Clientes", () => {
   });
 
   describe("actualizarCliente", () => {
-    it("debería actualizar un cliente con nuevo email", async () => {
+    it("debería actualizar un cliente con nuevo email, precioReferido y comisionRevendedorFija", async () => {
       vi.mocked(prisma.cliente.update).mockResolvedValue({ id: 42 } as never);
 
       const formData = new FormData();
@@ -111,6 +136,9 @@ describe("Server Actions - Clientes", () => {
       formData.append("formaPagoPref", "PAGO_SEMANAL");
       formData.append("email", "nuevo@panera.com");
       formData.append("cuit", "30-99999999-9");
+      formData.append("idRevendedor", "2");
+      formData.append("precioReferido", "50000");
+      formData.append("comisionRevendedorFija", "3500");
 
       await actualizarCliente(42, formData);
 
@@ -120,6 +148,8 @@ describe("Server Actions - Clientes", () => {
           nombre: "PANERA ROSA ACTUALIZADA",
           email: "nuevo@panera.com",
           cuit: "30-99999999-9",
+          precioReferido: 50000,
+          comisionRevendedorFija: 3500,
         }),
       });
 

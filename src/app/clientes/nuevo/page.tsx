@@ -136,6 +136,18 @@ export default async function NuevoClientePage() {
           />
         </div>
 
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-medium text-[#f9fafb] mb-1">Precio Referido ($)</label>
+          <input
+            name="precioReferido"
+            type="number"
+            min={0}
+            step={500}
+            placeholder="0"
+            className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
+          />
+        </div>
+
         {puedeGestionarRevendedores && (
           <RevendedorSelector revendedores={revendedores} />
         )}

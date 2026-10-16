@@ -208,10 +208,12 @@ model Cliente {
   requiereFactura   Boolean          @default(false) @map("requiere_factura")
   cuentaCorriente   CuentaCorriente? @relation(fields: [idCuentaCorriente], references: [id])
   idCuentaCorriente Int?             @map("id_cuenta_corriente")
-  revendedor        Revendedor?      @relation(fields: [idRevendedor], references: [id])
-  idRevendedor      Int?             @map("id_revendedor")
-  activo            Boolean          @default(true)
-  observaciones     String?
+  revendedor                Revendedor?      @relation(fields: [idRevendedor], references: [id])
+  idRevendedor              Int?             @map("id_revendedor")
+  precioReferido            Float?           @map("precio_referido")
+  comisionRevendedorFija    Float?           @map("comision_revendedor_fija")
+  activo                    Boolean          @default(true)
+  observaciones             String?
   pedidos           Pedido[]
   pagosLocales      PagoLocal[]
   creadoEn          DateTime         @default(now()) @map("creado_en")

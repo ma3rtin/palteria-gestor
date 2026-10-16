@@ -17,6 +17,8 @@ interface Cliente {
   requiereFactura: boolean;
   idRevendedor: number | null;
   revendedor?: { nombre: string } | null;
+  precioReferido?: number | null;
+  comisionRevendedorFija?: number | null;
 }
 
 interface Producto {
@@ -95,8 +97,11 @@ export function FormNuevoPedido({
   const [items, setItems] = useState<ItemFormRow[]>([
     { key: "item-1", idProducto: "", cajas: 1, maduracion: "" },
   ]);
-  const [montoManual, setMontoManual] = useState<number | "" | null>(null);
-  const [comisionRevendedor, setComisionRevendedor] = useState<number | "">("");
+  const [montoManual, setMontoManual] = useState<number | "" | null>(initialCliente?.precioReferido ?? null);
+  const [comisionManualEditada, setComisionManualEditada] = useState(false);
+  const [comisionRevendedor, setComisionRevendedor] = useState<number | "">(() =>
+    initialCliente?.comisionRevendedorFija != null ? Math.round(1 * initialCliente.comisionRevendedorFija) : ""
+  );
   const [busqueda, setBusqueda] = useState(initialCliente ? `${initialCliente.nombre} · ${initialCliente.zona.nombre}` : "");
   const [mostrarLista, setMostrarLista] = useState(false);
   const [errorCliente, setErrorCliente] = useState(false);
@@ -110,17 +115,32 @@ export function FormNuevoPedido({
 
   const clienteSelec = clientes.find((c) => c.id === idClienteSelec);
 
+  function recalcularComision(nuevosItems: ItemFormRow[], clienteActual = clienteSelec) {
+    if (clienteActual?.comisionRevendedorFija != null && !comisionManualEditada) {
+      const cjs = nuevosItems.reduce((sum, it) => sum + (typeof it.cajas === "number" ? it.cajas : 0), 0);
+      setComisionRevendedor(Math.round(cjs * clienteActual.comisionRevendedorFija));
+    }
+  }
+
   function agregarItem() {
-    setItems((prev) => [
-      ...prev,
-      { key: `item-${Date.now()}-${Math.random()}`, idProducto: "", cajas: 1, maduracion: "" },
-    ]);
+    setItems((prev) => {
+      const next: ItemFormRow[] = [
+        ...prev,
+        { key: `item-${Date.now()}-${Math.random()}`, idProducto: "", cajas: 1, maduracion: "" },
+      ];
+      recalcularComision(next);
+      return next;
+    });
     setErrorItems(null);
   }
 
   function eliminarItem(index: number) {
     if (items.length <= 1) return;
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    setItems((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      recalcularComision(next);
+      return next;
+    });
     setMontoManual(null);
     setErrorItems(null);
   }
@@ -136,6 +156,9 @@ export function FormNuevoPedido({
         if (prod?.maduracion && !copy[index].maduracion) {
           copy[index].maduracion = prod.maduracion;
         }
+      }
+      if (campo === "cajas") {
+        recalcularComision(copy);
       }
       return copy;
     });
@@ -230,6 +253,18 @@ export function FormNuevoPedido({
     setErrorCliente(false);
     setFormaPago(c.formaPagoPref); // Auto-select preferred payment method
     setRequiereFactura(c.requiereFactura);
+    if (c.precioReferido != null) {
+      setMontoManual(c.precioReferido);
+    } else {
+      setMontoManual(null);
+    }
+    setComisionManualEditada(false);
+    if (c.comisionRevendedorFija != null) {
+      const cjs = items.reduce((sum, it) => sum + (typeof it.cajas === "number" ? it.cajas : 0), 0);
+      setComisionRevendedor(Math.round(cjs * c.comisionRevendedorFija));
+    } else {
+      setComisionRevendedor("");
+    }
   }
 
   return (
@@ -759,23 +794,53 @@ export function FormNuevoPedido({
             {/* Resumen de cajas y Monto total */}
             <div className="grid grid-cols-2 gap-4 mt-1">
               <div>
-                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-                  {formaPago === "RETIRO" ? "Total a retirar" : "Total cajas"}
-                </label>
+                <div className="flex items-center h-7 mb-1.5">
+                  <label className="block text-sm font-medium text-[#f9fafb]">
+                    {formaPago === "RETIRO" ? "Total a retirar" : "Total cajas"}
+                  </label>
+                </div>
                 <div className="border border-[#2a2d35] bg-[#17191e] rounded-lg px-3 py-2 text-sm font-mono text-[#f9fafb]">
                   {totalCajas} {totalCajas === 1 ? "caja" : "cajas"}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-                  {esCambio && !esReposicion ? "Diferencia a cobrar *" : "Monto total *"}
-                  {!esCambio && !esSinCargo && montoManual === null && montoCalculado !== "" && (
-                    <span className="text-xs text-[#6b7280] ml-1">(calculado)</span>
+                <div className="flex items-center justify-between h-7 mb-1.5">
+                  <label className="block text-sm font-medium text-[#f9fafb]">
+                    {esCambio && !esReposicion ? "Diferencia a cobrar *" : "Monto total *"}
+                    {esSinCargo && (
+                      <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
+                    )}
+                  </label>
+                  {clienteSelec?.precioReferido != null && !esSinCargo && (
+                    <div className="inline-flex items-center bg-[#13151b] border border-[#2a2d35] rounded-md p-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setMontoManual(clienteSelec.precioReferido!)}
+                        className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all cursor-pointer ${
+                          montoManual !== null && Number(montoManual) === clienteSelec.precioReferido
+                            ? "bg-[#a3e635] text-[#12141a] shadow-xs"
+                            : "text-[#9ca3af] hover:text-[#f9fafb]"
+                        }`}
+                        title={`Precio fijado acordado: ${formatearPeso(clienteSelec.precioReferido)}`}
+                      >
+                        Referido
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMontoManual(null)}
+                        className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-all cursor-pointer ${
+                          montoManual === null || (montoCalculado !== "" && Number(montoFinal) === Number(montoCalculado) && Number(montoFinal) !== clienteSelec.precioReferido)
+                            ? "bg-[#a3e635] text-[#12141a] shadow-xs"
+                            : "text-[#9ca3af] hover:text-[#f9fafb]"
+                        }`}
+                        title={montoCalculado !== "" ? `Por lista: ${formatearPeso(Number(montoCalculado))}` : "Calcular por lista"}
+                      >
+                        Lista
+                      </button>
+                    </div>
                   )}
-                  {esSinCargo && (
-                    <span className="text-xs text-[#6b7280] ml-1">(sin cargo)</span>
-                  )}
-                </label>
+                </div>
+
                 <input
                   name="montoTotal"
                   type="number"
@@ -895,18 +960,38 @@ export function FormNuevoPedido({
 
       {clienteSelec?.idRevendedor && (
         <div className="w-full md:w-1/2">
-          <label className="block text-sm font-medium text-[#f9fafb] mb-1">
-            Ganancia Revendedor
-            <span className="text-xs font-medium text-[#16a34a] ml-1.5 uppercase">
-              {clienteSelec.revendedor?.nombre || "Revendedor"}
-            </span>
-          </label>
+          <div className="flex items-center justify-between h-7 mb-1.5">
+            <label className="block text-sm font-medium text-[#f9fafb]">
+              Ganancia Revendedor
+              {clienteSelec.revendedor?.nombre && (
+                <span className="text-xs text-[#9ca3af] font-normal ml-1.5">
+                  ({clienteSelec.revendedor.nombre})
+                </span>
+              )}
+            </label>
+            {clienteSelec.comisionRevendedorFija != null && (
+              <button
+                type="button"
+                onClick={() => {
+                  setComisionManualEditada(false);
+                  setComisionRevendedor(Math.round(totalCajas * clienteSelec.comisionRevendedorFija!));
+                }}
+                className="text-xs px-2 py-0.5 rounded border border-[#2a2d35] bg-[#17191e] text-[#9ca3af] hover:text-[#a3e635] hover:border-[#a3e635]/40 transition-colors cursor-pointer font-mono"
+                title="Restablecer comisión fija configurada"
+              >
+                Fija: {formatearPeso(clienteSelec.comisionRevendedorFija)}/caja
+              </button>
+            )}
+          </div>
           <input
             name="comisionRevendedor"
             type="number"
             placeholder="0"
             value={comisionRevendedor}
-            onChange={(e) => setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value))}
+            onChange={(e) => {
+              setComisionManualEditada(true);
+              setComisionRevendedor(e.target.value === "" ? "" : parseFloat(e.target.value));
+            }}
             className="w-full border border-[#2a2d35] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#a3e635] bg-[#1c1f26]"
           />
         </div>

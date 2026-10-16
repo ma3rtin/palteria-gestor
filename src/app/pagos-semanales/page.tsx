@@ -4,6 +4,8 @@ import { formatearPeso } from "@/lib/utils";
 import { BuscadorPagosSemanales } from "./buscador";
 import { Paginador } from "@/components/paginador";
 
+import { BotonExportarCuentas } from "./boton-exportar-cuentas";
+
 interface Props {
   searchParams: Promise<{ q?: string; page?: string }>;
 }
@@ -19,19 +21,22 @@ export default async function PagosSemanalesPage({ searchParams }: Props) {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#f9fafb]">Pagos semanales</h1>
           <p className="text-[#9ca3af] mt-0.5 text-sm">
             {total} cuentas corrientes · {formatearPeso(deudaTotalGlobal)} pendiente total
           </p>
         </div>
-        <Link
-          href="/config/cuentas-corrientes"
-          className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Administrar cuentas
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <BotonExportarCuentas />
+          <Link
+            href="/config/cuentas-corrientes"
+            className="bg-[#a3e635] hover:bg-[#84cc16] text-[#0f1117] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            + Administrar cuentas
+          </Link>
+        </div>
       </div>
 
       {/* Buscador */}
