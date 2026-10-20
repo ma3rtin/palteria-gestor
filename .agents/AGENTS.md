@@ -69,6 +69,7 @@ El proyecto **gestor** se encuentra dentro de un directorio raíz que agrupa tod
 - **Transacciones en Supabase (PgBouncer)**: Las transacciones interactivas (`$transaction(async tx => ...)`) **no funcionan** de manera confiable con el pooler en modo transacción de Supabase.
   > [!CAUTION]
   > Se deben ejecutar las queries de forma secuencial con `await` normales y manejar consistencia manualmente. No usar `$transaction`.
+- **Seguridad en Supabase (RLS Obligatorio)**: Toda migración SQL que cree una nueva tabla (`CREATE TABLE`) en `public` DEBE incluir `ALTER TABLE "public"."nombre_tabla" ENABLE ROW LEVEL SECURITY;` al final del archivo `migration.sql`. Esto bloquea el acceso público desde PostgREST (`anon`/`authenticated`) mientras Prisma continúa operando normalmente gracias al rol `postgres` (`BYPASSRLS`).
 
 ### Convenciones de Código
 - **Idioma**: Todo en español (nombres de variables, funciones, tipos, base de datos, rutas de UI).
